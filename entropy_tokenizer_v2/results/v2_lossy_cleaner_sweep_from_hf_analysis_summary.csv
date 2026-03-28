@@ -1,0 +1,7 @@
+﻿tokenizer_key,variant,remove_comments,remove_blank_lines,remove_trailing_whitespace,remove_docstrings,remove_indentation,n_files,reduction_pct,delta_reduction_pp,stage2_original_chars,stage2_cleaned_chars,stage2_removed_blank_lines,stage2_removed_docstring_chars,stage2_removed_indent_chars
+gpt4,baseline,False,True,True,False,True,991,8.358201486031259,0.000000,6063538,4977532,698,0,1079558
+gpt4,flip_remove_comments_0->1,True,True,True,False,True,991,16.428784019764585,8.070583,6063538,4483979,11224,0,1039778
+gpt4,flip_remove_blank_lines_1->0,False,False,True,False,True,991,8.358201486031259,0.000000,6063538,4977532,0,0,1079558
+gpt4,flip_remove_trailing_whitespace_1->0,False,True,False,False,True,991,8.338118202960999,-0.020083,6063538,4978376,698,0,1079558
+gpt4,flip_remove_docstrings_0->1,False,True,True,True,True,991,8.950032791721208,0.591831,6063538,4935523,1523,42008,1075272
+gpt4,flip_remove_indentation_1->0,False,True,True,False,False,991,0.13182535313654986,-8.226376,6063538,6057090,698,0,0
