@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.benchmarks/
+.DS_Store
+verification_report.json
+cache/*
+!cache/.gitkeep
+results/*
+!results/.gitkeep
+*.log

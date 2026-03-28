@@ -8,7 +8,12 @@ import bootstrap_v2
 
 bootstrap_v2.ensure()
 
-from config import EVAL_TOKENIZERS, EVAL_NUM_SAMPLES
+from config import (
+    EVAL_NUM_SAMPLES,
+    EVAL_TOKENIZERS,
+    STAGE2_DEFAULT_MODE,
+    STAGE2_DEFAULT_PROFILE,
+)
 
 
 def cmd_eval(args):
@@ -40,7 +45,14 @@ def cmd_eval(args):
                 args.repo, tok_key, cfg, cache=True
             )
             configs[tok_key] = repo_config
-            r = evaluate(sources, repo_config, tok_key, cfg)
+            r = evaluate(
+                sources,
+                repo_config,
+                tok_key,
+                cfg,
+                stage2_profile=args.stage2_profile,
+                stage2_mode=args.stage2_mode,
+            )
             results.append(r)
 
         print_report(results)
@@ -49,7 +61,12 @@ def cmd_eval(args):
     else:
         # Use the HF eval dataset
         n = args.samples or EVAL_NUM_SAMPLES
-        run_evaluation(tokenizer_keys=tok_keys, num_samples=n)
+        run_evaluation(
+            tokenizer_keys=tok_keys,
+            num_samples=n,
+            stage2_profile=args.stage2_profile,
+            stage2_mode=args.stage2_mode,
+        )
 
 
 def cmd_demo(args):
@@ -192,6 +209,20 @@ def main():
                         help=f"Number of samples (default: {EVAL_NUM_SAMPLES})")
     p_eval.add_argument("--tokenizers", nargs="+", default=None,
                         help="Tokenizer keys to evaluate (default: all)")
+    p_eval.add_argument(
+        "--stage2-profile",
+        type=str,
+        default=STAGE2_DEFAULT_PROFILE,
+        choices=["stage2_parseable", "stage2_aggressive"],
+        help="Stage2 profile",
+    )
+    p_eval.add_argument(
+        "--stage2-mode",
+        type=str,
+        default=STAGE2_DEFAULT_MODE,
+        choices=["linewise", "blockwise"],
+        help="Stage2 mode",
+    )
 
     p_demo = sub.add_parser("demo", help="Show compression on a single file")
     p_demo.add_argument("--file", type=str, default=None,

@@ -17,84 +17,11 @@ bootstrap_v2.ensure()
 
 from config import (
     CACHE_DIR, EVAL_DATASET, EVAL_NUM_SAMPLES,
-    EVAL_TOKENIZERS, HF_TOKEN, RESULTS_DIR,
+    EVAL_TOKENIZERS, HF_DISK_DATASET_FALLBACK, HF_TOKEN, RESULTS_DIR,
+    STAGE2_DEFAULT_MODE, STAGE2_DEFAULT_PROFILE,
 )
-from lossy_cleaner import CleaningConfig, clean_code
 from repo_miner import RepoConfig, _encode, _load_tokenizer, _vocab_size
-from syntax_compressor import compress_source_syntax
-from token_scorer import apply_token_replacement
-from marker_count import RE_ALL_MARKERS, count_augmented
-
-_SYN_LINE_RE = re.compile(r'^\s*<SYN_\d+>\b')
-
-
-def _is_syn_line(line: str) -> bool:
-    return bool(_SYN_LINE_RE.match(line))
-
-
-def _clean_stage2_skip_syn(text: str) -> str:
-    """Stage 2 on non-SYN lines only; SYN lines get ``rstrip`` only."""
-    cfg = CleaningConfig(
-        remove_comments=False,
-        remove_blank_lines=True,
-        remove_trailing_whitespace=True,
-        remove_docstrings=False,
-        remove_indentation=True,
-    )
-
-    out_lines: list[str] = []
-    for line in text.splitlines():
-        if _is_syn_line(line):
-            out_lines.append(line.rstrip())
-            continue
-
-        cleaned_line, _ = clean_code(line, cfg)
-        if cleaned_line.strip():
-            out_lines.append(cleaned_line)
-
-    return "\n".join(out_lines)
-
-
-def _replace_stage3_skip_syn(text: str, rmap: dict[str, str]) -> str:
-    """Stage 3 only on lines that are not ``<SYN_n>`` headers."""
-    if not rmap:
-        return text
-
-    out_lines: list[str] = []
-    for line in text.splitlines():
-        if _is_syn_line(line):
-            out_lines.append(line)
-        else:
-            out_lines.append(apply_token_replacement(line, rmap))
-    return "\n".join(out_lines)
-
-
-def _count_with_ops(text: str, tokenizer, tok_type: str) -> int:
-    return count_augmented(text, tokenizer, tok_type, pattern=RE_ALL_MARKERS)
-
-
-@dataclass
-class FileResult:
-    baseline_tokens:   int
-    after_syntax:      int
-    after_cleaning:    int
-    after_replacement: int
-
-    @property
-    def syntax_saved(self) -> int:
-        return self.baseline_tokens - self.after_syntax
-
-    @property
-    def cleaning_saved(self) -> int:
-        return self.after_syntax - self.after_cleaning
-
-    @property
-    def replacement_saved(self) -> int:
-        return self.after_cleaning - self.after_replacement
-
-    @property
-    def total_saved(self) -> int:
-        return self.baseline_tokens - self.after_replacement
+from pipeline import CompressionBreakdown, apply_pipeline
 
 
 def apply_v2_compression(
@@ -103,32 +30,18 @@ def apply_v2_compression(
     tokenizer,
     tok_type: str,
     count_fn=None,
-) -> tuple[str, FileResult]:
-    if count_fn is None:
-        def count_fn_local(text: str) -> int:
-            return _count_with_ops(text, tokenizer, tok_type)
-        count_fn = count_fn_local
-
-    baseline_tokens = count_fn(source)
-
-    skeletons = repo_config.skeleton_candidates()
-    after_s1 = compress_source_syntax(source, skeletons)
-    after_s1_tokens = count_fn(after_s1)
-
-    after_s2 = _clean_stage2_skip_syn(after_s1)
-    after_s2_tokens = count_fn(after_s2)
-
-    rmap = repo_config.replacement_map
-    after_s3 = _replace_stage3_skip_syn(after_s2, rmap)
-    after_s3_tokens = count_fn(after_s3)
-
-    result = FileResult(
-        baseline_tokens=baseline_tokens,
-        after_syntax=after_s1_tokens,
-        after_cleaning=after_s2_tokens,
-        after_replacement=after_s3_tokens,
+    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
+    stage2_mode: str = STAGE2_DEFAULT_MODE,
+) -> tuple[str, CompressionBreakdown]:
+    return apply_pipeline(
+        source,
+        repo_config,
+        tokenizer,
+        tok_type,
+        count_fn=count_fn,
+        stage2_profile=stage2_profile,
+        stage2_mode=stage2_mode,
     )
-    return after_s3, result
 
 
 def _entropy(token_counts: Counter) -> float:
@@ -150,17 +63,19 @@ def _bpb(total_tokens: int, vocab_size: int, total_bytes: int) -> float:
 
 
 def load_eval_samples(num_samples: int = EVAL_NUM_SAMPLES) -> list[str]:
-    cache_path = CACHE_DIR / "eval_100star_samples.json"
+    ds_tag = re.sub(r"[^a-zA-Z0-9_.-]+", "_", EVAL_DATASET)
+    cache_path = CACHE_DIR / f"eval_samples_{ds_tag}_{num_samples}.json"
     if cache_path.exists():
         with open(cache_path, "r", encoding="utf-8") as f:
             samples = json.load(f)
         return samples[:num_samples]
 
-    os.environ["HF_TOKEN"] = HF_TOKEN
+    if HF_TOKEN:
+        os.environ.setdefault("HF_TOKEN", HF_TOKEN)
     try:
         from datasets import load_dataset
         ds = load_dataset(EVAL_DATASET, split="train",
-                          streaming=True, token=HF_TOKEN)
+                          streaming=True, token=HF_TOKEN or None)
         samples = []
         for ex in ds:
             samples.append(ex["content"])
@@ -168,7 +83,7 @@ def load_eval_samples(num_samples: int = EVAL_NUM_SAMPLES) -> list[str]:
                 break
     except Exception:
         from datasets import load_from_disk
-        ds = load_from_disk(str(CACHE_DIR.parent / "data" / "test"))
+        ds = load_from_disk(str(HF_DISK_DATASET_FALLBACK))
         samples = ds["content"][:num_samples]
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -180,6 +95,8 @@ def load_eval_samples(num_samples: int = EVAL_NUM_SAMPLES) -> list[str]:
 @dataclass
 class EvalResult:
     tokenizer_key:       str
+    stage2_profile:      str
+    stage2_mode:         str
     n_files:             int
     baseline_tokens:     int
     syntax_tokens:       int
@@ -206,6 +123,8 @@ def evaluate(
     repo_config: RepoConfig,
     tokenizer_key: str,
     tokenizer_cfg: dict,
+    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
+    stage2_mode: str = STAGE2_DEFAULT_MODE,
 ) -> EvalResult:
     tokenizer, tok_type = _load_tokenizer(tokenizer_key, tokenizer_cfg)
     V0 = _vocab_size(tokenizer, tok_type)
@@ -213,14 +132,22 @@ def evaluate(
 
     total_bytes = sum(len(s.encode("utf-8")) for s in sources)
 
-    agg = FileResult(
+    agg = CompressionBreakdown(
         baseline_tokens=0, after_syntax=0,
         after_cleaning=0, after_replacement=0,
     )
     baseline_token_counts: Counter = Counter()
 
     for src in tqdm(sources, desc=f"  [{tokenizer_key}] compressing", leave=False):
-        _, fr = apply_v2_compression(src, repo_config, tokenizer, tok_type, count_fn)
+        _, fr = apply_v2_compression(
+            src,
+            repo_config,
+            tokenizer,
+            tok_type,
+            count_fn,
+            stage2_profile=stage2_profile,
+            stage2_mode=stage2_mode,
+        )
 
         for tok_id in _encode(tokenizer, tok_type, src):
             baseline_token_counts[tok_id] += 1
@@ -235,6 +162,8 @@ def evaluate(
 
     return EvalResult(
         tokenizer_key       = tokenizer_key,
+        stage2_profile      = stage2_profile,
+        stage2_mode         = stage2_mode,
         n_files             = len(sources),
         baseline_tokens     = B,
         syntax_tokens       = agg.after_syntax,
@@ -263,7 +192,7 @@ def print_report(results: list[EvalResult]):
     print("  v2 compression — evaluation report")
     print("=" * w)
 
-    hdr = (f"  {'Tokenizer':<20} {'Baseline':>10} {'Final':>10} "
+    hdr = (f"  {'Tokenizer':<20} {'Profile':<18} {'Mode':<9} {'Baseline':>10} {'Final':>10} "
            f"{'Total%':>7} {'Syntax%':>7} {'Clean%':>7} {'Token%':>7} "
            f"{'BPB_base':>9} {'BPB_final':>9} "
            f"{'K*_syn':>6} {'N_repl':>7}")
@@ -272,7 +201,8 @@ def print_report(results: list[EvalResult]):
 
     for r in results:
         print(
-            f"  {r.tokenizer_key:<20} {r.baseline_tokens:>10,}   {r.final_tokens:>10,} "
+            f"  {r.tokenizer_key:<20} {r.stage2_profile:<18} {r.stage2_mode:<9} "
+            f"{r.baseline_tokens:>10,}   {r.final_tokens:>10,} "
             f"{r.reduction_pct:>6.1f}% {r.syntax_pct:>6.1f}% "
             f"{r.cleaning_pct:>6.1f}% {r.replacement_pct:>6.1f}% "
             f"{r.baseline_bpb:>9.4f} {r.final_bpb:>9.4f} "
@@ -321,6 +251,8 @@ def run_evaluation(
     tokenizer_keys: Optional[list[str]] = None,
     num_samples: int = EVAL_NUM_SAMPLES,
     verbose: bool = True,
+    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
+    stage2_mode: str = STAGE2_DEFAULT_MODE,
 ) -> list[EvalResult]:
     from repo_miner import mine_from_sources
 
@@ -349,13 +281,20 @@ def run_evaluation(
             sources=samples,
             tokenizer_key=tok_key,
             tokenizer_cfg=cfg,
-            cache_name=f"eval_{num_samples}",
+            cache_name=f"eval_{num_samples}_{stage2_profile}_{stage2_mode}",
             cache=True,
             verbose=verbose,
         )
         repo_config_by_tok[tok_key] = repo_config
 
-        result = evaluate(samples, repo_config, tok_key, cfg)
+        result = evaluate(
+            samples,
+            repo_config,
+            tok_key,
+            cfg,
+            stage2_profile=stage2_profile,
+            stage2_mode=stage2_mode,
+        )
         all_results.append(result)
 
         if verbose:

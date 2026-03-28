@@ -16,6 +16,8 @@ def ensure() -> None:
 
 def ensure_with_simpy() -> None:
     ensure()
-    s = str(CODE_DIR / "Simpy-master")
+    from config import SIMPY_DIR
+
+    s = str(SIMPY_DIR)
     if s not in sys.path:
         sys.path.insert(0, s)

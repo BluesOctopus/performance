@@ -14,8 +14,10 @@ from config import (
 )
 from lossy_cleaner import lossless_clean
 from syntax_compressor import (
-    SkeletonCandidate, build_candidate_pool,
-    greedy_mdl_select, mine_skeletons,
+    SkeletonCandidate,
+    build_candidate_pool,
+    greedy_mdl_select,
+    mine_skeletons,
 )
 from marker_count import encode as _encode
 from token_scorer import (
@@ -30,13 +32,31 @@ class RepoConfig:
     selected_skeletons:  list[dict] = field(default_factory=list)
     replacement_map:     dict[str, str] = field(default_factory=dict)
     scores_summary:      list[dict] = field(default_factory=list)
+    stage1_candidate_stats: list[dict] = field(default_factory=list)
+    stage1_selected_stats: list[dict] = field(default_factory=list)
+    stage1_total_net_saving: float = 0.0
     n_sources:           int = 0
     N_baseline_tokens:   int = 0
     V0:                  int = 0
     tokenizer_key:       str = ""
 
     def skeleton_candidates(self) -> list[SkeletonCandidate]:
-        return [SkeletonCandidate(**d) for d in self.selected_skeletons]
+        from dataclasses import fields
+
+        names = [f.name for f in fields(SkeletonCandidate)]
+        out: list[SkeletonCandidate] = []
+        for row in self.selected_skeletons:
+            d = dict(row)
+            d.setdefault("vocab_intro_tokens", 0)
+            d.setdefault("total_baseline_sequence_tokens", 0)
+            d.setdefault("total_compressed_sequence_tokens", 0)
+            d.setdefault("avg_sequence_net_saving", d.get("avg_net_saving", 0.0))
+            d.setdefault(
+                "effective_total_net_saving",
+                d.get("total_net_saving", 0),
+            )
+            out.append(SkeletonCandidate(**{k: d[k] for k in names}))
+        return out
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, indent=2)
@@ -54,7 +74,7 @@ def _load_tokenizer(tok_key: str, cfg: dict):
     import transformers
     from config import HF_TOKEN
     tok = transformers.AutoTokenizer.from_pretrained(
-        cfg["name"], trust_remote_code=True, token=HF_TOKEN,
+        cfg["name"], trust_remote_code=True, token=HF_TOKEN or None,
     )
     return tok, "hf"
 
@@ -119,12 +139,38 @@ def mine_repo(
     candidates = build_candidate_pool(
         skeleton_counts, tokenizer, tok_type, sources=clean_sources
     )
-    selected_skeletons = greedy_mdl_select(candidates, N_baseline, V0)
+    selected_skeletons, _stage1_select_diag, stage1_total_net_saving = greedy_mdl_select(
+        candidates,
+        N_baseline,
+        V0,
+        return_diagnostics=True,
+    )
+    selected_set = {c.skeleton for c in selected_skeletons}
+    stage1_candidate_stats = [
+        {
+            "skeleton": c.skeleton,
+            "occurrences": c.frequency,
+            "avg_baseline_cost": c.avg_baseline_cost,
+            "avg_compressed_cost": c.avg_compressed_cost,
+            "avg_slot_cost": c.avg_slot_cost,
+            "marker_cost": c.marker_cost,
+            "avg_net_saving": c.avg_net_saving,
+            "total_net_saving": c.total_net_saving,
+            "vocab_intro_tokens": c.vocab_intro_tokens,
+            "effective_total_net_saving": c.effective_total_net_saving,
+            "avg_sequence_net_saving": c.avg_sequence_net_saving,
+            "selected": c.skeleton in selected_set,
+        }
+        for c in candidates
+    ]
+    stage1_selected_stats = [s for s in stage1_candidate_stats if s["selected"]]
     if verbose:
         print(f"  MDL K* = {len(selected_skeletons)} accepted skeletons")
         for c in selected_skeletons[:5]:
-            print(f"    [{c.skeleton[:60]}]  spi={c.savings_per_instance} "
-                  f"freq={c.frequency} net_benefit={c.mdl_net_benefit:.0f}")
+            print(
+                f"    [{c.skeleton[:60]}] freq={c.frequency} "
+                f"avg_net={c.avg_net_saving:.2f} total_net={c.total_net_saving}"
+            )
 
     if verbose:
         print("[repo_miner] Stage 3 - computing token importance scores ...")
@@ -145,19 +191,34 @@ def mine_repo(
     return RepoConfig(
         selected_skeletons=[
             {
-                "skeleton":                  c.skeleton,
-                "frequency":                 c.frequency,
-                "fixed_tokens":              c.fixed_tokens,
-                "num_slots":                 c.num_slots,
-                "savings_per_instance":      c.savings_per_instance,
-                "codebook_cost":             c.codebook_cost,
-                "mdl_net_benefit":           c.mdl_net_benefit,
-                "empirical_total_savings":   c.empirical_total_savings,
+                "skeleton": c.skeleton,
+                "frequency": c.frequency,
+                "fixed_tokens": c.fixed_tokens,
+                "num_slots": c.num_slots,
+                "savings_per_instance": c.savings_per_instance,
+                "codebook_cost": c.codebook_cost,
+                "mdl_net_benefit": c.mdl_net_benefit,
+                "empirical_total_savings": c.empirical_total_savings,
+                "avg_baseline_cost": c.avg_baseline_cost,
+                "avg_compressed_cost": c.avg_compressed_cost,
+                "avg_slot_cost": c.avg_slot_cost,
+                "marker_cost": c.marker_cost,
+                "avg_net_saving": c.avg_net_saving,
+                "total_net_saving": c.total_net_saving,
+                "selected": c.selected,
+                "vocab_intro_tokens": c.vocab_intro_tokens,
+                "effective_total_net_saving": c.effective_total_net_saving,
+                "total_baseline_sequence_tokens": c.total_baseline_sequence_tokens,
+                "total_compressed_sequence_tokens": c.total_compressed_sequence_tokens,
+                "avg_sequence_net_saving": c.avg_sequence_net_saving,
             }
             for c in selected_skeletons
         ],
         replacement_map=rmap,
         scores_summary=summary,
+        stage1_candidate_stats=stage1_candidate_stats,
+        stage1_selected_stats=stage1_selected_stats,
+        stage1_total_net_saving=stage1_total_net_saving,
         n_sources=n,
         N_baseline_tokens=N_baseline,
         V0=V0,
