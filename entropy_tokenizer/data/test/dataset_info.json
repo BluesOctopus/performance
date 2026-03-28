@@ -1,0 +1,24 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "content": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "stars": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "repo_name": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "file_path": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

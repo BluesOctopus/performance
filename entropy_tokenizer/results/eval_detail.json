@@ -1,0 +1,1296 @@
+{
+  "results": [
+    {
+      "tokenizer": "gpt4",
+      "budget": 20,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1493883,
+      "ratio": 0.9753123496357309,
+      "reduction_pct": 2.468765036426912,
+      "ast_savings": 13298,
+      "lex_savings": 24516,
+      "n_syntax_ops": 15,
+      "n_lexical_ops": 5,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "gpt4",
+      "budget": 50,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1481828,
+      "ratio": 0.9674419940758519,
+      "reduction_pct": 3.255800592414815,
+      "ast_savings": 17754,
+      "lex_savings": 32115,
+      "n_syntax_ops": 34,
+      "n_lexical_ops": 16,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "gpt4",
+      "budget": 100,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1470152,
+      "ratio": 0.9598190764883655,
+      "reduction_pct": 4.01809235116345,
+      "ast_savings": 20899,
+      "lex_savings": 40646,
+      "n_syntax_ops": 60,
+      "n_lexical_ops": 40,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "gpt4",
+      "budget": 200,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1456124,
+      "ratio": 0.9506606071566374,
+      "reduction_pct": 4.9339392843362635,
+      "ast_savings": 23805,
+      "lex_savings": 51768,
+      "n_syntax_ops": 105,
+      "n_lexical_ops": 95,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "gpt4",
+      "budget": 500,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1441385,
+      "ratio": 0.941037946800183,
+      "reduction_pct": 5.8962053199816955,
+      "ast_savings": 29071,
+      "lex_savings": 61241,
+      "n_syntax_ops": 300,
+      "n_lexical_ops": 200,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "gpt4",
+      "budget": 1000,
+      "baseline_tokens": 1531697,
+      "compressed_tokens": 1436696,
+      "ratio": 0.9379766363712928,
+      "reduction_pct": 6.202336362870719,
+      "ast_savings": 33760,
+      "lex_savings": 61241,
+      "n_syntax_ops": 800,
+      "n_lexical_ops": 200,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 20,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1959492,
+      "ratio": 0.9770663954105865,
+      "reduction_pct": 2.2933604589413514,
+      "ast_savings": 13975,
+      "lex_savings": 32018,
+      "n_syntax_ops": 12,
+      "n_lexical_ops": 8,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 50,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1943274,
+      "ratio": 0.9689795735196224,
+      "reduction_pct": 3.1020426480377616,
+      "ast_savings": 18914,
+      "lex_savings": 43297,
+      "n_syntax_ops": 28,
+      "n_lexical_ops": 22,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 100,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1926800,
+      "ratio": 0.9607651017085642,
+      "reduction_pct": 3.9234898291435782,
+      "ast_savings": 22009,
+      "lex_savings": 56676,
+      "n_syntax_ops": 48,
+      "n_lexical_ops": 52,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 200,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1909634,
+      "ratio": 0.9522055762072517,
+      "reduction_pct": 4.779442379274834,
+      "ast_savings": 25531,
+      "lex_savings": 70320,
+      "n_syntax_ops": 92,
+      "n_lexical_ops": 108,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 500,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1879944,
+      "ratio": 0.9374011772713333,
+      "reduction_pct": 6.259882272866668,
+      "ast_savings": 31055,
+      "lex_savings": 94486,
+      "n_syntax_ops": 230,
+      "n_lexical_ops": 270,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "codegen-350M-mono",
+      "budget": 1000,
+      "baseline_tokens": 2005485,
+      "compressed_tokens": 1864479,
+      "ratio": 0.9296898256531463,
+      "reduction_pct": 7.0310174346853715,
+      "ast_savings": 36504,
+      "lex_savings": 104502,
+      "n_syntax_ops": 600,
+      "n_lexical_ops": 400,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 20,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1725432,
+      "ratio": 0.976756192499032,
+      "reduction_pct": 2.3243807500967995,
+      "ast_savings": 12432,
+      "lex_savings": 28628,
+      "n_syntax_ops": 13,
+      "n_lexical_ops": 7,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 50,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1708219,
+      "ratio": 0.9670120215659057,
+      "reduction_pct": 3.298797843409429,
+      "ast_savings": 16875,
+      "lex_savings": 41398,
+      "n_syntax_ops": 28,
+      "n_lexical_ops": 22,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 100,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1694904,
+      "ratio": 0.9594744838923698,
+      "reduction_pct": 4.052551610763022,
+      "ast_savings": 20220,
+      "lex_savings": 51368,
+      "n_syntax_ops": 51,
+      "n_lexical_ops": 49,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 200,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1677161,
+      "ratio": 0.9494302832959334,
+      "reduction_pct": 5.0569716704066625,
+      "ast_savings": 23257,
+      "lex_savings": 66074,
+      "n_syntax_ops": 91,
+      "n_lexical_ops": 109,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 500,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1650500,
+      "ratio": 0.9343376590440262,
+      "reduction_pct": 6.566234095597379,
+      "ast_savings": 27999,
+      "lex_savings": 87993,
+      "n_syntax_ops": 219,
+      "n_lexical_ops": 281,
+      "num_files": 1000
+    },
+    {
+      "tokenizer": "santacoder",
+      "budget": 1000,
+      "baseline_tokens": 1766492,
+      "compressed_tokens": 1636129,
+      "ratio": 0.9262023264186874,
+      "reduction_pct": 7.379767358131262,
+      "ast_savings": 33129,
+      "lex_savings": 97234,
+      "n_syntax_ops": 600,
+      "n_lexical_ops": 400,
+      "num_files": 1000
+    }
+  ],
+  "top_operators_per_tokenizer": {
+    "gpt4": [
+      {
+        "type": "prefix",
+        "pattern": "self.",
+        "savings_per_instance": 1,
+        "frequency": 244480,
+        "total_savings_est": 244480
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 33615,
+        "total_savings_est": 100845
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}):",
+        "savings_per_instance": 3,
+        "frequency": 18890,
+        "total_savings_est": 56670
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}",
+        "savings_per_instance": 1,
+        "frequency": 49167,
+        "total_savings_est": 49167
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}):",
+        "savings_per_instance": 1,
+        "frequency": 38301,
+        "total_savings_est": 38301
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} == {1}:",
+        "savings_per_instance": 3,
+        "frequency": 12248,
+        "total_savings_est": 36744
+      },
+      {
+        "type": "prefix",
+        "pattern": "np.",
+        "savings_per_instance": 1,
+        "frequency": 33909,
+        "total_savings_est": 33909
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 10484,
+        "total_savings_est": 31452
+      },
+      {
+        "type": "prefix",
+        "pattern": "get_",
+        "savings_per_instance": 1,
+        "frequency": 28903,
+        "total_savings_est": 28903
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0}",
+        "savings_per_instance": 1,
+        "frequency": 26842,
+        "total_savings_est": 26842
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0} as {1}",
+        "savings_per_instance": 3,
+        "frequency": 8715,
+        "total_savings_est": 26145
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}):",
+        "savings_per_instance": 4,
+        "frequency": 6027,
+        "total_savings_est": 24108
+      },
+      {
+        "type": "prefix",
+        "pattern": "test_",
+        "savings_per_instance": 1,
+        "frequency": 21458,
+        "total_savings_est": 21458
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}",
+        "savings_per_instance": 4,
+        "frequency": 5331,
+        "total_savings_est": 21324
+      },
+      {
+        "type": "syntax",
+        "pattern": "return {0}",
+        "savings_per_instance": 1,
+        "frequency": 20829,
+        "total_savings_est": 20829
+      },
+      {
+        "type": "prefix",
+        "pattern": "os.",
+        "savings_per_instance": 1,
+        "frequency": 17241,
+        "total_savings_est": 17241
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2}, {3})",
+        "savings_per_instance": 3,
+        "frequency": 4682,
+        "total_savings_est": 14046
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is not None:",
+        "savings_per_instance": 5,
+        "frequency": 2615,
+        "total_savings_est": 13075
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is None:",
+        "savings_per_instance": 4,
+        "frequency": 3102,
+        "total_savings_est": 12408
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2})",
+        "savings_per_instance": 1,
+        "frequency": 12398,
+        "total_savings_est": 12398
+      },
+      {
+        "type": "prefix",
+        "pattern": "add_",
+        "savings_per_instance": 1,
+        "frequency": 12204,
+        "total_savings_est": 12204
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}, {4}):",
+        "savings_per_instance": 5,
+        "frequency": 2420,
+        "total_savings_est": 12100
+      },
+      {
+        "type": "syntax",
+        "pattern": "class {0}({1}):",
+        "savings_per_instance": 1,
+        "frequency": 10952,
+        "total_savings_est": 10952
+      },
+      {
+        "type": "prefix",
+        "pattern": "max_",
+        "savings_per_instance": 1,
+        "frequency": 10933,
+        "total_savings_est": 10933
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}[{1}] = {2}",
+        "savings_per_instance": 2,
+        "frequency": 5457,
+        "total_savings_est": 10914
+      },
+      {
+        "type": "prefix",
+        "pattern": "num_",
+        "savings_per_instance": 1,
+        "frequency": 10435,
+        "total_savings_est": 10435
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = []",
+        "savings_per_instance": 1,
+        "frequency": 10124,
+        "total_savings_est": 10124
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}({2}):",
+        "savings_per_instance": 3,
+        "frequency": 3319,
+        "total_savings_est": 9957
+      },
+      {
+        "type": "syntax",
+        "pattern": "with {0}({1}, {2}) as {3}:",
+        "savings_per_instance": 5,
+        "frequency": 1934,
+        "total_savings_est": 9670
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}, {3}",
+        "savings_per_instance": 5,
+        "frequency": 1905,
+        "total_savings_est": 9525
+      },
+      {
+        "type": "prefix",
+        "pattern": "torch.",
+        "savings_per_instance": 1,
+        "frequency": 9455,
+        "total_savings_est": 9455
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 3129,
+        "total_savings_est": 9387
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0}:",
+        "savings_per_instance": 1,
+        "frequency": 9164,
+        "total_savings_est": 9164
+      },
+      {
+        "type": "prefix",
+        "pattern": "is_",
+        "savings_per_instance": 1,
+        "frequency": 8943,
+        "total_savings_est": 8943
+      },
+      {
+        "type": "syntax",
+        "pattern": "from .{0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 2888,
+        "total_savings_est": 8664
+      },
+      {
+        "type": "prefix",
+        "pattern": "models.",
+        "savings_per_instance": 1,
+        "frequency": 8645,
+        "total_savings_est": 8645
+      },
+      {
+        "type": "prefix",
+        "pattern": "set_",
+        "savings_per_instance": 1,
+        "frequency": 8244,
+        "total_savings_est": 8244
+      },
+      {
+        "type": "prefix",
+        "pattern": "new_",
+        "savings_per_instance": 1,
+        "frequency": 8187,
+        "total_savings_est": 8187
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}()",
+        "savings_per_instance": 1,
+        "frequency": 8099,
+        "total_savings_est": 8099
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1} as {2}",
+        "savings_per_instance": 5,
+        "frequency": 1606,
+        "total_savings_est": 8030
+      },
+      {
+        "type": "prefix",
+        "pattern": "cv2.",
+        "savings_per_instance": 2,
+        "frequency": 3850,
+        "total_savings_est": 7700
+      },
+      {
+        "type": "prefix",
+        "pattern": "args.",
+        "savings_per_instance": 1,
+        "frequency": 7515,
+        "total_savings_est": 7515
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}():",
+        "savings_per_instance": 1,
+        "frequency": 7408,
+        "total_savings_est": 7408
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}[{2}]",
+        "savings_per_instance": 1,
+        "frequency": 7382,
+        "total_savings_est": 7382
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}({1}, {2})",
+        "savings_per_instance": 2,
+        "frequency": 3629,
+        "total_savings_est": 7258
+      },
+      {
+        "type": "syntax",
+        "pattern": "except {1} as {0}:",
+        "savings_per_instance": 3,
+        "frequency": 2396,
+        "total_savings_est": 7188
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0}({1}, {2}):",
+        "savings_per_instance": 3,
+        "frequency": 2393,
+        "total_savings_est": 7179
+      },
+      {
+        "type": "prefix",
+        "pattern": "data_",
+        "savings_per_instance": 1,
+        "frequency": 7100,
+        "total_savings_est": 7100
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}.append({1})",
+        "savings_per_instance": 1,
+        "frequency": 6958,
+        "total_savings_est": 6958
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1} + {2}",
+        "savings_per_instance": 3,
+        "frequency": 2262,
+        "total_savings_est": 6786
+      }
+    ],
+    "codegen-350M-mono": [
+      {
+        "type": "prefix",
+        "pattern": "self.",
+        "savings_per_instance": 1,
+        "frequency": 244480,
+        "total_savings_est": 244480
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 33615,
+        "total_savings_est": 100845
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}):",
+        "savings_per_instance": 2,
+        "frequency": 38301,
+        "total_savings_est": 76602
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}):",
+        "savings_per_instance": 3,
+        "frequency": 18890,
+        "total_savings_est": 56670
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}",
+        "savings_per_instance": 1,
+        "frequency": 49167,
+        "total_savings_est": 49167
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} == {1}:",
+        "savings_per_instance": 3,
+        "frequency": 12248,
+        "total_savings_est": 36744
+      },
+      {
+        "type": "prefix",
+        "pattern": "np.",
+        "savings_per_instance": 1,
+        "frequency": 33909,
+        "total_savings_est": 33909
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 10484,
+        "total_savings_est": 31452
+      },
+      {
+        "type": "prefix",
+        "pattern": "get_",
+        "savings_per_instance": 1,
+        "frequency": 28903,
+        "total_savings_est": 28903
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0}",
+        "savings_per_instance": 1,
+        "frequency": 26842,
+        "total_savings_est": 26842
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0} as {1}",
+        "savings_per_instance": 3,
+        "frequency": 8715,
+        "total_savings_est": 26145
+      },
+      {
+        "type": "suffix",
+        "pattern": "_name",
+        "savings_per_instance": 1,
+        "frequency": 24323,
+        "total_savings_est": 24323
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}):",
+        "savings_per_instance": 4,
+        "frequency": 6027,
+        "total_savings_est": 24108
+      },
+      {
+        "type": "suffix",
+        "pattern": "_id",
+        "savings_per_instance": 1,
+        "frequency": 23871,
+        "total_savings_est": 23871
+      },
+      {
+        "type": "syntax",
+        "pattern": "class {0}({1}):",
+        "savings_per_instance": 2,
+        "frequency": 10952,
+        "total_savings_est": 21904
+      },
+      {
+        "type": "prefix",
+        "pattern": "test_",
+        "savings_per_instance": 1,
+        "frequency": 21458,
+        "total_savings_est": 21458
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}",
+        "savings_per_instance": 4,
+        "frequency": 5331,
+        "total_savings_est": 21324
+      },
+      {
+        "type": "syntax",
+        "pattern": "return {0}",
+        "savings_per_instance": 1,
+        "frequency": 20829,
+        "total_savings_est": 20829
+      },
+      {
+        "type": "prefix",
+        "pattern": "torch.",
+        "savings_per_instance": 2,
+        "frequency": 9455,
+        "total_savings_est": 18910
+      },
+      {
+        "type": "prefix",
+        "pattern": "os.",
+        "savings_per_instance": 1,
+        "frequency": 17241,
+        "total_savings_est": 17241
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}():",
+        "savings_per_instance": 2,
+        "frequency": 7408,
+        "total_savings_est": 14816
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2}, {3})",
+        "savings_per_instance": 3,
+        "frequency": 4682,
+        "total_savings_est": 14046
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}.append({1})",
+        "savings_per_instance": 2,
+        "frequency": 6958,
+        "total_savings_est": 13916
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}({2}):",
+        "savings_per_instance": 4,
+        "frequency": 3319,
+        "total_savings_est": 13276
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is not None:",
+        "savings_per_instance": 5,
+        "frequency": 2615,
+        "total_savings_est": 13075
+      },
+      {
+        "type": "prefix",
+        "pattern": "plt.",
+        "savings_per_instance": 2,
+        "frequency": 6379,
+        "total_savings_est": 12758
+      },
+      {
+        "type": "suffix",
+        "pattern": "_data",
+        "savings_per_instance": 1,
+        "frequency": 12566,
+        "total_savings_est": 12566
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is None:",
+        "savings_per_instance": 4,
+        "frequency": 3102,
+        "total_savings_est": 12408
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2})",
+        "savings_per_instance": 1,
+        "frequency": 12398,
+        "total_savings_est": 12398
+      },
+      {
+        "type": "prefix",
+        "pattern": "add_",
+        "savings_per_instance": 1,
+        "frequency": 12204,
+        "total_savings_est": 12204
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}, {4}):",
+        "savings_per_instance": 5,
+        "frequency": 2420,
+        "total_savings_est": 12100
+      },
+      {
+        "type": "suffix",
+        "pattern": "_size",
+        "savings_per_instance": 1,
+        "frequency": 11799,
+        "total_savings_est": 11799
+      },
+      {
+        "type": "suffix",
+        "pattern": "_path",
+        "savings_per_instance": 1,
+        "frequency": 11147,
+        "total_savings_est": 11147
+      },
+      {
+        "type": "suffix",
+        "pattern": "_type",
+        "savings_per_instance": 1,
+        "frequency": 11093,
+        "total_savings_est": 11093
+      },
+      {
+        "type": "prefix",
+        "pattern": "max_",
+        "savings_per_instance": 1,
+        "frequency": 10933,
+        "total_savings_est": 10933
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}[{1}] = {2}",
+        "savings_per_instance": 2,
+        "frequency": 5457,
+        "total_savings_est": 10914
+      },
+      {
+        "type": "prefix",
+        "pattern": "num_",
+        "savings_per_instance": 1,
+        "frequency": 10435,
+        "total_savings_est": 10435
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = []",
+        "savings_per_instance": 1,
+        "frequency": 10124,
+        "total_savings_est": 10124
+      },
+      {
+        "type": "suffix",
+        "pattern": "_list",
+        "savings_per_instance": 1,
+        "frequency": 9699,
+        "total_savings_est": 9699
+      },
+      {
+        "type": "syntax",
+        "pattern": "with {0}({1}, {2}) as {3}:",
+        "savings_per_instance": 5,
+        "frequency": 1934,
+        "total_savings_est": 9670
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}, {3}",
+        "savings_per_instance": 5,
+        "frequency": 1905,
+        "total_savings_est": 9525
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 3129,
+        "total_savings_est": 9387
+      },
+      {
+        "type": "prefix",
+        "pattern": "django.",
+        "savings_per_instance": 2,
+        "frequency": 4619,
+        "total_savings_est": 9238
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0}:",
+        "savings_per_instance": 1,
+        "frequency": 9164,
+        "total_savings_est": 9164
+      },
+      {
+        "type": "prefix",
+        "pattern": "is_",
+        "savings_per_instance": 1,
+        "frequency": 8943,
+        "total_savings_est": 8943
+      },
+      {
+        "type": "syntax",
+        "pattern": "from .{0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 2888,
+        "total_savings_est": 8664
+      },
+      {
+        "type": "prefix",
+        "pattern": "models.",
+        "savings_per_instance": 1,
+        "frequency": 8645,
+        "total_savings_est": 8645
+      },
+      {
+        "type": "prefix",
+        "pattern": "set_",
+        "savings_per_instance": 1,
+        "frequency": 8244,
+        "total_savings_est": 8244
+      },
+      {
+        "type": "prefix",
+        "pattern": "new_",
+        "savings_per_instance": 1,
+        "frequency": 8187,
+        "total_savings_est": 8187
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}()",
+        "savings_per_instance": 1,
+        "frequency": 8099,
+        "total_savings_est": 8099
+      }
+    ],
+    "santacoder": [
+      {
+        "type": "prefix",
+        "pattern": "self.",
+        "savings_per_instance": 1,
+        "frequency": 244480,
+        "total_savings_est": 244480
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 33615,
+        "total_savings_est": 100845
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}):",
+        "savings_per_instance": 3,
+        "frequency": 18890,
+        "total_savings_est": 56670
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}",
+        "savings_per_instance": 1,
+        "frequency": 49167,
+        "total_savings_est": 49167
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}):",
+        "savings_per_instance": 1,
+        "frequency": 38301,
+        "total_savings_est": 38301
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} == {1}:",
+        "savings_per_instance": 3,
+        "frequency": 12248,
+        "total_savings_est": 36744
+      },
+      {
+        "type": "prefix",
+        "pattern": "np.",
+        "savings_per_instance": 1,
+        "frequency": 33909,
+        "total_savings_est": 33909
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 10484,
+        "total_savings_est": 31452
+      },
+      {
+        "type": "prefix",
+        "pattern": "get_",
+        "savings_per_instance": 1,
+        "frequency": 28903,
+        "total_savings_est": 28903
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0}",
+        "savings_per_instance": 1,
+        "frequency": 26842,
+        "total_savings_est": 26842
+      },
+      {
+        "type": "syntax",
+        "pattern": "import {0} as {1}",
+        "savings_per_instance": 3,
+        "frequency": 8715,
+        "total_savings_est": 26145
+      },
+      {
+        "type": "suffix",
+        "pattern": "_name",
+        "savings_per_instance": 1,
+        "frequency": 24323,
+        "total_savings_est": 24323
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}):",
+        "savings_per_instance": 4,
+        "frequency": 6027,
+        "total_savings_est": 24108
+      },
+      {
+        "type": "suffix",
+        "pattern": "_id",
+        "savings_per_instance": 1,
+        "frequency": 23871,
+        "total_savings_est": 23871
+      },
+      {
+        "type": "prefix",
+        "pattern": "test_",
+        "savings_per_instance": 1,
+        "frequency": 21458,
+        "total_savings_est": 21458
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}",
+        "savings_per_instance": 4,
+        "frequency": 5331,
+        "total_savings_est": 21324
+      },
+      {
+        "type": "syntax",
+        "pattern": "return {0}",
+        "savings_per_instance": 1,
+        "frequency": 20829,
+        "total_savings_est": 20829
+      },
+      {
+        "type": "prefix",
+        "pattern": "os.",
+        "savings_per_instance": 1,
+        "frequency": 17241,
+        "total_savings_est": 17241
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2}, {3})",
+        "savings_per_instance": 3,
+        "frequency": 4682,
+        "total_savings_est": 14046
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}.append({1})",
+        "savings_per_instance": 2,
+        "frequency": 6958,
+        "total_savings_est": 13916
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is not None:",
+        "savings_per_instance": 5,
+        "frequency": 2615,
+        "total_savings_est": 13075
+      },
+      {
+        "type": "suffix",
+        "pattern": "_data",
+        "savings_per_instance": 1,
+        "frequency": 12566,
+        "total_savings_est": 12566
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} is None:",
+        "savings_per_instance": 4,
+        "frequency": 3102,
+        "total_savings_est": 12408
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}({2})",
+        "savings_per_instance": 1,
+        "frequency": 12398,
+        "total_savings_est": 12398
+      },
+      {
+        "type": "prefix",
+        "pattern": "add_",
+        "savings_per_instance": 1,
+        "frequency": 12204,
+        "total_savings_est": 12204
+      },
+      {
+        "type": "syntax",
+        "pattern": "def {0}({1}, {2}, {3}, {4}):",
+        "savings_per_instance": 5,
+        "frequency": 2420,
+        "total_savings_est": 12100
+      },
+      {
+        "type": "suffix",
+        "pattern": "_size",
+        "savings_per_instance": 1,
+        "frequency": 11799,
+        "total_savings_est": 11799
+      },
+      {
+        "type": "suffix",
+        "pattern": "_path",
+        "savings_per_instance": 1,
+        "frequency": 11147,
+        "total_savings_est": 11147
+      },
+      {
+        "type": "suffix",
+        "pattern": "_type",
+        "savings_per_instance": 1,
+        "frequency": 11093,
+        "total_savings_est": 11093
+      },
+      {
+        "type": "syntax",
+        "pattern": "class {0}({1}):",
+        "savings_per_instance": 1,
+        "frequency": 10952,
+        "total_savings_est": 10952
+      },
+      {
+        "type": "prefix",
+        "pattern": "max_",
+        "savings_per_instance": 1,
+        "frequency": 10933,
+        "total_savings_est": 10933
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0}[{1}] = {2}",
+        "savings_per_instance": 2,
+        "frequency": 5457,
+        "total_savings_est": 10914
+      },
+      {
+        "type": "prefix",
+        "pattern": "num_",
+        "savings_per_instance": 1,
+        "frequency": 10435,
+        "total_savings_est": 10435
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = []",
+        "savings_per_instance": 1,
+        "frequency": 10124,
+        "total_savings_est": 10124
+      },
+      {
+        "type": "syntax",
+        "pattern": "for {0} in {1}({2}):",
+        "savings_per_instance": 3,
+        "frequency": 3319,
+        "total_savings_est": 9957
+      },
+      {
+        "type": "suffix",
+        "pattern": "_list",
+        "savings_per_instance": 1,
+        "frequency": 9699,
+        "total_savings_est": 9699
+      },
+      {
+        "type": "syntax",
+        "pattern": "with {0}({1}, {2}) as {3}:",
+        "savings_per_instance": 5,
+        "frequency": 1934,
+        "total_savings_est": 9670
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1}, {2}, {3}",
+        "savings_per_instance": 5,
+        "frequency": 1905,
+        "total_savings_est": 9525
+      },
+      {
+        "type": "prefix",
+        "pattern": "torch.",
+        "savings_per_instance": 1,
+        "frequency": 9455,
+        "total_savings_est": 9455
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0} in {1}:",
+        "savings_per_instance": 3,
+        "frequency": 3129,
+        "total_savings_est": 9387
+      },
+      {
+        "type": "syntax",
+        "pattern": "if {0}:",
+        "savings_per_instance": 1,
+        "frequency": 9164,
+        "total_savings_est": 9164
+      },
+      {
+        "type": "prefix",
+        "pattern": "is_",
+        "savings_per_instance": 1,
+        "frequency": 8943,
+        "total_savings_est": 8943
+      },
+      {
+        "type": "syntax",
+        "pattern": "from .{0} import {1}",
+        "savings_per_instance": 3,
+        "frequency": 2888,
+        "total_savings_est": 8664
+      },
+      {
+        "type": "prefix",
+        "pattern": "models.",
+        "savings_per_instance": 1,
+        "frequency": 8645,
+        "total_savings_est": 8645
+      },
+      {
+        "type": "prefix",
+        "pattern": "set_",
+        "savings_per_instance": 1,
+        "frequency": 8244,
+        "total_savings_est": 8244
+      },
+      {
+        "type": "prefix",
+        "pattern": "new_",
+        "savings_per_instance": 1,
+        "frequency": 8187,
+        "total_savings_est": 8187
+      },
+      {
+        "type": "syntax",
+        "pattern": "{0} = {1}()",
+        "savings_per_instance": 1,
+        "frequency": 8099,
+        "total_savings_est": 8099
+      },
+      {
+        "type": "syntax",
+        "pattern": "from {0} import {1} as {2}",
+        "savings_per_instance": 5,
+        "frequency": 1606,
+        "total_savings_est": 8030
+      },
+      {
+        "type": "prefix",
+        "pattern": "cv2.",
+        "savings_per_instance": 2,
+        "frequency": 3850,
+        "total_savings_est": 7700
+      },
+      {
+        "type": "prefix",
+        "pattern": "args.",
+        "savings_per_instance": 1,
+        "frequency": 7515,
+        "total_savings_est": 7515
+      }
+    ]
+  }
+}
