@@ -5,8 +5,10 @@ import json
 import math
 import os
 import re
+import sys
 from collections import Counter
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Optional
 
 from tqdm.auto import tqdm
@@ -14,6 +16,13 @@ from tqdm.auto import tqdm
 import bootstrap_v2
 
 bootstrap_v2.ensure()
+
+
+def _ensure_stage3_pkg() -> None:
+    root = Path(__file__).resolve().parents[1] / "stage3"
+    s = str(root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
 
 from config import (
     CACHE_DIR,
@@ -135,6 +144,12 @@ class EvalResult:
     stage3_expected_gain: float = 0.0
     stage3_vocab_intro_tokens: int = 0
     stage3_component_saved: int = 0
+    stage3_used_entries: int = 0
+    stage3_used_entries_variable: int = 0
+    stage3_used_entries_attribute: int = 0
+    stage3_used_entries_string: int = 0
+    stage3_cost_model: str = ""
+    stage3_assignment_by_field_json: str = ""
 
 
 def evaluate(
@@ -151,6 +166,14 @@ def evaluate(
 
     total_bytes = sum(len(s.encode("utf-8")) for s in sources)
 
+    backend = getattr(repo_config, "stage3_backend", "legacy")
+    plan_books = None
+    plan_esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
+    if backend == "plan_a":
+        from repo_miner import load_plan_a_codebooks
+
+        plan_books = load_plan_a_codebooks(repo_config)
+
     agg = CompressionBreakdown(
         baseline_tokens=0, after_syntax=0,
         after_cleaning=0, after_replacement=0,
@@ -158,6 +181,7 @@ def evaluate(
     baseline_token_counts: Counter = Counter()
     legacy_stage3_used: list[str] = []
     legacy_seen: set[str] = set()
+    plan_a_used_union: set[tuple[str, str]] = set()
 
     for src in tqdm(sources, desc=f"  [{tokenizer_key}] compressing", leave=False):
         compressed, fr = apply_v2_compression(
@@ -178,30 +202,39 @@ def evaluate(
         agg.after_cleaning    += fr.after_cleaning
         agg.after_replacement += fr.after_replacement
 
-        if getattr(repo_config, "stage3_backend", "legacy") == "legacy" and repo_config.replacement_map:
+        if backend == "legacy" and repo_config.replacement_map:
             for ph in collect_used_stage3_placeholders(compressed, repo_config.replacement_map):
                 if ph not in legacy_seen:
                     legacy_seen.add(ph)
                     legacy_stage3_used.append(ph)
+        elif backend == "plan_a" and plan_books:
+            _ensure_stage3_pkg()
+            from literal_codec.pipeline.source_codec import extract_used_plan_a_entries
+
+            plan_a_used_union |= extract_used_plan_a_entries(compressed, plan_books, plan_esc)
 
     B = agg.baseline_tokens
     F = max(1, agg.after_replacement)
 
-    backend = getattr(repo_config, "stage3_backend", "legacy")
     sm = getattr(repo_config, "stage3_plan_a_summary", None) or {}
     stage3_assignments = int(sm.get("stage3_plan_a_assignments_count", 0))
     stage3_fields = ",".join(sm.get("stage3_plan_a_fields", []) or [])
     stage3_dictionary_coverage = float(sm.get("stage3_plan_a_dictionary_coverage_mean", 0.0))
     stage3_expected_gain = float(sm.get("stage3_plan_a_total_expected_gain_sum", 0.0))
+    stage3_cost_model = str(sm.get("stage3_plan_a_cost_model", "") or "")
+    stage3_assignment_by_field_json = json.dumps(
+        sm.get("stage3_plan_a_assignment_by_field", {}), ensure_ascii=False
+    )
 
     if backend == "plan_a":
-        from placeholder_accounting import build_plan_a_vocab_entries
+        from placeholder_accounting import build_used_plan_a_vocab_entries
         from repo_miner import load_plan_a_codebooks
 
-        books = load_plan_a_codebooks(repo_config)
-        entries = build_plan_a_vocab_entries(
+        books = plan_books if plan_books else load_plan_a_codebooks(repo_config)
+        entries = build_used_plan_a_vocab_entries(
             books,
-            escape_prefix=getattr(repo_config, "stage3_escape_prefix", "__L__"),
+            plan_a_used_union,
+            escape_prefix=plan_esc,
         )
         stage3_vocab_intro_tokens = compute_vocab_intro_cost(
             entries,
@@ -217,6 +250,16 @@ def evaluate(
             tokenizer=tokenizer,
             tok_type=tok_type,
         )
+
+    used_v = used_a = used_s = 0
+    if backend == "plan_a":
+        for fld, _code in plan_a_used_union:
+            if fld == "variable":
+                used_v += 1
+            elif fld == "attribute":
+                used_a += 1
+            elif fld == "string":
+                used_s += 1
 
     return EvalResult(
         tokenizer_key       = tokenizer_key,
@@ -248,6 +291,12 @@ def evaluate(
         stage3_expected_gain = stage3_expected_gain,
         stage3_vocab_intro_tokens = stage3_vocab_intro_tokens,
         stage3_component_saved = agg.replacement_saved,
+        stage3_used_entries=len(plan_a_used_union) if backend == "plan_a" else 0,
+        stage3_used_entries_variable=used_v,
+        stage3_used_entries_attribute=used_a,
+        stage3_used_entries_string=used_s,
+        stage3_cost_model=stage3_cost_model,
+        stage3_assignment_by_field_json=stage3_assignment_by_field_json,
     )
 
 

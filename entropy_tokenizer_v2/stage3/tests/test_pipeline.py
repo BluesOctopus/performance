@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from literal_codec.codebook.assigner import GreedyPrefixFreeAssigner
 from literal_codec.config import AssignmentConfig, CandidateSearchConfig, CompressionConfig
 from literal_codec.pipeline.offline_builder import OfflineCodebookBuilder
@@ -18,15 +16,20 @@ class OneTokenTokenizer(TokenizerAdapter):
 
 
 def test_build_codebook_and_positive_gain():
-    root = Path(__file__).resolve().parents[1]
-    csv_path = root / "examples" / "sample_literals.csv"
+    # MockTokenizer: bare literals must tokenize to *more* tokens than ``__L__V{code}`` (~5),
+    # otherwise gain is zero and no assignments occur (real surface-form cost model).
+    long_name = "a-" * 40 + "z"
+    records = [
+        {"service_name": long_name, "env": "prod", "tag_prefix": "api_v1"}
+        for _ in range(50)
+    ]
     config = CompressionConfig(fields=["service_name", "env", "tag_prefix"])
     builder = OfflineCodebookBuilder(config=config, tokenizer=MockTokenizerAdapter())
-    artifacts = builder.build_from_csv(csv_path, fields=list(config.fields))
+    artifacts = builder.build_from_records(records, fields=list(config.fields))
     summary = artifacts.report["summary"]
     assert summary["total_expected_coded_tokens"] < summary["total_expected_raw_tokens"]
 
-    row = {"service_name": "serve_auth", "env": "prod", "tag_prefix": "api_v1"}
+    row = {"service_name": long_name, "env": "prod", "tag_prefix": "api_v1"}
     encoded = artifacts.encode_record(row)
     decoded = artifacts.decode_record(encoded)
     assert decoded == row

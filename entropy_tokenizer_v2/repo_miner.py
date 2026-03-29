@@ -19,9 +19,12 @@ from config import (
     STAGE3_BACKEND,
     STAGE3_CODEBOOK_VERSION,
     STAGE3_ESCAPE_PREFIX,
+    STAGE3_PLAN_A_COST_MODEL,
     STAGE3_PLAN_A_ENABLED_CATEGORIES,
+    STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD,
     STAGE3_PLAN_A_MIN_GAIN,
     STAGE3_PLAN_A_USE_TIKTOKEN,
+    STAGE3_PLAN_A_VOCAB_SCOPE,
 )
 from lossy_cleaner import lossless_clean
 from syntax_compressor import (
@@ -253,6 +256,9 @@ def mine_repo(
             min_gain=STAGE3_PLAN_A_MIN_GAIN,
             enabled_categories=STAGE3_PLAN_A_ENABLED_CATEGORIES,
             use_tiktoken=STAGE3_PLAN_A_USE_TIKTOKEN,
+            max_assignments_by_field=STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD,
+            cost_model=STAGE3_PLAN_A_COST_MODEL,
+            vocab_scope=STAGE3_PLAN_A_VOCAB_SCOPE,
         )
         stage3_plan_a_codebooks = serialize_plan_a_codebooks(pr.codebooks)
         stage3_plan_a_report = pr.report

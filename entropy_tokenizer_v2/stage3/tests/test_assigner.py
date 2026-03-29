@@ -5,15 +5,16 @@ from literal_codec.types import FieldProfile, LiteralStat
 
 
 def test_assigner_prefers_high_weight_literals():
+    # Raw costs must exceed MockTokenizer surface cost of ``__L__V{code}`` (often 5+ tokens).
     profile = FieldProfile(
-        field_name="service_name",
+        field_name="variable",
         sample_size=10,
         cardinality=2,
         entropy_bits=1.0,
-        expected_raw_token_cost=2.4,
+        expected_raw_token_cost=15.0,
         stats=[
-            LiteralStat("serve_auth", 8, 0.8, 0.32, 3),
-            LiteralStat("debug", 2, 0.2, 2.32, 1),
+            LiteralStat("serve_auth", 8, 0.8, 0.32, 10),
+            LiteralStat("debug", 2, 0.2, 2.32, 2),
         ],
     )
     assigner = GreedyPrefixFreeAssigner(

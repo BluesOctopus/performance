@@ -7,7 +7,7 @@ import io
 import keyword
 import logging
 import tokenize
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import builtins
@@ -71,27 +71,67 @@ def _is_fstring_token(s: str) -> bool:
     )
 
 
+@dataclass
+class LiteralStreamDiagnostics:
+    """Counts for mining QA (variable/attribute are mutually exclusive)."""
+
+    variable_occurrences: int = 0
+    attribute_occurrences: int = 0
+    string_occurrences: int = 0
+    protected_skips: int = 0
+    variable_cardinality: int = 0
+    attribute_cardinality: int = 0
+    string_cardinality: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "stage3_plan_a_variable_count": self.variable_occurrences,
+            "stage3_plan_a_attribute_count": self.attribute_occurrences,
+            "stage3_plan_a_string_count": self.string_occurrences,
+            "stage3_plan_a_protected_name_skips": self.protected_skips,
+            "stage3_plan_a_cardinality_variable": self.variable_cardinality,
+            "stage3_plan_a_cardinality_attribute": self.attribute_cardinality,
+            "stage3_plan_a_cardinality_string": self.string_cardinality,
+        }
+
+
 def collect_category_literal_streams(
     sources: list[str],
     *,
     enabled_categories: frozenset[str],
-) -> dict[str, list[str]]:
+) -> tuple[dict[str, list[str]], LiteralStreamDiagnostics]:
     """
-    For each enabled category, collect token *exact* spellings (with repetition)
-    for empirical distribution, mirroring token_scorer vocabulary semantics.
+    Collect token spellings per category.
+
+    **variable** and **attribute** are mutually exclusive:
+    NAME after ``.`` -> attribute only; otherwise variable only (when not protected).
     """
     out: dict[str, list[str]] = {c: [] for c in PLAN_A_FIELD_ORDER if c in enabled_categories}
+    diag = LiteralStreamDiagnostics()
+    var_set: set[str] = set()
+    attr_set: set[str] = set()
+    str_set: set[str] = set()
+
     for src in sources:
         prev_is_dot = False
         for tok in _safe_tokenize(src):
             ttype, tstr = tok.type, tok.string
 
             if ttype == tokenize.NAME:
-                if tstr not in _PROTECTED:
+                if tstr in _PROTECTED:
+                    diag.protected_skips += 1
+                    prev_is_dot = False
+                    continue
+                if prev_is_dot:
+                    if "attribute" in enabled_categories:
+                        out.setdefault("attribute", []).append(tstr)
+                        diag.attribute_occurrences += 1
+                        attr_set.add(tstr)
+                else:
                     if "variable" in enabled_categories:
                         out.setdefault("variable", []).append(tstr)
-                    if prev_is_dot and "attribute" in enabled_categories:
-                        out.setdefault("attribute", []).append(tstr)
+                        diag.variable_occurrences += 1
+                        var_set.add(tstr)
                 prev_is_dot = False
 
             elif ttype == tokenize.STRING and "string" in enabled_categories:
@@ -113,6 +153,8 @@ def collect_category_literal_streams(
                     prev_is_dot = False
                     continue
                 out.setdefault("string", []).append(tstr)
+                diag.string_occurrences += 1
+                str_set.add(tstr)
                 prev_is_dot = False
 
             elif ttype == tokenize.OP:
@@ -121,7 +163,10 @@ def collect_category_literal_streams(
             else:
                 prev_is_dot = False
 
-    return out
+    diag.variable_cardinality = len(var_set)
+    diag.attribute_cardinality = len(attr_set)
+    diag.string_cardinality = len(str_set)
+    return out, diag
 
 
 def build_compression_config_for_plan_a(
@@ -131,10 +176,10 @@ def build_compression_config_for_plan_a(
     min_gain: float,
     enabled_categories: tuple[str, ...],
     use_tiktoken: bool,
+    max_assignments_by_field: dict[str, int] | None = None,
 ) -> CompressionConfig:
     """Build literal_codec CompressionConfig from v2 env-style knobs."""
     cats = frozenset(x.strip() for x in enabled_categories if x.strip())
-    # Keep candidate codes identifier-safe; exclude chars used in compressed NAME layout.
     alphabet = "".join(
         ch
         for ch in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
@@ -155,10 +200,11 @@ def build_compression_config_for_plan_a(
             weight_mode="p_times_cost",
             min_code_token_cost=1,
             min_gain=min_gain,
+            max_assignments_by_field=dict(max_assignments_by_field or {}),
         ),
         fields=tuple(c for c in PLAN_A_FIELD_ORDER if c in cats),
     )
-    del use_tiktoken  # resolved by caller when constructing adapter
+    del use_tiktoken
     return cfg
 
 
@@ -168,12 +214,6 @@ def select_tokenizer_adapter(
     *,
     prefer_tiktoken: bool,
 ) -> TokenizerAdapter:
-    """
-    Always use the same concrete tokenizer as v2 pipeline counting (V2TokenizerAdapter).
-
-    *prefer_tiktoken* is accepted for API compatibility; codebook token costs must match
-    the tokenizer used at eval time, so we do not swap to a different tiktoken model here.
-    """
     del prefer_tiktoken
     return V2TokenizerAdapter(tokenizer=tokenizer, tok_type=tok_type)
 
@@ -186,6 +226,7 @@ class PlanAMiningResult:
     field_results: list[FieldBuildResult]
     report: dict[str, Any]
     enabled_categories: tuple[str, ...]
+    diagnostics: LiteralStreamDiagnostics = field(default_factory=LiteralStreamDiagnostics)
 
 
 def mine_plan_a_from_sources(
@@ -198,6 +239,9 @@ def mine_plan_a_from_sources(
     min_gain: float,
     enabled_categories: tuple[str, ...],
     use_tiktoken: bool,
+    max_assignments_by_field: dict[str, int] | None = None,
+    cost_model: str = "real_surface_form",
+    vocab_scope: str = "used_only",
 ) -> PlanAMiningResult:
     cats = frozenset(x.strip() for x in enabled_categories if x.strip())
     cfg = build_compression_config_for_plan_a(
@@ -206,9 +250,10 @@ def mine_plan_a_from_sources(
         min_gain=min_gain,
         enabled_categories=tuple(cats),
         use_tiktoken=use_tiktoken,
+        max_assignments_by_field=max_assignments_by_field,
     )
     adapter = select_tokenizer_adapter(tokenizer, tok_type, prefer_tiktoken=use_tiktoken)
-    streams = collect_category_literal_streams(sources, enabled_categories=cats)
+    streams, diagnostics = collect_category_literal_streams(sources, enabled_categories=cats)
 
     profiler = FieldProfiler(tokenizer=adapter, smoothing=cfg.smoothing)
     assigner = GreedyPrefixFreeAssigner(
@@ -228,7 +273,9 @@ def mine_plan_a_from_sources(
         profile = profiler.build(field_name=field, values=values)
         book, _coded = assigner.build_codebook(profile)
         total_gain = profile.expected_raw_token_cost - _coded
-        coverage = len(book.assignments) / profile.cardinality if profile.cardinality else 0.0
+        coverage = (
+            len(book.assignments) / profile.cardinality if profile.cardinality else 0.0
+        )
         theoretical_headroom = max(0.0, profile.expected_raw_token_cost - profile.entropy_bits)
         fr = FieldBuildResult(
             profile=profile,
@@ -249,13 +296,19 @@ def mine_plan_a_from_sources(
             "plan": "A",
             "semantic_loss": 0.0,
             "tokenizer_adapter": adapter.__class__.__name__,
+            "cost_model": cost_model,
+            "vocab_scope": vocab_scope,
+            "min_gain": min_gain,
+            "max_assignments_by_field": dict(max_assignments_by_field or {}),
         },
+        "stream_diagnostics": diagnostics.to_dict(),
     }
     return PlanAMiningResult(
         codebooks=codebooks,
         field_results=field_results,
         report=report,
         enabled_categories=tuple(cfg.fields),
+        diagnostics=diagnostics,
     )
 
 
@@ -274,9 +327,18 @@ def plan_a_summary_dict(result: PlanAMiningResult) -> dict[str, Any]:
     covs = [fr.dictionary_coverage for fr in result.field_results if fr.profile.cardinality]
     avg_cov = sum(covs) / len(covs) if covs else 0.0
     gains = [fr.total_expected_gain for fr in result.field_results]
-    return {
+    by_field = {name: len(cb.assignments) for name, cb in result.codebooks.items()}
+    ass = result.report.get("assumptions", {})
+    out = {
         "stage3_plan_a_assignments_count": assignments,
         "stage3_plan_a_fields": list(result.enabled_categories),
         "stage3_plan_a_dictionary_coverage_mean": avg_cov,
         "stage3_plan_a_total_expected_gain_sum": sum(gains),
+        "stage3_plan_a_assignment_by_field": by_field,
+        "stage3_plan_a_cost_model": ass.get("cost_model", "real_surface_form"),
+        "stage3_plan_a_vocab_scope": ass.get("vocab_scope", "used_only"),
+        "stage3_plan_a_min_gain": ass.get("min_gain"),
+        "stage3_plan_a_max_assignments_by_field": ass.get("max_assignments_by_field", {}),
     }
+    out.update(result.diagnostics.to_dict())
+    return out

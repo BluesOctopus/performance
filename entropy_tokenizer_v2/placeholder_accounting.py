@@ -124,10 +124,7 @@ def build_plan_a_vocab_entries(
     tag_by_field: dict[str, str] | None = None,
 ) -> list[dict]:
     """
-    Vocab introduction entries for Stage3 Plan A (literal => compressed identifier).
-
-    *codebooks* maps field name -> objects with ``assignments`` list of
-    ``(literal, code, ...)`` (``FieldCodebook`` from stage3 literal_codec).
+    Full-codebook vocab entries (legacy helper; prefer :func:`build_used_plan_a_vocab_entries`).
     """
     tag_by_field = tag_by_field or {
         "variable": "V",
@@ -151,6 +148,56 @@ def build_plan_a_vocab_entries(
                     "definition": repr(literal),
                 }
             )
+    return entries
+
+
+def build_used_plan_a_vocab_entries(
+    codebooks: dict,
+    used: set[tuple[str, str]],
+    *,
+    escape_prefix: str,
+) -> list[dict]:
+    """
+    Vocab intro entries for **actually used** (field, code) pairs only.
+
+    *definition* uses the literal spelling from the codebook (same string as in source
+    for STRING tokens, e.g. ``'\"x\"'``).
+    *token* is the real compressed surface form (NAME or STRING token text).
+    """
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent / "stage3"
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from literal_codec.pipeline.surface_cost import surface_text_for_code
+
+    entries: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for field, code in sorted(used):
+        if (field, code) in seen:
+            continue
+        seen.add((field, code))
+        cb = codebooks.get(field)
+        if cb is None:
+            continue
+        literal = None
+        for a in getattr(cb, "assignments", []) or []:
+            if getattr(a, "code", None) == code:
+                literal = getattr(a, "literal", "")
+                break
+        if literal is None:
+            continue
+        surface = surface_text_for_code(field, code, escape_prefix)
+        entries.append(
+            {
+                "token": surface,
+                "kind": "stage3_plan_a_used",
+                "definition": literal,
+                "field": field,
+                "code": code,
+            }
+        )
     return entries
 
 

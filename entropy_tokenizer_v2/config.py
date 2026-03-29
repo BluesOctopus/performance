@@ -29,12 +29,30 @@ STAGE3_PLAN_A_ENABLED_CATEGORIES = tuple(
     ).split(",")
     if x.strip()
 )
-STAGE3_PLAN_A_MIN_GAIN = float(os.getenv("ET_STAGE3_PLAN_A_MIN_GAIN", "0"))
+def _parse_plan_a_max_assignments() -> dict[str, int]:
+    raw = os.getenv(
+        "ET_STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD",
+        "variable:256,attribute:128,string:128",
+    )
+    out: dict[str, int] = {}
+    for part in raw.split(","):
+        part = part.strip()
+        if not part or ":" not in part:
+            continue
+        k, v = part.split(":", 1)
+        out[k.strip()] = int(v.strip())
+    return out
+
+
+STAGE3_PLAN_A_MIN_GAIN = float(os.getenv("ET_STAGE3_PLAN_A_MIN_GAIN", "0.001"))
+STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD = _parse_plan_a_max_assignments()
 STAGE3_PLAN_A_USE_TIKTOKEN = os.getenv("ET_STAGE3_PLAN_A_USE_TIKTOKEN", "0").lower() in (
     "1",
     "true",
     "yes",
 )
+STAGE3_PLAN_A_VOCAB_SCOPE = os.getenv("ET_STAGE3_PLAN_A_VOCAB_SCOPE", "used_only")
+STAGE3_PLAN_A_COST_MODEL = os.getenv("ET_STAGE3_PLAN_A_COST_MODEL", "real_surface_form")
 STAGE3_ARTIFACT_DIR = Path(
     os.getenv("ET_STAGE3_ARTIFACT_DIR", str(RESULTS_DIR / "stage3_plan_a"))
 )

@@ -5,6 +5,17 @@
 - 在 **固定 tokenizer** 下，将 `stage3/literal_codec` 的字段级 Plan A（variable / attribute / string）接到 `pipeline.apply_stage3` 与 `repo_miner` 挖掘链路。
 - 与 **legacy** Stage3（`replacement_map` + `<VAR>` 等 placeholder）通过配置切换，**默认仍为 legacy**，避免破坏现有行为。
 
+## 阻断性修复（成本与统计口径）
+
+以下问题曾在早期实现中导致 **expected_gain 与实测 replacement_saved 严重背离**（含 gpt4 下负压缩假象），已通过代码修复；**不是**普通超参调优：
+
+1. **variable / attribute 互斥**：`NAME` 在 `.` 后只计入 **attribute**，否则只计入 **variable**，禁止同一标识符双计数。
+2. **真实表面成本**：建码与 `expected_gain` 使用 `surface_cost.encoded_form_token_cost`（与 `source_codec` 写回形态一致：`__L__V/A{code}`、字符串 `repr(f"__L__S{code}")`），**不用**裸 `code` 长度。
+3. **vocab intro 仅对已用码计费**：`extract_used_plan_a_entries` + `build_used_plan_a_vocab_entries`，与 legacy「仅实际出现的 placeholder」思路对齐；**不对**整本码表一次性摊销。
+4. **sequence 评测**：Plan A 仍按 **真实 tokenizer 长度** 计 sequence token；**不**把 `__L__...` 当作单 token placeholder。
+
+`pipeline._stage3_vocab_intro` 在 `plan_a` 下对 **used entries** 构建词条并计费（见 `placeholder_accounting.build_used_plan_a_vocab_entries`）。
+
 ## 架构与接入点
 
 | 组件 | 作用 |
@@ -13,8 +24,8 @@
 | `repo_miner.py` | `mine_repo(..., stage3_backend=...)`：`plan_a` 时调用 `stage3/.../source_mining.mine_plan_a_from_sources`，写入 `RepoConfig.stage3_plan_a_*`；`legacy` 保持原 `replacement_map` |
 | `repo_miner.load_plan_a_codebooks` | 将 JSON 中的码表反序列化为 `FieldCodebook`（带缓存） |
 | `pipeline.apply_stage3` | `plan_a`：`encode_python_source_plan_a`；`legacy`：原 `apply_token_replacement_with_protected_spans` |
-| `pipeline._stage3_vocab_intro` | `plan_a`：`build_plan_a_vocab_entries` + `compute_vocab_intro_cost`；`legacy`：原 placeholder 词条 |
-| `placeholder_accounting.build_plan_a_vocab_entries` | Plan A 词条：`token = escape + V/A/S + code`，`definition = repr(literal)` |
+| `pipeline._stage3_vocab_intro` | `plan_a`：**仅 used** `build_used_plan_a_vocab_entries` + `compute_vocab_intro_cost`；`legacy`：原 placeholder 词条 |
+| `placeholder_accounting.build_used_plan_a_vocab_entries` | 仅实际出现在压缩源码中的 `(field, code)` 词条 |
 | `stage3/literal_codec/pipeline/source_codec.py` | 源码级编解码：tokenize 边界、SYN 行保护、NAME/STRING 可逆格式 |
 | `stage3/literal_codec/pipeline/source_mining.py` | 从语料收集字面量流、按 v2 同一 tokenizer 计成本并建码表 |
 | `stage3/literal_codec/pipeline/v2_token_adapter.py` | 将 `marker_count.encode` 与 Plan A 的 `token_length` 对齐 |
@@ -23,8 +34,8 @@
 
 ## 源码 ↔ 字段桥接
 
-- **variable**：`tokenize.NAME` 且非 keyword/builtin 保护集；非 `attr` 上下文。
-- **attribute**：`NAME` 且前一 token 为 `.`。
+- **attribute**：`NAME` 且前一 token 为 `.`（**仅**计入 attribute，**不**再计入 variable）。
+- **variable**：`tokenize.NAME` 且非 keyword/builtin 保护集，且**非** attribute 上下文。
 - **string**：非 f-string、无换行的 `STRING`；`ast.literal_eval` 成功且 inner 不以 `escape_prefix` 开头（避免与协议混淆）。
 - **number / f-string**：当前 **不压缩**（保守跳过）。
 - **压缩 NAME 形态**：`{escape_prefix}{V|A}{code}`，整体为合法标识符。
@@ -72,11 +83,11 @@ python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-prof
 
 ## 实验结果摘要（本地 repo，80 文件）
 
-详见 `results/stage3_backend_comparison.csv`。结论要点：
+详见 `results/stage3_backend_comparison.csv`。修复口径后请 **重新跑评测** 再解读数字；历史段落可能基于旧实现。
 
-- **gpt4 + Plan A**：仅看 **sequence-only** 时，压缩后 token 数可能 **高于** baseline（`__L__` 前缀在 tiktoken 下往往多 token），且 **corpus-once vocab intro** 条目数很大；这是真实测量结果，不是实现错误。
-- **gpt2 + Plan A**：总压缩率仍为正，但 Stage3 的 `replacement_saved` 可能为负（字面量替换在序列上变长），需结合 `stage3_vocab_intro_tokens` 与业务是否摊销词表成本来解读。
-- **legacy** 仍在中等规模 repo 上给出稳定的 Stage3 序列收益（placeholder 单 token 计数）。
+- **gpt4 + Plan A**：在真实表面成本与 **used-only vocab intro** 下，预期 `stage3_expected_gain` 与 `stage3_component_saved` **不再系统性反向**；若仍为负，需区分 tokenizer 行为与算法边界。
+- **gpt2 + Plan A**：同上；结合 `stage3_used_entries_*` 与 `stage3_vocab_intro_tokens` 解读。
+- **legacy**：placeholder 单 token 计数，行为保持不变。
 
 ## 测试
 

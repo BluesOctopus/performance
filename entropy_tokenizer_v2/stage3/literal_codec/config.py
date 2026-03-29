@@ -32,6 +32,8 @@ class AssignmentConfig:
     weight_mode: str = "p_times_cost"  # alternatives: "p_only"
     min_code_token_cost: int = 1
     min_gain: float = 0.0
+    # Per-field cap on number of assignments (bare codes); empty = no cap.
+    max_assignments_by_field: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

@@ -1,4 +1,4 @@
-"""Greedy prefix-free assigner."""
+"""Greedy prefix-free assigner (real surface-form token costs)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from literal_codec.codebook.candidate_pool import CandidatePoolGenerator
 from literal_codec.codebook.optimizer import BaseCodeAssigner
 from literal_codec.codebook.prefix_constraints import PrefixConstraintChecker
 from literal_codec.config import AssignmentConfig, CandidateSearchConfig
+from literal_codec.pipeline.surface_cost import encoded_form_token_cost
 from literal_codec.tokenizer.base import TokenizerAdapter
 from literal_codec.types import CodeAssignment, FieldCodebook, FieldProfile
 
@@ -15,15 +16,12 @@ from literal_codec.types import CodeAssignment, FieldCodebook, FieldProfile
 @dataclass(slots=True)
 class GreedyPrefixFreeAssigner(BaseCodeAssigner):
     """
-    Greedy assignment:
-    1) collect low-cost prefix-feasible codes
-    2) map high-weight literals to low-cost codes
+    Greedy assignment with **encoded surface** token costs (not bare code length):
 
-    Why this mapping is reasonable:
-    - Rearrangement / exchange argument: for w_a >= w_b and c_1 <= c_2,
-      pairing (w_a,c_1),(w_b,c_2) is never worse than swapping to (w_a,c_2),(w_b,c_1).
-    - Therefore sorting literals by descending weight and codes by ascending
-      token cost gives an optimal pairing under a fixed feasible code set.
+    - NAME fields: ``{escape}{V|A}{code}``
+    - STRING field: ``repr(f"{escape}S{code}")`` (must match ``source_codec``)
+
+    Prefix-free constraints apply to bare *code* strings only.
     """
 
     tokenizer: TokenizerAdapter
@@ -38,29 +36,30 @@ class GreedyPrefixFreeAssigner(BaseCodeAssigner):
         return probability * raw_token_cost
 
     def build_codebook(self, profile: FieldProfile) -> tuple[FieldCodebook, float]:
+        field_name = profile.field_name
+        max_assign = self.assignment_config.max_assignments_by_field.get(field_name, 10**9)
+
         reserved = {item.literal for item in profile.stats}
         candidate_generator = CandidatePoolGenerator(
             tokenizer=self.tokenizer,
             config=self.candidate_config,
         )
-        needed = len(profile.stats)
+        pool_needed = len(profile.stats)
         candidates = candidate_generator.generate(
-            needed=needed,
+            needed=pool_needed,
             escape_prefix=self.escape_prefix,
             reserved_strings=reserved,
         )
-        checker = PrefixConstraintChecker(
-            escape_prefix=self.escape_prefix,
-            reserved_strings=reserved,
-        )
-        feasible_codes: list[tuple[str, int]] = []
-        for cand in candidates:
-            if checker.try_add(cand.code):
-                feasible_codes.append((cand.code, cand.token_cost))
-            if len(feasible_codes) >= needed:
-                break
 
-        literals = []
+        scored: list[tuple[str, int]] = []
+        for cand in candidates:
+            enc_cost = encoded_form_token_cost(
+                field_name, cand.code, self.escape_prefix, self.tokenizer
+            )
+            scored.append((cand.code, enc_cost))
+        scored.sort(key=lambda row: (row[1], len(row[0]), row[0]))
+
+        literals: list[tuple[str, float, int, float]] = []
         for item in profile.stats:
             if item.raw_token_cost <= self.assignment_config.min_code_token_cost:
                 continue
@@ -68,7 +67,36 @@ class GreedyPrefixFreeAssigner(BaseCodeAssigner):
             literals.append((item.literal, item.probability, item.raw_token_cost, weight))
 
         literals.sort(key=lambda row: (-row[3], row[0]))
-        feasible_codes.sort(key=lambda row: (row[1], len(row[0]), row[0]))
+        literals = literals[:max_assign]
+
+        codes_needed = len(literals)
+        if codes_needed == 0:
+            return (
+                FieldCodebook(
+                    field_name=field_name,
+                    version=self.version,
+                    assignments=[],
+                    escape_prefix=self.escape_prefix,
+                    metadata={
+                        "cost_model": "real_surface_form",
+                        "field_name": field_name,
+                        "assigned": 0,
+                        "feasible_codes": 0,
+                    },
+                ),
+                profile.expected_raw_token_cost,
+            )
+
+        checker = PrefixConstraintChecker(
+            escape_prefix=self.escape_prefix,
+            reserved_strings=reserved,
+        )
+        feasible_codes: list[tuple[str, int]] = []
+        for code, enc_cost in scored:
+            if checker.try_add(code):
+                feasible_codes.append((code, enc_cost))
+            if len(feasible_codes) >= codes_needed:
+                break
 
         assignments: list[CodeAssignment] = []
         literal_to_code_cost: dict[str, int] = {}
@@ -94,6 +122,13 @@ class GreedyPrefixFreeAssigner(BaseCodeAssigner):
             coded_cost = literal_to_code_cost.get(item.literal, item.raw_token_cost)
             expected_coded_cost += item.probability * coded_cost
 
+        avg_raw = (
+            sum(a.raw_token_cost for a in assignments) / len(assignments) if assignments else 0.0
+        )
+        avg_enc = (
+            sum(a.code_token_cost for a in assignments) / len(assignments) if assignments else 0.0
+        )
+
         codebook = FieldCodebook(
             field_name=profile.field_name,
             version=self.version,
@@ -104,6 +139,10 @@ class GreedyPrefixFreeAssigner(BaseCodeAssigner):
                 "feasible_codes": len(feasible_codes),
                 "assigned": len(assignments),
                 "weight_mode": self.assignment_config.weight_mode,
+                "cost_model": "real_surface_form",
+                "field_name": field_name,
+                "avg_raw_token_cost_assigned": avg_raw,
+                "avg_encoded_token_cost_assigned": avg_enc,
             },
         )
         return codebook, expected_coded_cost

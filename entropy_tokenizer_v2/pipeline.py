@@ -107,17 +107,19 @@ def _stage1_vocab_intro(repo_config, tokenizer, tok_type: str) -> int:
 def _stage3_vocab_intro(repo_config, after_s3_text: str, tokenizer, tok_type: str) -> int:
     backend = getattr(repo_config, "stage3_backend", "legacy")
     if backend == "plan_a":
-        from placeholder_accounting import build_plan_a_vocab_entries
+        from placeholder_accounting import build_used_plan_a_vocab_entries
 
         from repo_miner import load_plan_a_codebooks
+
+        _ensure_stage3_pkg()
+        from literal_codec.pipeline.source_codec import extract_used_plan_a_entries
 
         codebooks = load_plan_a_codebooks(repo_config)
         if not codebooks:
             return 0
-        entries = build_plan_a_vocab_entries(
-            codebooks,
-            escape_prefix=getattr(repo_config, "stage3_escape_prefix", "__L__"),
-        )
+        esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
+        used = extract_used_plan_a_entries(after_s3_text, codebooks, esc)
+        entries = build_used_plan_a_vocab_entries(codebooks, used, escape_prefix=esc)
         return compute_vocab_intro_cost(
             entries,
             mode=VOCAB_COST_MODE,

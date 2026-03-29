@@ -22,6 +22,7 @@ from typing import Optional
 
 import builtins
 
+from literal_codec.pipeline.surface_cost import surface_text_for_code
 from literal_codec.types import FieldCodebook
 
 from token_scorer import _has_overlap, _line_start_offsets, _pos_to_offset
@@ -86,11 +87,12 @@ def _code_to_lit_maps(codebooks: dict[str, FieldCodebook]) -> dict[str, dict[str
 
 
 def _encode_name(escape: str, tag: str, code: str) -> str:
-    return f"{escape}{tag}{code}"
+    field = "variable" if tag == "V" else "attribute"
+    return surface_text_for_code(field, code, escape)
 
 
 def _encode_string_token(escape: str, code: str) -> str:
-    return repr(f"{escape}S{code}")
+    return surface_text_for_code("string", code, escape)
 
 
 def _string_payload_re(escape: str) -> re.Pattern[str]:
@@ -262,3 +264,57 @@ def verify_roundtrip_plan_a(
     mid = encode_python_source_plan_a(text, codebooks, escape_prefix=escape_prefix)
     back = decode_python_source_plan_a(mid, codebooks, escape_prefix=escape_prefix)
     return back == text
+
+
+def extract_used_plan_a_entries(
+    text: str,
+    codebooks: dict[str, FieldCodebook],
+    escape_prefix: str,
+) -> set[tuple[str, str]]:
+    """
+    Scan *compressed* source for literals that actually use Plan A codes.
+
+    Returns a set of ``(field_name, code)`` with ``field_name`` in
+    ``variable|attribute|string``. Escaped NAMEs ``{escape}{escape}...`` are ignored.
+    Only codes present in the corresponding ``FieldCodebook`` are counted.
+    """
+    used: set[tuple[str, str]] = set()
+    if not text or not codebooks:
+        return used
+    valid_codes: dict[str, set[str]] = {
+        fn: {a.code for a in cb.assignments} for fn, cb in codebooks.items()
+    }
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(text).readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return used
+
+    for tok in tokens:
+        if tok.type == tokenize.NAME:
+            name = tok.string
+            if not name.startswith(escape_prefix):
+                continue
+            payload = name[len(escape_prefix) :]
+            if payload.startswith(escape_prefix):
+                continue
+            m = _NAME_PAYLOAD_RE.match(payload)
+            if not m:
+                continue
+            tag, code = m.group(1), m.group(2)
+            field = _REV_TAG.get(tag)
+            if field and code in valid_codes.get(field, set()):
+                used.add((field, code))
+        elif tok.type == tokenize.STRING:
+            try:
+                inner = ast.literal_eval(tok.string)
+            except (SyntaxError, ValueError, MemoryError):
+                continue
+            if not isinstance(inner, str):
+                continue
+            m = _string_payload_re(escape_prefix).match(inner)
+            if not m:
+                continue
+            code = m.group(1)
+            if code in valid_codes.get("string", set()):
+                used.add(("string", code))
+    return used
