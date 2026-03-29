@@ -34,7 +34,10 @@
           "cost_model": "real_surface_form",
           "field_name": "variable",
           "avg_raw_token_cost_assigned": 0.0,
-          "avg_encoded_token_cost_assigned": 0.0
+          "avg_encoded_token_cost_assigned": 0.0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
         },
         "assignments": []
       }
@@ -58,7 +61,10 @@
           "cost_model": "real_surface_form",
           "field_name": "attribute",
           "assigned": 0,
-          "feasible_codes": 0
+          "feasible_codes": 0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
         },
         "assignments": []
       }
@@ -82,7 +88,10 @@
           "cost_model": "real_surface_form",
           "field_name": "string",
           "assigned": 0,
-          "feasible_codes": 0
+          "feasible_codes": 0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
         },
         "assignments": []
       }
@@ -100,12 +109,13 @@
     "tokenizer_adapter": "V2TokenizerAdapter",
     "cost_model": "real_surface_form",
     "vocab_scope": "used_only",
-    "min_gain": 0.001,
+    "min_gain": 0.003,
     "max_assignments_by_field": {
-      "variable": 256,
-      "attribute": 128,
-      "string": 128
-    }
+      "variable": 64,
+      "attribute": 32,
+      "string": 16
+    },
+    "plan_a_profile": "gpt4_conservative"
   },
   "stream_diagnostics": {
     "stage3_plan_a_variable_count": 2,
@@ -115,5 +125,21 @@
     "stage3_plan_a_cardinality_variable": 1,
     "stage3_plan_a_cardinality_attribute": 0,
     "stage3_plan_a_cardinality_string": 0
-  }
+  },
+  "string_filter": {
+    "stage3_plan_a_string_filter_kept_occurrences": 0,
+    "stage3_plan_a_string_filter_dropped_low_count": 0,
+    "stage3_plan_a_string_filter_dropped_low_raw_cost": 0,
+    "stage3_plan_a_string_filter_dropped_newline_inner": 0,
+    "stage3_plan_a_string_filter_dropped_long_prose": 0,
+    "stage3_plan_a_string_filter_dropped_regex_like": 0,
+    "stage3_plan_a_string_filter_dropped_doc_marker": 0,
+    "stage3_plan_a_string_filter_dropped_high_whitespace_ratio": 0,
+    "stage3_plan_a_string_filter_by_rule_json": {}
+  },
+  "stage3_plan_a_post_prune_enabled": true,
+  "stage3_plan_a_post_prune_pre_assignments": 0,
+  "stage3_plan_a_post_prune_post_assignments": 0,
+  "stage3_plan_a_post_prune_removed_count": 0,
+  "stage3_plan_a_post_prune_removed_json": []
 }

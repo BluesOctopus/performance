@@ -20,6 +20,12 @@ from literal_codec.tokenizer.base import TokenizerAdapter
 from literal_codec.types import FieldBuildResult, FieldCodebook
 
 from literal_codec.pipeline.report import field_report, summary_report
+from literal_codec.pipeline.string_filter import (
+    StringFilterConfig,
+    StringFilterDiagnostics,
+    filter_string_occurrences,
+)
+from literal_codec.pipeline.plan_a_post_prune import prune_plan_a_field_results
 from literal_codec.pipeline.v2_token_adapter import V2TokenizerAdapter
 
 logger = logging.getLogger(__name__)
@@ -227,6 +233,9 @@ class PlanAMiningResult:
     report: dict[str, Any]
     enabled_categories: tuple[str, ...]
     diagnostics: LiteralStreamDiagnostics = field(default_factory=LiteralStreamDiagnostics)
+    string_filter_diagnostics: StringFilterDiagnostics = field(
+        default_factory=StringFilterDiagnostics
+    )
 
 
 def mine_plan_a_from_sources(
@@ -242,6 +251,9 @@ def mine_plan_a_from_sources(
     max_assignments_by_field: dict[str, int] | None = None,
     cost_model: str = "real_surface_form",
     vocab_scope: str = "used_only",
+    plan_a_profile_name: str = "default",
+    string_filter: dict[str, Any] | None = None,
+    post_prune_enabled: bool = True,
 ) -> PlanAMiningResult:
     cats = frozenset(x.strip() for x in enabled_categories if x.strip())
     cfg = build_compression_config_for_plan_a(
@@ -254,6 +266,19 @@ def mine_plan_a_from_sources(
     )
     adapter = select_tokenizer_adapter(tokenizer, tok_type, prefer_tiktoken=use_tiktoken)
     streams, diagnostics = collect_category_literal_streams(sources, enabled_categories=cats)
+
+    sf_diag = StringFilterDiagnostics()
+    if "string" in streams and string_filter:
+        sfc = StringFilterConfig(
+            min_count=int(string_filter.get("min_count", 1)),
+            min_raw_token_cost=int(string_filter.get("min_raw_token_cost", 0)),
+            strict_heuristics=bool(string_filter.get("strict_heuristics", False)),
+        )
+        streams["string"], sf_diag = filter_string_occurrences(
+            streams["string"],
+            lambda sp: adapter.token_length(sp),
+            sfc,
+        )
 
     profiler = FieldProfiler(tokenizer=adapter, smoothing=cfg.smoothing)
     assigner = GreedyPrefixFreeAssigner(
@@ -288,6 +313,19 @@ def mine_plan_a_from_sources(
         field_results.append(fr)
         codebooks[field] = book
 
+    prune_report: dict[str, Any] = {}
+    if post_prune_enabled:
+        codebooks, field_results, prune_report = prune_plan_a_field_results(
+            field_results,
+            codebooks,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+            escape_prefix=escape_prefix,
+            enabled=True,
+        )
+    else:
+        prune_report = {"stage3_plan_a_post_prune_enabled": False}
+
     report_fields = [field_report(r) for r in field_results]
     report = {
         "fields": report_fields,
@@ -300,8 +338,11 @@ def mine_plan_a_from_sources(
             "vocab_scope": vocab_scope,
             "min_gain": min_gain,
             "max_assignments_by_field": dict(max_assignments_by_field or {}),
+            "plan_a_profile": plan_a_profile_name,
         },
         "stream_diagnostics": diagnostics.to_dict(),
+        "string_filter": sf_diag.to_dict(),
+        **prune_report,
     }
     return PlanAMiningResult(
         codebooks=codebooks,
@@ -309,6 +350,7 @@ def mine_plan_a_from_sources(
         report=report,
         enabled_categories=tuple(cfg.fields),
         diagnostics=diagnostics,
+        string_filter_diagnostics=sf_diag,
     )
 
 
@@ -339,6 +381,17 @@ def plan_a_summary_dict(result: PlanAMiningResult) -> dict[str, Any]:
         "stage3_plan_a_vocab_scope": ass.get("vocab_scope", "used_only"),
         "stage3_plan_a_min_gain": ass.get("min_gain"),
         "stage3_plan_a_max_assignments_by_field": ass.get("max_assignments_by_field", {}),
+        "stage3_plan_a_profile": ass.get("plan_a_profile", ""),
     }
     out.update(result.diagnostics.to_dict())
+    out.update(result.string_filter_diagnostics.to_dict())
+    for k in (
+        "stage3_plan_a_post_prune_enabled",
+        "stage3_plan_a_post_prune_pre_assignments",
+        "stage3_plan_a_post_prune_post_assignments",
+        "stage3_plan_a_post_prune_removed_count",
+        "stage3_plan_a_post_prune_removed_json",
+    ):
+        if k in result.report:
+            out[k] = result.report[k]
     return out

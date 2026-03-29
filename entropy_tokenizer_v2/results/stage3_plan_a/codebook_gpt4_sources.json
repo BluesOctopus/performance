@@ -12,7 +12,10 @@
         "cost_model": "real_surface_form",
         "field_name": "variable",
         "avg_raw_token_cost_assigned": 0.0,
-        "avg_encoded_token_cost_assigned": 0.0
+        "avg_encoded_token_cost_assigned": 0.0,
+        "post_pruned": true,
+        "pre_prune_assignments": 0,
+        "post_prune_assignments": 0
       },
       "assignments": []
     },
@@ -24,7 +27,10 @@
         "cost_model": "real_surface_form",
         "field_name": "attribute",
         "assigned": 0,
-        "feasible_codes": 0
+        "feasible_codes": 0,
+        "post_pruned": true,
+        "pre_prune_assignments": 0,
+        "post_prune_assignments": 0
       },
       "assignments": []
     },
@@ -36,7 +42,10 @@
         "cost_model": "real_surface_form",
         "field_name": "string",
         "assigned": 0,
-        "feasible_codes": 0
+        "feasible_codes": 0,
+        "post_pruned": true,
+        "pre_prune_assignments": 0,
+        "post_prune_assignments": 0
       },
       "assignments": []
     }

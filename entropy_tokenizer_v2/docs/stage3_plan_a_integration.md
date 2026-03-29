@@ -69,6 +69,12 @@ python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-prof
 - `ET_STAGE3_PLAN_A_ENABLED_CATEGORIES`（默认 `variable,attribute,string`）
 - `ET_STAGE3_PLAN_A_MIN_GAIN`
 - `ET_STAGE3_ARTIFACT_DIR`
+- `ET_STAGE3_PLAN_A_PROFILE`：`default` | `gpt4_conservative` | `gpt4_va_only`（不设时 **gpt4** 默认 `gpt4_conservative`，**gpt2** 默认 `default`）
+- `ET_STAGE3_PLAN_A_POST_PRUNE`：是否对码表做「序列净收益 vs 单条条目 vocab intro」后验裁剪（默认 `1`）
+
+### gpt4 保守策略（默认）
+
+在 **不改命令行** 的前提下，`gpt4` 使用更小码表、更高 `min_gain`、**string 强过滤**（频次、最小 tokenizer 成本、启发式排除长说明/regex 等），并在建码后做 **post-prune**，使 **effective-total** 主指标更可读、Stage3 vocab 成本显著低于未区分 tokenizer 时的 Plan A。`gpt2` 仍走宽 `default` profile，避免破坏其在较碎 tokenizer 上的收益。
 
 ## 产物路径
 
@@ -79,7 +85,7 @@ python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-prof
 | 单次评测 CSV/JSON | `results/v2_compression_report*.csv`、`results/v2_eval_detail*.json` |
 | 正式 Plan A 报告名 | `results/v2_compression_report_stage3_plan_a.csv`、`results/v2_eval_detail_stage3_plan_a.json` |
 | 对照表 | `results/stage3_backend_comparison.csv` |
-| 挖掘缓存 | `cache/repo_config_<tok>_<name>_<backend>.json` |
+| 挖掘缓存 | `cache/repo_config_<tok>_<name>_<backend>_<plan_a_profile>.json`（仅 `plan_a` 带 profile 后缀） |
 
 ## 实验结果摘要（本地 repo，80 文件）
 

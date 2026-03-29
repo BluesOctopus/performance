@@ -20,11 +20,10 @@ from config import (
     STAGE3_CODEBOOK_VERSION,
     STAGE3_ESCAPE_PREFIX,
     STAGE3_PLAN_A_COST_MODEL,
-    STAGE3_PLAN_A_ENABLED_CATEGORIES,
-    STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD,
-    STAGE3_PLAN_A_MIN_GAIN,
     STAGE3_PLAN_A_USE_TIKTOKEN,
     STAGE3_PLAN_A_VOCAB_SCOPE,
+    plan_a_profile_name_for_tokenizer,
+    resolve_plan_a_settings,
 )
 from lossy_cleaner import lossless_clean
 from syntax_compressor import (
@@ -247,18 +246,22 @@ def mine_repo(
             serialize_plan_a_codebooks,
         )
 
+        pa = resolve_plan_a_settings(tokenizer_key or "gpt2")
         pr = mine_plan_a_from_sources(
             clean_sources,
             tokenizer,
             tok_type,
             escape_prefix=STAGE3_ESCAPE_PREFIX,
             codebook_version=STAGE3_CODEBOOK_VERSION,
-            min_gain=STAGE3_PLAN_A_MIN_GAIN,
-            enabled_categories=STAGE3_PLAN_A_ENABLED_CATEGORIES,
+            min_gain=float(pa["min_gain"]),
+            enabled_categories=tuple(pa["enabled_categories"]),
             use_tiktoken=STAGE3_PLAN_A_USE_TIKTOKEN,
-            max_assignments_by_field=STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD,
+            max_assignments_by_field=dict(pa["max_assignments"]),
             cost_model=STAGE3_PLAN_A_COST_MODEL,
             vocab_scope=STAGE3_PLAN_A_VOCAB_SCOPE,
+            plan_a_profile_name=str(pa["profile_name"]),
+            string_filter=pa.get("string_filter"),
+            post_prune_enabled=bool(pa.get("post_prune", True)),
         )
         stage3_plan_a_codebooks = serialize_plan_a_codebooks(pr.codebooks)
         stage3_plan_a_report = pr.report
@@ -362,7 +365,8 @@ def mine_from_repo_path(
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
     if backend not in {"legacy", "plan_a"}:
         backend = "legacy"
-    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}.json"
+    _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
+    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}.json"
     if cache and cache_file.exists():
         if verbose:
             print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -412,7 +416,8 @@ def mine_from_sources(
     if backend not in {"legacy", "plan_a"}:
         backend = "legacy"
     if cache and cache_name:
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}.json"
+        _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}.json"
         if cache_file.exists():
             if verbose:
                 print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -434,7 +439,8 @@ def mine_from_sources(
 
     if cache and cache_name:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}.json"
+        _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}.json"
         cache_file.write_text(config.to_json(), encoding="utf-8")
         if verbose:
             print(f"[repo_miner] Config saved to {cache_file}")

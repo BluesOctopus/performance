@@ -8,43 +8,43 @@
       "baseline_tokens": 90624,
       "syntax_tokens": 88565,
       "cleaning_tokens": 81294,
-      "final_tokens": 81183,
+      "final_tokens": 81243,
       "syntax_saved": 2059,
       "cleaning_saved": 7271,
-      "replacement_saved": 111,
-      "total_saved": 9441,
-      "reduction_pct": 10.417770127118642,
-      "sequence_final_tokens": 81183,
-      "sequence_reduction_pct": 10.417770127118642,
+      "replacement_saved": 51,
+      "total_saved": 9381,
+      "reduction_pct": 10.3515625,
+      "sequence_final_tokens": 81243,
+      "sequence_reduction_pct": 10.3515625,
       "stage1_vocab_intro_tokens": 415,
       "stage2_vocab_intro_tokens": 0,
-      "stage3_vocab_intro_tokens": 60,
-      "final_vocab_intro_tokens": 475,
-      "effective_total_tokens": 81658,
-      "effective_total_saved": 8966,
-      "effective_total_reduction_pct": 9.893626412429379,
+      "stage3_vocab_intro_tokens": 26,
+      "final_vocab_intro_tokens": 441,
+      "effective_total_tokens": 81684,
+      "effective_total_saved": 8940,
+      "effective_total_reduction_pct": 9.864936440677962,
       "syntax_pct": 2.272025070621469,
       "cleaning_pct": 8.023260946327683,
-      "replacement_pct": 0.12248411016949153,
+      "replacement_pct": 0.05627648305084746,
       "baseline_bpb": 3.9109580932304193,
-      "final_bpb": 3.5035234693097324,
+      "final_bpb": 3.5061128218608646,
       "baseline_entropy": 9.439402475999703,
       "V0": 100277,
       "k_star_syntax": 28,
       "n_replacement_words": 0,
       "stage3_backend": "plan_a",
-      "stage3_assignments": 4,
-      "stage3_fields": "variable,attribute,string",
-      "stage3_dictionary_coverage": 0.040105849231696133,
-      "stage3_expected_gain": 2.7001849940522638,
-      "stage3_component_saved": 111,
-      "stage3_used_entries": 4,
+      "stage3_assignments": 2,
+      "stage3_fields": "variable,attribute",
+      "stage3_dictionary_coverage": 0.0013352444357794964,
+      "stage3_expected_gain": 0.015974467736471487,
+      "stage3_component_saved": 51,
+      "stage3_used_entries": 2,
       "stage3_used_entries_variable": 1,
       "stage3_used_entries_attribute": 1,
-      "stage3_used_entries_string": 2,
+      "stage3_used_entries_string": 0,
       "stage3_cost_model": "real_surface_form",
-      "stage3_plan_a_profile": "gpt4_conservative",
-      "stage3_assignment_by_field_json": "{\"variable\": 1, \"attribute\": 1, \"string\": 2}"
+      "stage3_plan_a_profile": "gpt4_va_only",
+      "stage3_assignment_by_field_json": "{\"variable\": 1, \"attribute\": 1}"
     }
   ],
   "top_scores_by_tokenizer": {
@@ -672,53 +672,45 @@
   },
   "stage3_plan_a_summary_by_tokenizer": {
     "gpt4": {
-      "stage3_plan_a_assignments_count": 4,
+      "stage3_plan_a_assignments_count": 2,
       "stage3_plan_a_fields": [
         "variable",
-        "attribute",
-        "string"
+        "attribute"
       ],
-      "stage3_plan_a_dictionary_coverage_mean": 0.040105849231696133,
-      "stage3_plan_a_total_expected_gain_sum": 2.7001849940522638,
+      "stage3_plan_a_dictionary_coverage_mean": 0.0013352444357794964,
+      "stage3_plan_a_total_expected_gain_sum": 0.015974467736471487,
       "stage3_plan_a_assignment_by_field": {
         "variable": 1,
-        "attribute": 1,
-        "string": 2
+        "attribute": 1
       },
       "stage3_plan_a_cost_model": "real_surface_form",
       "stage3_plan_a_vocab_scope": "used_only",
       "stage3_plan_a_min_gain": 0.003,
       "stage3_plan_a_max_assignments_by_field": {
         "variable": 64,
-        "attribute": 32,
-        "string": 16
+        "attribute": 32
       },
-      "stage3_plan_a_profile": "gpt4_conservative",
+      "stage3_plan_a_profile": "gpt4_va_only",
       "stage3_plan_a_variable_count": 15075,
       "stage3_plan_a_attribute_count": 2892,
-      "stage3_plan_a_string_count": 4051,
+      "stage3_plan_a_string_count": 0,
       "stage3_plan_a_protected_name_skips": 9339,
       "stage3_plan_a_cardinality_variable": 1742,
       "stage3_plan_a_cardinality_attribute": 477,
-      "stage3_plan_a_cardinality_string": 1516,
-      "stage3_plan_a_string_filter_kept_occurrences": 59,
-      "stage3_plan_a_string_filter_dropped_low_count": 962,
-      "stage3_plan_a_string_filter_dropped_low_raw_cost": 2807,
-      "stage3_plan_a_string_filter_dropped_newline_inner": 21,
+      "stage3_plan_a_cardinality_string": 0,
+      "stage3_plan_a_string_filter_kept_occurrences": 0,
+      "stage3_plan_a_string_filter_dropped_low_count": 0,
+      "stage3_plan_a_string_filter_dropped_low_raw_cost": 0,
+      "stage3_plan_a_string_filter_dropped_newline_inner": 0,
       "stage3_plan_a_string_filter_dropped_long_prose": 0,
       "stage3_plan_a_string_filter_dropped_regex_like": 0,
-      "stage3_plan_a_string_filter_dropped_doc_marker": 202,
+      "stage3_plan_a_string_filter_dropped_doc_marker": 0,
       "stage3_plan_a_string_filter_dropped_high_whitespace_ratio": 0,
-      "stage3_plan_a_string_filter_by_rule_json": {
-        "low_count": 962,
-        "low_raw_cost": 2807,
-        "doc_marker": 202,
-        "inner_newline": 21
-      },
+      "stage3_plan_a_string_filter_by_rule_json": {},
       "stage3_plan_a_post_prune_enabled": true,
-      "stage3_plan_a_post_prune_pre_assignments": 20,
-      "stage3_plan_a_post_prune_post_assignments": 4,
-      "stage3_plan_a_post_prune_removed_count": 16,
+      "stage3_plan_a_post_prune_pre_assignments": 4,
+      "stage3_plan_a_post_prune_post_assignments": 2,
+      "stage3_plan_a_post_prune_removed_count": 2,
       "stage3_plan_a_post_prune_removed_json": [
         {
           "field": "attribute",
@@ -735,118 +727,6 @@
           "count": 3,
           "seq_save": 9,
           "intro_tokens": 11
-        },
-        {
-          "field": "string",
-          "literal": "\"<SYN_0> foo bar\"",
-          "code": "C",
-          "count": 4,
-          "seq_save": 12,
-          "intro_tokens": 16
-        },
-        {
-          "field": "string",
-          "literal": "\"gpt-4o/o200k_base (tiktoken)\"",
-          "code": "D",
-          "count": 2,
-          "seq_save": 16,
-          "intro_tokens": 22
-        },
-        {
-          "field": "string",
-          "literal": "\"v2_compression_report.csv\"",
-          "code": "E",
-          "count": 4,
-          "seq_save": 8,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"total_net_saving_replaced\"",
-          "code": "F",
-          "count": 3,
-          "seq_save": 6,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"resolve_gpt4o_base_tokenizer\"",
-          "code": "G",
-          "count": 2,
-          "seq_save": 8,
-          "intro_tokens": 17
-        },
-        {
-          "field": "string",
-          "literal": "r'(?m)#[^\\n]*'",
-          "code": "H",
-          "count": 2,
-          "seq_save": 8,
-          "intro_tokens": 17
-        },
-        {
-          "field": "string",
-          "literal": "\"count_gpt4o_base_tokens\"",
-          "code": "I",
-          "count": 2,
-          "seq_save": 6,
-          "intro_tokens": 16
-        },
-        {
-          "field": "string",
-          "literal": "\"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\"",
-          "code": "J",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"docstring_removal_mode\"",
-          "code": "K",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"load_starcoder_python_stream\"",
-          "code": "L",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"login_huggingface_if_needed\"",
-          "code": "M",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"realized_total_net_saving\"",
-          "code": "N",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "\"tiktoken.encoding_for_model\"",
-          "code": "O",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
-        },
-        {
-          "field": "string",
-          "literal": "r\"<SYN_\\d+>\"",
-          "code": "P",
-          "count": 2,
-          "seq_save": 4,
-          "intro_tokens": 15
         }
       ]
     }

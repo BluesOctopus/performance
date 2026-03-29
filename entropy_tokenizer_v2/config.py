@@ -1,5 +1,6 @@
 """Paths, tokenizer presets, and hyperparameters for Stages 1–3."""
 
+import copy
 from pathlib import Path
 import os
 
@@ -56,6 +57,84 @@ STAGE3_PLAN_A_COST_MODEL = os.getenv("ET_STAGE3_PLAN_A_COST_MODEL", "real_surfac
 STAGE3_ARTIFACT_DIR = Path(
     os.getenv("ET_STAGE3_ARTIFACT_DIR", str(RESULTS_DIR / "stage3_plan_a"))
 )
+
+# Plan A tokenizer-aware profiles (see docs/stage3_plan_a_integration.md).
+# Override with ET_STAGE3_PLAN_A_PROFILE=default|gpt4_conservative|gpt4_va_only
+STAGE3_PLAN_A_POST_PRUNE = os.getenv("ET_STAGE3_PLAN_A_POST_PRUNE", "1").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+
+def plan_a_profile_name_for_tokenizer(tokenizer_key: str) -> str:
+    """Default profile: gpt4 -> conservative; others -> default (gpt2-friendly)."""
+    explicit = os.getenv("ET_STAGE3_PLAN_A_PROFILE", "").strip()
+    if explicit:
+        return explicit
+    if tokenizer_key.strip().lower() == "gpt4":
+        return os.getenv("ET_STAGE3_PLAN_A_PROFILE_GPT4_DEFAULT", "gpt4_conservative")
+    return "default"
+
+
+def resolve_plan_a_settings(tokenizer_key: str) -> dict:
+    """
+    Resolved Plan A knobs for this tokenizer (and env overrides).
+
+    Returns dict with:
+    profile_name, enabled_categories, min_gain, max_assignments_by_field,
+    string_filter (dict or None), post_prune_enabled
+    """
+    profile = plan_a_profile_name_for_tokenizer(tokenizer_key)
+    # Env overrides (highest priority for categories / gain / caps)
+    cat_env = os.getenv("ET_STAGE3_PLAN_A_ENABLED_CATEGORIES", "").strip()
+    mg_env = os.getenv("ET_STAGE3_PLAN_A_MIN_GAIN", "").strip()
+    max_env = os.getenv("ET_STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD", "").strip()
+
+    profiles: dict[str, dict] = {
+        "default": {
+            "enabled_categories": ("variable", "attribute", "string"),
+            "min_gain": 0.001,
+            "max_assignments": {"variable": 256, "attribute": 128, "string": 128},
+            "string_filter": {"min_count": 1, "min_raw_token_cost": 0, "strict_heuristics": False},
+            "post_prune": STAGE3_PLAN_A_POST_PRUNE,
+        },
+        "gpt4_conservative": {
+            "enabled_categories": ("variable", "attribute", "string"),
+            "min_gain": 0.003,
+            "max_assignments": {"variable": 64, "attribute": 32, "string": 16},
+            "string_filter": {"min_count": 2, "min_raw_token_cost": 8, "strict_heuristics": True},
+            "post_prune": True,
+        },
+        "gpt4_va_only": {
+            "enabled_categories": ("variable", "attribute"),
+            "min_gain": 0.003,
+            "max_assignments": {"variable": 64, "attribute": 32},
+            "string_filter": None,
+            "post_prune": True,
+        },
+    }
+    base = copy.deepcopy(profiles.get(profile, profiles["default"]))
+    if cat_env:
+        base["enabled_categories"] = tuple(
+            x.strip() for x in cat_env.split(",") if x.strip()
+        )
+    if mg_env:
+        base["min_gain"] = float(mg_env)
+    if max_env:
+        out_max: dict[str, int] = {}
+        for part in max_env.split(","):
+            part = part.strip()
+            if not part or ":" not in part:
+                continue
+            k, v = part.split(":", 1)
+            out_max[k.strip()] = int(v.strip())
+        base["max_assignments"] = out_max
+    base["profile_name"] = profile
+    pp_env = os.getenv("ET_STAGE3_PLAN_A_POST_PRUNE", "").strip()
+    if pp_env:
+        base["post_prune"] = pp_env.lower() in ("1", "true", "yes")
+    return base
 
 HF_TOKEN         = os.getenv("HF_TOKEN", "")
 EVAL_DATASET     = os.getenv("ET_EVAL_DATASET", "zhensuuu/starcoderdata_100star_py")

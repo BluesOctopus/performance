@@ -157,6 +157,7 @@ class EvalResult:
     stage3_used_entries_attribute: int = 0
     stage3_used_entries_string: int = 0
     stage3_cost_model: str = ""
+    stage3_plan_a_profile: str = ""
     stage3_assignment_by_field_json: str = ""
 
 
@@ -231,6 +232,7 @@ def evaluate(
     stage3_dictionary_coverage = float(sm.get("stage3_plan_a_dictionary_coverage_mean", 0.0))
     stage3_expected_gain = float(sm.get("stage3_plan_a_total_expected_gain_sum", 0.0))
     stage3_cost_model = str(sm.get("stage3_plan_a_cost_model", "") or "")
+    stage3_plan_a_profile = str(sm.get("stage3_plan_a_profile", "") or "")
     stage3_assignment_by_field_json = json.dumps(
         sm.get("stage3_plan_a_assignment_by_field", {}), ensure_ascii=False
     )
@@ -321,6 +323,7 @@ def evaluate(
         stage3_used_entries_attribute=used_a,
         stage3_used_entries_string=used_s,
         stage3_cost_model=stage3_cost_model,
+        stage3_plan_a_profile=stage3_plan_a_profile,
         stage3_assignment_by_field_json=stage3_assignment_by_field_json,
     )
 

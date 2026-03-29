@@ -5,14 +5,17 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
-        "candidate_pool_size": 13336,
+        "candidate_pool_size": 13936,
         "feasible_codes": 256,
-        "assigned": 119,
+        "assigned": 116,
         "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
         "field_name": "variable",
-        "avg_raw_token_cost_assigned": 10.268907563025211,
-        "avg_encoded_token_cost_assigned": 4.873949579831932
+        "avg_raw_token_cost_assigned": 10.112068965517242,
+        "avg_encoded_token_cost_assigned": 4.879310344827586,
+        "post_pruned": true,
+        "pre_prune_assignments": 116,
+        "post_prune_assignments": 113
       },
       "assignments": [
         {
@@ -20,833 +23,791 @@
           "code": "D",
           "raw_token_cost": 5,
           "code_token_cost": 4,
-          "expected_gain": 0.006078273274204553
+          "expected_gain": 0.0061842183504786825
         },
         {
           "literal": "compute_vocab_intro_cost",
-          "code": "G",
+          "code": "E",
           "raw_token_cost": 10,
           "code_token_cost": 4,
-          "expected_gain": 0.0111641754016002
+          "expected_gain": 0.011417018493191414
         },
         {
           "literal": "VOCAB_COST_MODE",
           "code": "I",
           "raw_token_cost": 8,
           "code_token_cost": 4,
-          "expected_gain": 0.0069465980276623455
+          "expected_gain": 0.007135636558244634
         },
         {
           "literal": "count_sequence_tokens",
-          "code": "K",
+          "code": "L",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.005768157290826769
+          "expected_gain": 0.005530118332639591
         },
         {
           "literal": "STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL",
-          "code": "S",
+          "code": "T",
           "raw_token_cost": 19,
           "code_token_cost": 4,
-          "expected_gain": 0.008373131551200149
+          "expected_gain": 0.008027591128025213
         },
         {
           "literal": "STAGE2_ADAPTED_ORDER_LABEL",
           "code": "an",
           "raw_token_cost": 13,
           "code_token_cost": 4,
-          "expected_gain": 0.006698505240960119
+          "expected_gain": 0.006422072902420171
         },
         {
           "literal": "build_stage3_vocab_entries_from_used_placeholders",
           "code": "eh",
           "raw_token_cost": 17,
           "code_token_cost": 4,
-          "expected_gain": 0.007256714011040128
+          "expected_gain": 0.0069572456442885166
         },
         {
           "literal": "resolve_gpt4o_base_tokenizer",
-          "code": "er",
+          "code": "ia",
           "raw_token_cost": 12,
           "code_token_cost": 4,
-          "expected_gain": 0.005954226880853439
+          "expected_gain": 0.005708509246595707
         },
         {
           "literal": "EVAL_TOKENIZERS",
-          "code": "ol",
+          "code": "ict",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.0037213918005333997
+          "expected_gain": 0.003567818279122317
         },
         {
           "literal": "ensure_ascii",
-          "code": "ice",
-          "raw_token_cost": 6,
-          "code_token_cost": 4,
-          "expected_gain": 0.0028530670470756064
-        },
-        {
-          "literal": "make_syn_marker",
           "code": "iew",
           "raw_token_cost": 6,
           "code_token_cost": 4,
-          "expected_gain": 0.002729020653724493
+          "expected_gain": 0.0027353273473271094
+        },
+        {
+          "literal": "make_syn_marker",
+          "code": "iol",
+          "raw_token_cost": 6,
+          "code_token_cost": 4,
+          "expected_gain": 0.0026164000713563658
         },
         {
           "literal": "STAGE2_DEFAULT_PROFILE",
-          "code": "iol",
+          "code": "ote",
           "raw_token_cost": 9,
           "code_token_cost": 4,
-          "expected_gain": 0.004341623767288966
+          "expected_gain": 0.004162454658976036
         },
         {
           "literal": "remove_safe_docstrings",
-          "code": "ote",
-          "raw_token_cost": 6,
-          "code_token_cost": 4,
-          "expected_gain": 0.0026049742603733795
-        },
-        {
-          "literal": "selected_skeletons",
           "code": "eter",
           "raw_token_cost": 6,
           "code_token_cost": 4,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
-          "literal": "stage3_backend",
+          "literal": "selected_skeletons",
           "code": "ideo",
-          "raw_token_cost": 5,
+          "raw_token_cost": 6,
           "code_token_cost": 4,
-          "expected_gain": 0.0015505799168889164
+          "expected_gain": 0.0024974727953856217
+        },
+        {
+          "literal": "plan_a_profile_name_for_tokenizer",
+          "code": "1",
+          "raw_token_cost": 12,
+          "code_token_cost": 5,
+          "expected_gain": 0.004162454658976036
         },
         {
           "literal": "greedy_mdl_select",
-          "code": "0",
+          "code": "2",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.0021087886869689265
+          "expected_gain": 0.002021763691502646
         },
         {
           "literal": "build_stage1_vocab_entry",
-          "code": "1",
+          "code": "3",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0032252062271289463
+          "expected_gain": 0.0030921091752393413
         },
         {
           "literal": "build_stage2_execution_plan",
-          "code": "2",
+          "code": "4",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0032252062271289463
+          "expected_gain": 0.0030921091752393413
         },
         {
           "literal": "STAGE2_DEFAULT_MODE",
-          "code": "4",
+          "code": "6",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "add_special_tokens",
-          "code": "5",
+          "code": "7",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "apply_vocab_amort",
-          "code": "6",
+          "code": "8",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "corpus_jsonl_path",
-          "code": "7",
+          "code": "9",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "FIXED_VOCAB_TOKEN_COST",
-          "code": "H",
+          "code": "N",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.00390746139056007
+          "expected_gain": 0.003746209193078432
         },
         {
           "literal": "stage3_vocab_intro_tokens",
-          "code": "J",
+          "code": "Q",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.00390746139056007
+          "expected_gain": 0.003746209193078432
         },
         {
           "literal": "build_used_plan_a_vocab_entries",
-          "code": "Q",
+          "code": "U",
           "raw_token_cost": 13,
           "code_token_cost": 5,
-          "expected_gain": 0.003969484587235626
+          "expected_gain": 0.0038056728310638045
         },
         {
           "literal": "load_plan_a_codebooks",
-          "code": "U",
+          "code": "V",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.00241890467034671
+          "expected_gain": 0.002319081881429506
         },
         {
           "literal": "extract_used_plan_a_entries",
-          "code": "j",
+          "code": "y",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0033492526204800593
+          "expected_gain": 0.0032110364512100845
         },
         {
           "literal": "EXPERIMENT_LAYOUT_EXPERIMENTAL",
-          "code": "y",
+          "code": "B1",
           "raw_token_cost": 14,
           "code_token_cost": 5,
-          "expected_gain": 0.00390746139056007
+          "expected_gain": 0.0037462091930784325
         },
         {
           "literal": "GreedyPrefixFreeAssigner",
-          "code": "z",
+          "code": "B2",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "apply_stage1_with_stats",
-          "code": "B0",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
-        },
-        {
-          "literal": "find_multiline_string_line_spans",
-          "code": "B2",
-          "raw_token_cost": 12,
-          "code_token_cost": 5,
-          "expected_gain": 0.0034732990138311728
-        },
-        {
-          "literal": "remove_trailing_whitespace",
           "code": "B3",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
+        },
+        {
+          "literal": "find_multiline_string_line_spans",
+          "code": "B4",
+          "raw_token_cost": 12,
+          "code_token_cost": 5,
+          "expected_gain": 0.003329963727180829
+        },
+        {
+          "literal": "remove_trailing_whitespace",
+          "code": "B5",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "RE_ALL_MARKERS",
-          "code": "B6",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0016126031135644731
-        },
-        {
-          "literal": "apply_token_replacement_with_protected_spans",
-          "code": "B7",
-          "raw_token_cost": 13,
-          "code_token_cost": 5,
-          "expected_gain": 0.0034732990138311728
-        },
-        {
-          "literal": "max_assignments_by_field",
           "code": "B8",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024809278670222664
-        },
-        {
-          "literal": "apply_stage1_stage2_adapted",
-          "code": "B9",
-          "raw_token_cost": 10,
-          "code_token_cost": 5,
-          "expected_gain": 0.0027910438504000494
-        },
-        {
-          "literal": "encode_python_source_plan_a",
-          "code": "BB",
-          "raw_token_cost": 10,
-          "code_token_cost": 5,
-          "expected_gain": 0.0027910438504000494
-        },
-        {
-          "literal": "apply_stage1_stage2_layout_safe_experimental",
-          "code": "BH",
-          "raw_token_cost": 14,
-          "code_token_cost": 5,
-          "expected_gain": 0.0033492526204800593
-        },
-        {
-          "literal": "has_structured_doc_markers",
-          "code": "BM",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
-        },
-        {
-          "literal": "baseline_sequence_tokens",
-          "code": "BN",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666998
-        },
-        {
-          "literal": "drop_empty_cleaned_lines",
-          "code": "BO",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666998
-        },
-        {
-          "literal": "AST_MIN_FREQ",
-          "code": "BW",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.0013645103268622465
-        },
-        {
-          "literal": "EXPERIMENT_ADAPTED_AGG",
-          "code": "BX",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0015460545876196706
         },
         {
           "literal": "surface_text_for_code",
-          "code": "BY",
+          "code": "B9",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.0013645103268622465
+          "expected_gain": 0.0015460545876196706
+        },
+        {
+          "literal": "apply_token_replacement_with_protected_spans",
+          "code": "BA",
+          "raw_token_cost": 13,
+          "code_token_cost": 5,
+          "expected_gain": 0.003329963727180829
+        },
+        {
+          "literal": "max_assignments_by_field",
+          "code": "BB",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.002378545519414878
+        },
+        {
+          "literal": "apply_stage1_stage2_adapted",
+          "code": "BC",
+          "raw_token_cost": 10,
+          "code_token_cost": 5,
+          "expected_gain": 0.0026758637093417374
+        },
+        {
+          "literal": "encode_python_source_plan_a",
+          "code": "BE",
+          "raw_token_cost": 10,
+          "code_token_cost": 5,
+          "expected_gain": 0.0026758637093417374
+        },
+        {
+          "literal": "apply_stage1_stage2_layout_safe_experimental",
+          "code": "BK",
+          "raw_token_cost": 14,
+          "code_token_cost": 5,
+          "expected_gain": 0.0032110364512100854
+        },
+        {
+          "literal": "has_structured_doc_markers",
+          "code": "BP",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.00214069096747339
+        },
+        {
+          "literal": "baseline_sequence_tokens",
+          "code": "BR",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0017839091395611584
+        },
+        {
+          "literal": "drop_empty_cleaned_lines",
+          "code": "BS",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0017839091395611584
+        },
+        {
+          "literal": "AST_MIN_FREQ",
+          "code": "B_",
+          "raw_token_cost": 7,
+          "code_token_cost": 5,
+          "expected_gain": 0.0013082000356781829
+        },
+        {
+          "literal": "EXPERIMENT_ADAPTED_AGG",
+          "code": "Ba",
+          "raw_token_cost": 11,
+          "code_token_cost": 5,
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "GPT4oTokenizerResolutionError",
-          "code": "Bc",
+          "code": "Bf",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
-        },
-        {
-          "literal": "STAGE3_PLAN_A_ENABLED_CATEGORIES",
-          "code": "Bd",
-          "raw_token_cost": 18,
-          "code_token_cost": 5,
-          "expected_gain": 0.0032252062271289463
-        },
-        {
-          "literal": "STAGE3_PLAN_A_MAX_ASSIGNMENTS_PER_FIELD",
-          "code": "Be",
-          "raw_token_cost": 18,
-          "code_token_cost": 5,
-          "expected_gain": 0.0032252062271289463
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "STAGE3_VOCAB_DEFINITIONS",
-          "code": "Bf",
+          "code": "Bg",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "VOCAB_COST_SCOPE",
-          "code": "Bh",
+          "code": "Bi",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "_corpus_stage3_vocab_intro_from_texts",
-          "code": "Bi",
+          "code": "Bk",
           "raw_token_cost": 18,
           "code_token_cost": 5,
-          "expected_gain": 0.0032252062271289463
+          "expected_gain": 0.0030921091752393413
         },
         {
           "literal": "collect_used_stage3_placeholders",
           "code": "Bm",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
-        },
-        {
-          "literal": "decode_layout_indentation",
-          "code": "Bn",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0016746263102400297
-        },
-        {
-          "literal": "empirical_total_savings",
-          "code": "Bo",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0016746263102400297
-        },
-        {
-          "literal": "encode_layout_indentation",
-          "code": "Bp",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0016746263102400297
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "estimate_stage1_candidate_effective_gain",
-          "code": "Bq",
+          "code": "Bn",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "repo_config_by_tok",
-          "code": "Bt",
+          "code": "Bo",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
-        },
-        {
-          "literal": "run_stage2_pre_safe",
-          "code": "Bu",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0016746263102400297
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "stage2_clean_skip_syn_and_stats",
-          "code": "Bv",
+          "code": "Bp",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.0026049742603733795
+          "expected_gain": 0.0024974727953856217
         },
         {
           "literal": "stage3_plan_a_codebooks",
-          "code": "Bw",
+          "code": "Bq",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
+          "expected_gain": 0.0019028364155319023
+        },
+        {
+          "literal": "decode_layout_indentation",
+          "code": "Br",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0016055182256050422
+        },
+        {
+          "literal": "empirical_total_savings",
+          "code": "Bs",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0016055182256050422
+        },
+        {
+          "literal": "encode_layout_indentation",
+          "code": "Bt",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0016055182256050422
+        },
+        {
+          "literal": "run_stage2_pre_safe",
+          "code": "Bw",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0016055182256050422
         },
         {
           "literal": "_load_eval_stage1_stage2",
           "code": "Bz",
           "raw_token_cost": 10,
           "code_token_cost": 5,
-          "expected_gain": 0.002170811883644483
+          "expected_gain": 0.002081227329488018
         },
         {
           "literal": "effective_total_net_saving",
           "code": "FB",
           "raw_token_cost": 7,
           "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
+          "expected_gain": 0.001189272759707439
         },
         {
           "literal": "stage2_pre_sequence_tokens",
-          "code": "FF",
+          "code": "FH",
           "raw_token_cost": 10,
           "code_token_cost": 5,
-          "expected_gain": 0.002170811883644483
+          "expected_gain": 0.002081227329488018
         },
         {
           "literal": "EXPERIMENT_ADAPTED_SAFE",
-          "code": "FK",
+          "code": "FM",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "SCORE_THRESHOLD_PERCENTILE",
-          "code": "FL",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
-        },
-        {
-          "literal": "normalize_path_for_docstring_policy",
           "code": "FN",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
+        },
+        {
+          "literal": "normalize_path_for_docstring_policy",
+          "code": "FO",
+          "raw_token_cost": 11,
+          "code_token_cost": 5,
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "EVAL_NUM_SAMPLES",
-          "code": "FS",
+          "code": "FT",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "get_syn_line_spans",
-          "code": "FU",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "run_stage2_post_surface",
           "code": "FW",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
-          "literal": "stage3_plan_a_report",
+          "literal": "resolve_plan_a_settings",
           "code": "FX",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
-          "literal": "stage3_plan_a_summary",
+          "literal": "run_stage2_post_surface",
           "code": "FY",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
+        },
+        {
+          "literal": "stage3_plan_a_report",
+          "code": "Fa",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0014271273116489268
+        },
+        {
+          "literal": "stage3_plan_a_summary",
+          "code": "Fe",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "_stage1_vocab_intro",
-          "code": "Fe",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
-        },
-        {
-          "literal": "classify_docstring_path_context",
           "code": "Fi",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
+          "expected_gain": 0.0016649818635904145
         },
         {
-          "literal": "final_sequence_tokens",
+          "literal": "classify_docstring_path_context",
           "code": "Fl",
-          "raw_token_cost": 7,
+          "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0011164175401600198
+          "expected_gain": 0.0016649818635904145
         },
         {
           "literal": "is_preserved_directive_comment",
-          "code": "Fr",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
-        },
-        {
-          "literal": "max_file_base_tokens",
           "code": "Fs",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
+          "expected_gain": 0.0016649818635904145
+        },
+        {
+          "literal": "max_file_base_tokens",
+          "code": "Fu",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.0016649818635904145
         },
         {
           "literal": "verify_roundtrip_plan_a",
-          "code": "R0",
+          "code": "R1",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
+          "expected_gain": 0.0016649818635904145
+        },
+        {
+          "literal": "final_sequence_tokens",
+          "code": "R2",
+          "raw_token_cost": 7,
+          "code_token_cost": 5,
+          "expected_gain": 0.001070345483736695
         },
         {
           "literal": "STAGE3_PLAN_A_USE_TIKTOKEN",
-          "code": "R2",
+          "code": "R4",
           "raw_token_cost": 15,
           "code_token_cost": 5,
-          "expected_gain": 0.0024809278670222664
+          "expected_gain": 0.002378545519414878
         },
         {
           "literal": "STAGE3_PLAN_A_VOCAB_SCOPE",
-          "code": "R3",
+          "code": "R5",
           "raw_token_cost": 15,
           "code_token_cost": 5,
-          "expected_gain": 0.0024809278670222664
+          "expected_gain": 0.002378545519414878
         },
         {
           "literal": "estimate_stage1_occurrence_sequence_cost",
-          "code": "R4",
+          "code": "R7",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.002170811883644483
+          "expected_gain": 0.002081227329488018
+        },
+        {
+          "literal": "prune_plan_a_field_results",
+          "code": "RD",
+          "raw_token_cost": 10,
+          "code_token_cost": 5,
+          "expected_gain": 0.0017839091395611584
         },
         {
           "literal": "stage1_vocab_intro_tokens",
-          "code": "RB",
+          "code": "RJ",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.002170811883644483
+          "expected_gain": 0.002081227329488018
         },
         {
           "literal": "stage2_vocab_intro_tokens",
-          "code": "RC",
+          "code": "RK",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.002170811883644483
+          "expected_gain": 0.002081227329488018
         },
         {
           "literal": "total_baseline_sequence_tokens",
-          "code": "RI",
+          "code": "RM",
           "raw_token_cost": 10,
           "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666996
+          "expected_gain": 0.0017839091395611584
         },
         {
           "literal": "STAGE1_MIN_AVG_NET_SAVING",
-          "code": "RL",
+          "code": "RR",
           "raw_token_cost": 14,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "STAGE1_MIN_TOTAL_NET_SAVING",
-          "code": "RM",
+          "code": "RS",
           "raw_token_cost": 14,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "STAGE3_PLAN_A_COST_MODEL",
-          "code": "RN",
+          "code": "RT",
           "raw_token_cost": 14,
           "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0021406909674733902
         },
         {
           "literal": "max_code_length_chars",
-          "code": "RT",
+          "code": "RZ",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0013024871301866897
+          "expected_gain": 0.0012487363976928108
         },
         {
           "literal": "stage1_sequence_tokens",
-          "code": "RW",
+          "code": "Rb",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0013024871301866897
+          "expected_gain": 0.0012487363976928108
         },
         {
           "literal": "stage2_clean_skip_syn",
-          "code": "RX",
+          "code": "Rc",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0013024871301866897
+          "expected_gain": 0.0012487363976928108
+        },
+        {
+          "literal": "string_literal_should_drop",
+          "code": "Re",
+          "raw_token_cost": 8,
+          "code_token_cost": 5,
+          "expected_gain": 0.0012487363976928108
         },
         {
           "literal": "LAYOUT_TOKEN_MAX_DEPTH",
-          "code": "Ra",
+          "code": "Rh",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666998
+          "expected_gain": 0.0017839091395611584
         },
         {
           "literal": "STAGE3_ESCAPE_PREFIX",
-          "code": "Rb",
+          "code": "Ri",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666998
+          "expected_gain": 0.0017839091395611584
         },
         {
           "literal": "stage3_assignment_by_field_json",
-          "code": "Rd",
+          "code": "Rk",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0018606959002666998
+          "expected_gain": 0.0017839091395611584
         },
         {
           "literal": "EXPERIMENT_BASELINE",
-          "code": "Rf",
+          "code": "Rl",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "STAGE3_ARTIFACT_DIR",
-          "code": "Rg",
+          "code": "Rm",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "estimate_layout_encoding_effect",
-          "code": "Rj",
+          "code": "Rn",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "final_effective_total_tokens",
-          "code": "Rk",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "vocab_intro_tokens",
           "code": "Ro",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
+        },
+        {
+          "literal": "vocab_intro_tokens",
+          "code": "Rp",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.0014271273116489268
         },
         {
           "literal": "HF_DISK_DATASET_FALLBACK",
-          "code": "Rp",
+          "code": "Rx",
           "raw_token_cost": 13,
           "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
-        },
-        {
-          "literal": "STAGE3_PLAN_A_MIN_GAIN",
-          "code": "Rq",
-          "raw_token_cost": 13,
-          "code_token_cost": 5,
-          "expected_gain": 0.001984742293617813
+          "expected_gain": 0.0019028364155319023
         },
         {
           "literal": "decode_python_source_plan_a",
-          "code": "Rw",
+          "code": "a3",
           "raw_token_cost": 10,
           "code_token_cost": 5,
-          "expected_gain": 0.0015505799168889166
+          "expected_gain": 0.0014865909496342988
         },
         {
           "literal": "serialize_stage1_compressed_form",
-          "code": "Rx",
+          "code": "a4",
           "raw_token_cost": 10,
           "code_token_cost": 5,
-          "expected_gain": 0.0015505799168889166
-        },
-        {
-          "literal": "test_stage2_clean_skip_syn_and_stats_docstring_report_has_path_context",
-          "code": "__",
-          "raw_token_cost": 25,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024809278670222664
-        },
-        {
-          "literal": "test_vocab_intro_serialized_uses_base_tokens_not_placeholder_rules",
-          "code": "a0",
-          "raw_token_cost": 25,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024809278670222664
+          "expected_gain": 0.0014865909496342988
         },
         {
           "literal": "_ensure_stage3_pkg",
-          "code": "a6",
+          "code": "aG",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0011164175401600198
+          "expected_gain": 0.0010703454837366951
         },
         {
           "literal": "count_gpt4o_base_tokens",
-          "code": "aB",
+          "code": "aK",
           "raw_token_cost": 12,
           "code_token_cost": 5,
-          "expected_gain": 0.0017366495069155864
+          "expected_gain": 0.0016649818635904145
         },
         {
           "literal": "encoded_form_token_cost",
-          "code": "aC",
+          "code": "aL",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0011164175401600198
+          "expected_gain": 0.0010703454837366951
         },
         {
           "literal": "stage1_vocab_intro",
-          "code": "aK",
+          "code": "aT",
           "raw_token_cost": 8,
           "code_token_cost": 5,
-          "expected_gain": 0.0011164175401600198
-        },
-        {
-          "literal": "test_multiline_string_content_is_not_mutated_by_identifier_map",
-          "code": "aO",
-          "raw_token_cost": 23,
-          "code_token_cost": 5,
-          "expected_gain": 0.0022328350803200395
+          "expected_gain": 0.0010703454837366951
         },
         {
           "literal": "DEFAULT_CORPUS_JSONL",
-          "code": "aQ",
+          "code": "aW",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
+          "expected_gain": 0.001189272759707439
         },
         {
           "literal": "EXPERIMENT_PRE_ONLY",
-          "code": "aR",
+          "code": "aX",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
+          "expected_gain": 0.001189272759707439
         },
         {
           "literal": "MDL_CODEBOOK_OVERHEAD",
-          "code": "aS",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
-        },
-        {
-          "literal": "STAGE3_CODEBOOK_VERSION",
-          "code": "aT",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
-        },
-        {
-          "literal": "collect_category_literal_streams",
-          "code": "aU",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
-        },
-        {
-          "literal": "post_surface_sequence_tokens",
           "code": "aY",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
+          "expected_gain": 0.001189272759707439
         },
         {
-          "literal": "stage1_vocab_tokens",
+          "literal": "STAGE3_CODEBOOK_VERSION",
           "code": "aZ",
           "raw_token_cost": 9,
           "code_token_cost": 5,
-          "expected_gain": 0.0012404639335111332
+          "expected_gain": 0.001189272759707439
+        },
+        {
+          "literal": "collect_category_literal_streams",
+          "code": "a_",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.001189272759707439
+        },
+        {
+          "literal": "post_surface_sequence_tokens",
+          "code": "ac",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.001189272759707439
+        },
+        {
+          "literal": "stage1_vocab_tokens",
+          "code": "ad",
+          "raw_token_cost": 9,
+          "code_token_cost": 5,
+          "expected_gain": 0.001189272759707439
         },
         {
           "literal": "EXPERIMENT_STAGE1_ONLY",
-          "code": "ac",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "LAYOUT_TOKEN_FIND_RE",
-          "code": "ad",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "STAGE1_MIN_OCCURRENCES",
-          "code": "ae",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "build_plan_a_vocab_entries",
-          "code": "af",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
-        },
-        {
-          "literal": "count_augmented_text_fragment",
           "code": "ah",
           "raw_token_cost": 11,
           "code_token_cost": 5,
-          "expected_gain": 0.0014885567202133597
+          "expected_gain": 0.0014271273116489268
+        },
+        {
+          "literal": "LAYOUT_TOKEN_FIND_RE",
+          "code": "ai",
+          "raw_token_cost": 11,
+          "code_token_cost": 5,
+          "expected_gain": 0.0014271273116489268
         }
       ]
     },
@@ -855,14 +816,17 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
-        "candidate_pool_size": 3672,
-        "feasible_codes": 110,
-        "assigned": 51,
+        "candidate_pool_size": 3816,
+        "feasible_codes": 128,
+        "assigned": 61,
         "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
         "field_name": "attribute",
-        "avg_raw_token_cost_assigned": 8.07843137254902,
-        "avg_encoded_token_cost_assigned": 4.529411764705882
+        "avg_raw_token_cost_assigned": 8.0,
+        "avg_encoded_token_cost_assigned": 4.590163934426229,
+        "post_pruned": true,
+        "pre_prune_assignments": 61,
+        "post_prune_assignments": 17
       },
       "assignments": [
         {
@@ -870,357 +834,119 @@
           "code": "C",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.013092269326683292
+          "expected_gain": 0.012466607301869992
         },
         {
           "literal": "generate_tokens",
           "code": "D",
           "raw_token_cost": 6,
           "code_token_cost": 4,
-          "expected_gain": 0.008104738154613466
+          "expected_gain": 0.00771742356782428
         },
         {
           "literal": "effective_total_net_saving",
           "code": "F",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.010286783042394014
+          "expected_gain": 0.009795191451469279
         },
         {
           "literal": "docstring_removal_report",
-          "code": "H",
+          "code": "K",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.009351620947630923
+          "expected_gain": 0.008904719501335707
         },
         {
           "literal": "expected_raw_token_cost",
-          "code": "I",
+          "code": "L",
           "raw_token_cost": 7,
           "code_token_cost": 4,
-          "expected_gain": 0.009351620947630923
+          "expected_gain": 0.008904719501335707
         },
         {
           "literal": "baseline_tokens",
-          "code": "K",
+          "code": "N",
           "raw_token_cost": 6,
           "code_token_cost": 4,
-          "expected_gain": 0.00685785536159601
+          "expected_gain": 0.006530127634312852
         },
         {
           "literal": "final_vocab_intro_tokens",
-          "code": "M",
+          "code": "R",
           "raw_token_cost": 11,
           "code_token_cost": 4,
-          "expected_gain": 0.013092269326683292
+          "expected_gain": 0.01246660730186999
         },
         {
           "literal": "removed_docstring_chars",
-          "code": "U",
+          "code": "X",
           "raw_token_cost": 8,
           "code_token_cost": 4,
-          "expected_gain": 0.008728179551122194
+          "expected_gain": 0.008311071534579995
         },
         {
           "literal": "removed_indent_chars",
-          "code": "V",
+          "code": "Y",
           "raw_token_cost": 8,
           "code_token_cost": 4,
-          "expected_gain": 0.008728179551122194
-        },
-        {
-          "literal": "stage3_backend",
-          "code": "W",
-          "raw_token_cost": 5,
-          "code_token_cost": 4,
-          "expected_gain": 0.003428927680798005
+          "expected_gain": 0.008311071534579995
         },
         {
           "literal": "vocab_intro_tokens",
-          "code": "Z",
+          "code": "c",
           "raw_token_cost": 9,
           "code_token_cost": 4,
-          "expected_gain": 0.009351620947630923
+          "expected_gain": 0.008904719501335707
         },
         {
           "literal": "total_baseline_sequence_tokens",
-          "code": "c",
-          "raw_token_cost": 10,
-          "code_token_cost": 4,
-          "expected_gain": 0.009351620947630923
-        },
-        {
-          "literal": "total_compressed_sequence_tokens",
           "code": "d",
           "raw_token_cost": 10,
           "code_token_cost": 4,
-          "expected_gain": 0.009351620947630923
+          "expected_gain": 0.008904719501335707
+        },
+        {
+          "literal": "total_compressed_sequence_tokens",
+          "code": "f",
+          "raw_token_cost": 10,
+          "code_token_cost": 4,
+          "expected_gain": 0.008904719501335707
         },
         {
           "literal": "stage1_vocab_intro_tokens",
           "code": "g",
           "raw_token_cost": 12,
           "code_token_cost": 4,
-          "expected_gain": 0.00997506234413965
+          "expected_gain": 0.009498367468091422
         },
         {
           "literal": "stage3_vocab_intro_tokens",
           "code": "h",
           "raw_token_cost": 12,
           "code_token_cost": 4,
-          "expected_gain": 0.00997506234413965
-        },
-        {
-          "literal": "mock_tokenizer",
-          "code": "l",
-          "raw_token_cost": 5,
-          "code_token_cost": 4,
-          "expected_gain": 0.002805486284289277
-        },
-        {
-          "literal": "remove_indentation",
-          "code": "m",
-          "raw_token_cost": 5,
-          "code_token_cost": 4,
-          "expected_gain": 0.002805486284289277
+          "expected_gain": 0.009498367468091422
         },
         {
           "literal": "EXPERIMENT_ADAPTED_SAFE",
-          "code": "n",
+          "code": "r",
           "raw_token_cost": 11,
           "code_token_cost": 4,
-          "expected_gain": 0.008728179551122194
+          "expected_gain": 0.008311071534579995
         },
         {
           "literal": "collect_starcoder_python_corpus",
-          "code": "p",
+          "code": "s",
           "raw_token_cost": 11,
           "code_token_cost": 4,
-          "expected_gain": 0.008728179551122194
+          "expected_gain": 0.008311071534579995
         },
         {
           "literal": "avg_sequence_net_saving",
-          "code": "v",
-          "raw_token_cost": 8,
-          "code_token_cost": 4,
-          "expected_gain": 0.006234413965087282
-        },
-        {
-          "literal": "total_net_saving",
           "code": "w",
-          "raw_token_cost": 5,
-          "code_token_cost": 4,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "removed_blank_lines",
-          "code": "y",
-          "raw_token_cost": 6,
-          "code_token_cost": 4,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "stage2_vocab_intro_tokens",
-          "code": "id",
-          "raw_token_cost": 12,
-          "code_token_cost": 4,
-          "expected_gain": 0.007481296758104738
-        },
-        {
-          "literal": "raw_token_cost",
-          "code": "im",
-          "raw_token_cost": 5,
-          "code_token_cost": 4,
-          "expected_gain": 0.0021820448877805485
-        },
-        {
-          "literal": "build_stage1_mining_context",
-          "code": "0",
           "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "max_code_length_chars",
-          "code": "1",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "optional_tiktoken_adapter",
-          "code": "2",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "remove_trailing_whitespace",
-          "code": "4",
-          "raw_token_cost": 8,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "avg_net_saving",
-          "code": "8",
-          "raw_token_cost": 6,
-          "code_token_cost": 5,
-          "expected_gain": 0.0015586034912718205
-        },
-        {
-          "literal": "extract_code_text",
-          "code": "J",
-          "raw_token_cost": 6,
-          "code_token_cost": 5,
-          "expected_gain": 0.0015586034912718205
-        },
-        {
-          "literal": "EXPERIMENT_LAYOUT_EXPERIMENTAL",
-          "code": "e",
-          "raw_token_cost": 14,
-          "code_token_cost": 5,
-          "expected_gain": 0.005610972568578554
-        },
-        {
-          "literal": "_code_to_literal",
-          "code": "j",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "_literal_to_code",
-          "code": "o",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "sequence_final_tokens",
-          "code": "ic",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "sequence_reduction_pct",
-          "code": "ie",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "spec_from_file_location",
-          "code": "if",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0024937655860349127
-        },
-        {
-          "literal": "effective_total_reduction_pct",
-          "code": "ig",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "max_file_base_tokens",
-          "code": "ih",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "stage3_plan_a_codebooks",
-          "code": "ii",
-          "raw_token_cost": 9,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "build_from_records",
-          "code": "ub",
-          "raw_token_cost": 6,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012468827930174563
-        },
-        {
-          "literal": "encoding_for_model",
-          "code": "uf",
-          "raw_token_cost": 6,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012468827930174563
-        },
-        {
-          "literal": "run_stage1_only_large_corpus",
-          "code": "uk",
-          "raw_token_cost": 12,
-          "code_token_cost": 5,
-          "expected_gain": 0.004364089775561097
-        },
-        {
-          "literal": "selected_skeletons",
-          "code": "ul",
-          "raw_token_cost": 6,
-          "code_token_cost": 5,
-          "expected_gain": 0.0012468827930174563
-        },
-        {
-          "literal": "write_stage1_large_corpus_reports",
-          "code": "uo",
-          "raw_token_cost": 12,
-          "code_token_cost": 5,
-          "expected_gain": 0.004364089775561097
-        },
-        {
-          "literal": "EXPERIMENT_ADAPTED_AGG",
-          "code": "up",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "write_stage1_stage2_only_reports",
-          "code": "ur",
-          "raw_token_cost": 11,
-          "code_token_cost": 5,
-          "expected_gain": 0.003740648379052369
-        },
-        {
-          "literal": "__dataclass_fields__",
-          "code": "us",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018703241895261845
-        },
-        {
-          "literal": "avg_baseline_cost",
-          "code": "uu",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018703241895261845
-        },
-        {
-          "literal": "avg_compressed_cost",
-          "code": "uv",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018703241895261845
-        },
-        {
-          "literal": "effective_total_tokens",
-          "code": "ux",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018703241895261845
-        },
-        {
-          "literal": "expected_coded_token_cost",
-          "code": "uy",
-          "raw_token_cost": 7,
-          "code_token_cost": 5,
-          "expected_gain": 0.0018703241895261845
+          "code_token_cost": 4,
+          "expected_gain": 0.005936479667557139
         }
       ]
     },
@@ -1229,14 +955,17 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
-        "candidate_pool_size": 11648,
+        "candidate_pool_size": 12128,
         "feasible_codes": 128,
-        "assigned": 92,
+        "assigned": 95,
         "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
         "field_name": "string",
-        "avg_raw_token_cost_assigned": 16.52173913043478,
-        "avg_encoded_token_cost_assigned": 7.141304347826087
+        "avg_raw_token_cost_assigned": 17.16842105263158,
+        "avg_encoded_token_cost_assigned": 7.178947368421053,
+        "post_pruned": true,
+        "pre_prune_assignments": 95,
+        "post_prune_assignments": 50
       },
       "assignments": [
         {
@@ -1244,644 +973,350 @@
           "code": "B",
           "raw_token_cost": 10,
           "code_token_cost": 6,
-          "expected_gain": 0.021870286576168928
+          "expected_gain": 0.020837075624214118
         },
         {
           "literal": "\"vocab_intro_tokens\"",
           "code": "C",
           "raw_token_cost": 11,
           "code_token_cost": 6,
-          "expected_gain": 0.02356711915535445
+          "expected_gain": 0.022453745284713493
         },
         {
           "literal": "\"effective_total_net_saving\"",
           "code": "D",
           "raw_token_cost": 9,
           "code_token_cost": 6,
-          "expected_gain": 0.016402714932126694
+          "expected_gain": 0.015627806718160588
         },
         {
           "literal": "\"stage1_vocab_intro_tokens\"",
-          "code": "E",
+          "code": "F",
           "raw_token_cost": 14,
           "code_token_cost": 6,
-          "expected_gain": 0.02564102564102564
+          "expected_gain": 0.024429674869768277
         },
         {
           "literal": "\"skipped_nonpositive_occurrences\"",
           "code": "G",
           "raw_token_cost": 11,
           "code_token_cost": 6,
-          "expected_gain": 0.019796380090497737
+          "expected_gain": 0.01886114603915933
         },
         {
           "literal": "\"stage1_sequence_tokens\"",
           "code": "H",
           "raw_token_cost": 10,
           "code_token_cost": 6,
-          "expected_gain": 0.017345399698340876
+          "expected_gain": 0.016525956529549128
         },
         {
           "literal": "\"total_baseline_sequence_tokens\"",
           "code": "I",
           "raw_token_cost": 12,
           "code_token_cost": 6,
-          "expected_gain": 0.020361990950226245
+          "expected_gain": 0.019400035925992456
         },
         {
           "literal": "\"stage1_effective_total_tokens\"",
           "code": "K",
           "raw_token_cost": 12,
           "code_token_cost": 6,
-          "expected_gain": 0.01809954751131222
+          "expected_gain": 0.01724447637865996
         },
         {
           "literal": "\"total_compressed_sequence_tokens\"",
           "code": "L",
           "raw_token_cost": 12,
           "code_token_cost": 6,
-          "expected_gain": 0.01809954751131222
+          "expected_gain": 0.01724447637865996
         },
         {
           "literal": "\"candidate_occurrences\"",
           "code": "N",
           "raw_token_cost": 8,
           "code_token_cost": 6,
-          "expected_gain": 0.008672699849170438
+          "expected_gain": 0.008262978264774564
         },
         {
           "literal": "\"replaced_occurrences\"",
           "code": "P",
           "raw_token_cost": 8,
           "code_token_cost": 6,
-          "expected_gain": 0.007918552036199095
+          "expected_gain": 0.007544458415663733
         },
         {
           "literal": "\"stage1_effective_reduction_ratio\"",
           "code": "T",
           "raw_token_cost": 12,
           "code_token_cost": 6,
-          "expected_gain": 0.013574660633484163
+          "expected_gain": 0.01293335728399497
         },
         {
           "literal": "\"actual_accumulated_base_tokens\"",
           "code": "U",
           "raw_token_cost": 13,
           "code_token_cost": 6,
-          "expected_gain": 0.014517345399698341
-        },
-        {
-          "literal": "\"avg_sequence_net_saving\"",
-          "code": "W",
-          "raw_token_cost": 10,
-          "code_token_cost": 6,
-          "expected_gain": 0.00904977375565611
+          "expected_gain": 0.01383150709538351
         },
         {
           "literal": "\"stage2_post_removed_indent_chars\"",
           "code": "a",
           "raw_token_cost": 15,
           "code_token_cost": 6,
-          "expected_gain": 0.013574660633484163
+          "expected_gain": 0.012933357283994971
+        },
+        {
+          "literal": "\"avg_sequence_net_saving\"",
+          "code": "c",
+          "raw_token_cost": 10,
+          "code_token_cost": 6,
+          "expected_gain": 0.00862223818932998
         },
         {
           "literal": "\"final_sequence_tokens\"",
-          "code": "c",
-          "raw_token_cost": 9,
-          "code_token_cost": 6,
-          "expected_gain": 0.007352941176470588
-        },
-        {
-          "literal": "\"layout_tokens_used\"",
           "code": "e",
           "raw_token_cost": 9,
           "code_token_cost": 6,
-          "expected_gain": 0.007352941176470588
+          "expected_gain": 0.00700556852883061
+        },
+        {
+          "literal": "\"layout_tokens_used\"",
+          "code": "h",
+          "raw_token_cost": 9,
+          "code_token_cost": 6,
+          "expected_gain": 0.00700556852883061
         },
         {
           "literal": "\"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\"",
-          "code": "k",
+          "code": "l",
           "raw_token_cost": 37,
           "code_token_cost": 6,
-          "expected_gain": 0.01753393665158371
+          "expected_gain": 0.016705586491826834
         },
         {
           "literal": "\"stage1_vocab_tokens\"",
           "code": "m",
           "raw_token_cost": 11,
           "code_token_cost": 6,
-          "expected_gain": 0.00942684766214178
+          "expected_gain": 0.008981498113885395
         },
         {
           "literal": "\"stage2_pre_sequence_tokens\"",
           "code": "n",
           "raw_token_cost": 12,
           "code_token_cost": 6,
-          "expected_gain": 0.010180995475113122
-        },
-        {
-          "literal": "\"base_tokens\"",
-          "code": "o",
-          "raw_token_cost": 7,
-          "code_token_cost": 6,
-          "expected_gain": 0.002828054298642534
+          "expected_gain": 0.009700017962996228
         },
         {
           "literal": "\"total_sequence_net_saving\"",
-          "code": "t",
+          "code": "y",
           "raw_token_cost": 9,
           "code_token_cost": 6,
-          "expected_gain": 0.006221719457013575
+          "expected_gain": 0.005927788755164361
         },
         {
           "literal": "\"stage2_pre_docstring_removed_count\"",
-          "code": "u",
+          "code": "QL",
           "raw_token_cost": 14,
           "code_token_cost": 6,
-          "expected_gain": 0.010558069381598794
+          "expected_gain": 0.010059277887551643
         },
         {
           "literal": "\"avg_net_saving\"",
-          "code": "w",
+          "code": "qu",
           "raw_token_cost": 8,
           "code_token_cost": 6,
-          "expected_gain": 0.004524886877828055
-        },
-        {
-          "literal": "\"layout_encoding_used\"",
-          "code": "y",
-          "raw_token_cost": 8,
-          "code_token_cost": 6,
-          "expected_gain": 0.004524886877828055
+          "expected_gain": 0.00431111909466499
         },
         {
           "literal": "\"stage1_starcoder_1m_manifest.json\"",
-          "code": "qu",
+          "code": "2",
           "raw_token_cost": 16,
-          "code_token_cost": 6,
-          "expected_gain": 0.011312217194570137
-        },
-        {
-          "literal": "\"\"\"CLI: ``eval`` (HF samples or ``--repo``), ``demo`` (single file / toy). From repo: ``python .../eval/run_v2.py eval``.\"\"\"",
-          "code": "0",
-          "raw_token_cost": 46,
           "code_token_cost": 7,
-          "expected_gain": 0.014705882352941176
+          "expected_gain": 0.009700017962996226
         },
         {
           "literal": "\"stage2_pre_removed_docstring_chars\"",
-          "code": "2",
+          "code": "5",
           "raw_token_cost": 15,
           "code_token_cost": 7,
-          "expected_gain": 0.00904977375565611
+          "expected_gain": 0.00862223818932998
         },
         {
-          "literal": "\"layout_roundtrip_equal\"",
-          "code": "3",
-          "raw_token_cost": 8,
+          "literal": "\"stage3_plan_a_post_prune_enabled\"",
+          "code": "6",
+          "raw_token_cost": 15,
           "code_token_cost": 7,
-          "expected_gain": 0.0020739064856711916
+          "expected_gain": 0.00862223818932998
         },
         {
           "literal": "\"layout_tokens_used_count\"",
-          "code": "4",
+          "code": "8",
           "raw_token_cost": 11,
           "code_token_cost": 7,
-          "expected_gain": 0.006033182503770739
+          "expected_gain": 0.005748158792886654
         },
         {
           "literal": "\"stage2_post_total_removed_indent_chars\"",
-          "code": "5",
+          "code": "9",
           "raw_token_cost": 17,
           "code_token_cost": 7,
-          "expected_gain": 0.00942684766214178
-        },
-        {
-          "literal": "\"stage2_post_surface_sequence_tokens\"",
-          "code": "7",
-          "raw_token_cost": 14,
-          "code_token_cost": 7,
-          "expected_gain": 0.007918552036199096
-        },
-        {
-          "literal": "\"stage3_vocab_intro_tokens\"",
-          "code": "8",
-          "raw_token_cost": 14,
-          "code_token_cost": 7,
-          "expected_gain": 0.007918552036199096
+          "expected_gain": 0.008981498113885395
         },
         {
           "literal": "\"stage1_sequence_reduction_ratio\"",
           "code": "V",
           "raw_token_cost": 12,
           "code_token_cost": 7,
-          "expected_gain": 0.006598793363499247
+          "expected_gain": 0.006287048679719777
         },
         {
           "literal": "\"stage2_effective_total_tokens\"",
           "code": "X",
           "raw_token_cost": 12,
           "code_token_cost": 7,
-          "expected_gain": 0.006598793363499247
+          "expected_gain": 0.006287048679719777
         },
         {
           "literal": "\"stage3_effective_total_tokens\"",
           "code": "Z",
           "raw_token_cost": 12,
           "code_token_cost": 7,
-          "expected_gain": 0.006598793363499247
+          "expected_gain": 0.006287048679719777
+        },
+        {
+          "literal": "\"stage2_post_surface_sequence_tokens\"",
+          "code": "b",
+          "raw_token_cost": 14,
+          "code_token_cost": 7,
+          "expected_gain": 0.007544458415663732
+        },
+        {
+          "literal": "\"stage3_vocab_intro_tokens\"",
+          "code": "d",
+          "raw_token_cost": 14,
+          "code_token_cost": 7,
+          "expected_gain": 0.007544458415663732
         },
         {
           "literal": "\"compressed_sequence_tokens\"",
-          "code": "_",
+          "code": "j",
           "raw_token_cost": 10,
           "code_token_cost": 7,
-          "expected_gain": 0.004524886877828055
+          "expected_gain": 0.00431111909466499
         },
         {
           "literal": "\"layout_encoded_line_count\"",
-          "code": "d",
+          "code": "r",
           "raw_token_cost": 10,
           "code_token_cost": 7,
-          "expected_gain": 0.004524886877828055
+          "expected_gain": 0.00431111909466499
         },
         {
           "literal": "\"layout_skipped_line_count\"",
-          "code": "f",
+          "code": "s",
           "raw_token_cost": 10,
           "code_token_cost": 7,
-          "expected_gain": 0.004524886877828055
-        },
-        {
-          "literal": "\"matched_context_labels\"",
-          "code": "g",
-          "raw_token_cost": 8,
-          "code_token_cost": 7,
-          "expected_gain": 0.001885369532428356
-        },
-        {
-          "literal": "\"selected_skeleton_count\"",
-          "code": "j",
-          "raw_token_cost": 8,
-          "code_token_cost": 7,
-          "expected_gain": 0.001885369532428356
+          "expected_gain": 0.00431111909466499
         },
         {
           "literal": "\"stage2_post_removed_blank_lines\"",
-          "code": "r",
+          "code": "z",
           "raw_token_cost": 13,
           "code_token_cost": 7,
-          "expected_gain": 0.006787330316742082
+          "expected_gain": 0.006466678641997485
         },
         {
           "literal": "\"stage2_pre_removed_blank_lines\"",
-          "code": "s",
+          "code": "QB",
           "raw_token_cost": 13,
           "code_token_cost": 7,
-          "expected_gain": 0.006787330316742082
+          "expected_gain": 0.006466678641997485
         },
         {
-          "literal": "\"\"\"Stage 3: Score(w)=ΔT/(I(w)+ε); map high-score tokens to <VAR>/<STR>/… placeholders.\"\"\"",
-          "code": "z",
-          "raw_token_cost": 38,
-          "code_token_cost": 7,
-          "expected_gain": 0.011689291101055807
-        },
-        {
-          "literal": "r\"[A-Za-z_]\\w*|\\d+|<[^>\\s]+>|\\s+|[^\\w\\s]\"",
-          "code": "QB",
-          "raw_token_cost": 38,
-          "code_token_cost": 7,
-          "expected_gain": 0.011689291101055807
-        },
-        {
-          "literal": "\"<SYN_0> <VAR>\\n<VAR> = 1\\n#cleaned\"",
-          "code": "QU",
-          "raw_token_cost": 25,
-          "code_token_cost": 7,
-          "expected_gain": 0.010180995475113122
-        },
-        {
-          "literal": "\"def _x():\\n    '''d'''\\n    return 1\\n\"",
-          "code": "Qu",
-          "raw_token_cost": 25,
-          "code_token_cost": 7,
-          "expected_gain": 0.010180995475113122
-        },
-        {
-          "literal": "\"layout_vocab_intro_tokens_file\"",
-          "code": "qa",
-          "raw_token_cost": 15,
-          "code_token_cost": 7,
-          "expected_gain": 0.007541478129713424
-        },
-        {
-          "literal": "\"linewise mode does not support remove_docstrings=True\"",
+          "literal": "\"ET_STAGE3_PLAN_A_PROFILE\"",
           "code": "qi",
           "raw_token_cost": 15,
           "code_token_cost": 7,
-          "expected_gain": 0.007541478129713424
+          "expected_gain": 0.007185198491108317
         },
         {
-          "literal": "\"stage2_pre_removed_indent_chars\"",
+          "literal": "\"layout_vocab_intro_tokens_file\"",
+          "code": "ql",
+          "raw_token_cost": 15,
+          "code_token_cost": 7,
+          "expected_gain": 0.007185198491108317
+        },
+        {
+          "literal": "\"linewise mode does not support remove_docstrings=True\"",
           "code": "qq",
           "raw_token_cost": 15,
           "code_token_cost": 7,
-          "expected_gain": 0.007541478129713424
+          "expected_gain": 0.007185198491108317
         },
         {
-          "literal": "\"is_low_risk_context\"",
+          "literal": "\"stage2_pre_removed_indent_chars\"",
           "code": "qs",
-          "raw_token_cost": 9,
+          "raw_token_cost": 15,
           "code_token_cost": 7,
-          "expected_gain": 0.0030165912518853697
+          "expected_gain": 0.007185198491108317
         },
         {
-          "literal": "\"selected_skeletons\"",
+          "literal": "\"<SYN_0> <VAR>\\n<VAR> = 1\\n#cleaned\"",
           "code": "qt",
-          "raw_token_cost": 8,
+          "raw_token_cost": 25,
           "code_token_cost": 7,
-          "expected_gain": 0.0016968325791855204
+          "expected_gain": 0.009700017962996226
         },
         {
-          "literal": "\"stage3_effective_reduction_ratio\"",
+          "literal": "\"def _x():\\n    '''d'''\\n    return 1\\n\"",
           "code": "qv",
-          "raw_token_cost": 12,
+          "raw_token_cost": 25,
           "code_token_cost": 7,
-          "expected_gain": 0.005656108597285069
-        },
-        {
-          "literal": "\"tests/test_utils.py\"",
-          "code": "Q0",
-          "raw_token_cost": 9,
-          "code_token_cost": 8,
-          "expected_gain": 0.0015082956259426848
-        },
-        {
-          "literal": "\"remove_trailing_whitespace\"",
-          "code": "Q1",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0026395173453996985
-        },
-        {
-          "literal": "\"stage2_pre_parse_success\"",
-          "code": "Q2",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0026395173453996985
-        },
-        {
-          "literal": "\"stage2_sequence_tokens\"",
-          "code": "Q3",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0026395173453996985
-        },
-        {
-          "literal": "\"stage3_sequence_tokens\"",
-          "code": "Q4",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0026395173453996985
+          "expected_gain": 0.009700017962996226
         },
         {
           "literal": "\"def f():\\n    return 1\\n\"",
-          "code": "Q5",
-          "raw_token_cost": 14,
-          "code_token_cost": 8,
-          "expected_gain": 0.005656108597285068
-        },
-        {
-          "literal": "\"stage1_stage2_only_manifest.json\"",
           "code": "Q6",
           "raw_token_cost": 14,
           "code_token_cost": 8,
-          "expected_gain": 0.005656108597285068
+          "expected_gain": 0.005388898868331237
+        },
+        {
+          "literal": "\"stage1_stage2_only_manifest.json\"",
+          "code": "Q8",
+          "raw_token_cost": 14,
+          "code_token_cost": 8,
+          "expected_gain": 0.005388898868331237
         },
         {
           "literal": "\"stage2_vocab_intro_tokens\"",
-          "code": "Q7",
+          "code": "QC",
           "raw_token_cost": 14,
           "code_token_cost": 8,
-          "expected_gain": 0.005656108597285068
-        },
-        {
-          "literal": "\"\"\"Stage 2: optional R01–R05 (comments, blanks, ws, docstrings, indent). R04/R05 are lossy.\"\"\"",
-          "code": "Q8",
-          "raw_token_cost": 34,
-          "code_token_cost": 8,
-          "expected_gain": 0.00980392156862745
+          "expected_gain": 0.005388898868331237
         },
         {
           "literal": "\"<SYN_0> foo bar\\nfoo = bar\\n\"",
-          "code": "Q9",
+          "code": "QF",
           "raw_token_cost": 17,
           "code_token_cost": 8,
-          "expected_gain": 0.006787330316742082
-        },
-        {
-          "literal": "\"Vocab = S1voc+S2voc+S3voc (S2voc=0 here); S3voc = Stage3 intro only; \"",
-          "code": "QA",
-          "raw_token_cost": 34,
-          "code_token_cost": 8,
-          "expected_gain": 0.00980392156862745
-        },
-        {
-          "literal": "\"def f(x):\\n    if x:\\n        return x\\n    return 0\\n\"",
-          "code": "QC",
-          "raw_token_cost": 34,
-          "code_token_cost": 8,
-          "expected_gain": 0.00980392156862745
+          "expected_gain": 0.0064666786419974856
         },
         {
           "literal": "\"stage2_pre_total_removed_docstring_chars\"",
-          "code": "QD",
+          "code": "QI",
           "raw_token_cost": 17,
           "code_token_cost": 8,
-          "expected_gain": 0.006787330316742082
+          "expected_gain": 0.0064666786419974856
         },
         {
           "literal": "\"stage2_pre_total_removed_indent_chars\"",
-          "code": "QE",
+          "code": "QJ",
           "raw_token_cost": 17,
           "code_token_cost": 8,
-          "expected_gain": 0.006787330316742082
-        },
-        {
-          "literal": "r\"[A-Za-z]+|[0-9]+|_+|[^A-Za-z0-9_\\s]\"",
-          "code": "QF",
-          "raw_token_cost": 34,
-          "code_token_cost": 8,
-          "expected_gain": 0.00980392156862745
-        },
-        {
-          "literal": "r\"[A-Za-z_]\\w*|\\d+|<[^>\\s]+>|[^\\w\\s]\"",
-          "code": "QG",
-          "raw_token_cost": 34,
-          "code_token_cost": 8,
-          "expected_gain": 0.00980392156862745
-        },
-        {
-          "literal": "\"_layout_vocab_tokens\"",
-          "code": "QH",
-          "raw_token_cost": 11,
-          "code_token_cost": 8,
-          "expected_gain": 0.003393665158371041
-        },
-        {
-          "literal": "\"final_effective_total_tokens\"",
-          "code": "QI",
-          "raw_token_cost": 11,
-          "code_token_cost": 8,
-          "expected_gain": 0.003393665158371041
-        },
-        {
-          "literal": "\"stage2_pre_docstring_kept_count\"",
-          "code": "QJ",
-          "raw_token_cost": 13,
-          "code_token_cost": 8,
-          "expected_gain": 0.00471342383107089
-        },
-        {
-          "literal": "\"stage2_pre_docstring_parse_failed\"",
-          "code": "QK",
-          "raw_token_cost": 13,
-          "code_token_cost": 8,
-          "expected_gain": 0.00471342383107089
-        },
-        {
-          "literal": "\"\"\"When True, only **low-risk** docstrings are removed (AST-based, see ``docstring_removal_mode``).\"\"\"",
-          "code": "QR",
-          "raw_token_cost": 31,
-          "code_token_cost": 8,
-          "expected_gain": 0.008672699849170438
-        },
-        {
-          "literal": "\"| stage1_stage2_layout_safe_experimental adds reversible <NL0>-<NL8> after safe post_surface \"",
-          "code": "QS",
-          "raw_token_cost": 31,
-          "code_token_cost": 8,
-          "expected_gain": 0.008672699849170438
-        },
-        {
-          "literal": "\"--stage1-vocab-json\"",
-          "code": "QT",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0022624434389140274
-        },
-        {
-          "literal": "\"--stage3-vocab-json\"",
-          "code": "QV",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0022624434389140274
-        },
-        {
-          "literal": "\"layout_effective_total_delta\"",
-          "code": "QX",
-          "raw_token_cost": 10,
-          "code_token_cost": 8,
-          "expected_gain": 0.0022624434389140274
-        },
-        {
-          "literal": "\"stage1_starcoder_1m_selected_skeletons.csv\"",
-          "code": "QZ",
-          "raw_token_cost": 20,
-          "code_token_cost": 8,
-          "expected_gain": 0.006787330316742082
-        },
-        {
-          "literal": "\"stage1_starcoder_1m_vocab_tokens.json\"",
-          "code": "Q_",
-          "raw_token_cost": 20,
-          "code_token_cost": 8,
-          "expected_gain": 0.006787330316742082
-        },
-        {
-          "literal": "\"baseline_effective_total_tokens\"",
-          "code": "Qa",
-          "raw_token_cost": 12,
-          "code_token_cost": 8,
-          "expected_gain": 0.003770739064856712
-        },
-        {
-          "literal": "\"class Obj:\\n    def m(self):\\n        self.attr = value\\n\"",
-          "code": "Qb",
-          "raw_token_cost": 30,
-          "code_token_cost": 8,
-          "expected_gain": 0.008295625942684766
-        },
-        {
-          "literal": "\"stage2_post_total_removed_blank_lines\"",
-          "code": "Qe",
-          "raw_token_cost": 15,
-          "code_token_cost": 8,
-          "expected_gain": 0.005279034690799397
-        },
-        {
-          "literal": "\"stage2_pre_total_removed_blank_lines\"",
-          "code": "Qf",
-          "raw_token_cost": 15,
-          "code_token_cost": 8,
-          "expected_gain": 0.005279034690799397
-        },
-        {
-          "literal": "\"\"\"Fill corpus_once vocab columns and effective totals (``VOCAB_COST_SCOPE`` = corpus_once).\"\"\"",
-          "code": "Qi",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "\"\"\"Insert ``entropy_tokenizer_v2`` (and optionally Simpy) on ``sys.path`` for eval scripts.\"\"\"",
-          "code": "Qj",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "\"\"\"``off`` | ``safe_only``. ``remove_docstrings=True`` implies ``safe_only`` (conservative).\"\"\"",
-          "code": "Qk",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "\"EffTotal / Eff% = SeqFinal + corpus-once vocab intro (S1+S2+S3); \"",
-          "code": "Ql",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "\"def g(b):\\n    for i in b:\\n        return i\\n\"",
-          "code": "Qm",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "r\"\\basync\\s+def\\s+([A-Za-z_]\\w*)\\s*\\(\"",
-          "code": "Qn",
-          "raw_token_cost": 29,
-          "code_token_cost": 8,
-          "expected_gain": 0.007918552036199095
-        },
-        {
-          "literal": "\"%(asctime)s | %(levelname)s | %(name)s | %(message)s\"",
-          "code": "Qp",
-          "raw_token_cost": 28,
-          "code_token_cost": 8,
-          "expected_gain": 0.007541478129713424
-        },
-        {
-          "literal": "\"baseline_vocab_intro_tokens\"",
-          "code": "Qr",
-          "raw_token_cost": 14,
-          "code_token_cost": 8,
-          "expected_gain": 0.004524886877828055
+          "expected_gain": 0.0064666786419974856
         }
       ]
     }
