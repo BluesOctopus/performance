@@ -8,38 +8,489 @@
       "baseline_tokens": 87677,
       "syntax_tokens": 85675,
       "cleaning_tokens": 78628,
-      "final_tokens": 77382,
+      "final_tokens": 67134,
       "syntax_saved": 2002,
       "cleaning_saved": 7047,
-      "replacement_saved": 1246,
-      "total_saved": 10295,
-      "reduction_pct": 11.741961974063898,
+      "replacement_saved": 11494,
+      "total_saved": 20543,
+      "reduction_pct": 23.430318099387527,
       "syntax_pct": 2.283381046340545,
       "cleaning_pct": 8.037455661119793,
-      "replacement_pct": 1.4211252666035563,
+      "replacement_pct": 13.109481391927188,
       "baseline_bpb": 3.9049738460240992,
-      "final_bpb": 3.4464533019268093,
+      "final_bpb": 2.990026052202766,
       "baseline_entropy": 9.426181709114111,
       "V0": 100277,
       "k_star_syntax": 28,
-      "n_replacement_words": 0,
-      "stage3_backend": "plan_a",
-      "stage3_assignments": 83,
-      "stage3_fields": "variable,attribute,string",
-      "stage3_dictionary_coverage": 0.023630355152094284,
-      "stage3_expected_gain": 0.3326977809379579,
-      "stage3_vocab_intro_tokens": 1597,
-      "stage3_component_saved": 1246,
-      "stage3_used_entries": 79,
-      "stage3_used_entries_variable": 16,
-      "stage3_used_entries_attribute": 9,
-      "stage3_used_entries_string": 54,
-      "stage3_cost_model": "real_surface_form",
-      "stage3_assignment_by_field_json": "{\"variable\": 17, \"attribute\": 10, \"string\": 56}"
+      "n_replacement_words": 885,
+      "stage3_backend": "legacy",
+      "stage3_assignments": 0,
+      "stage3_fields": "",
+      "stage3_dictionary_coverage": 0.0,
+      "stage3_expected_gain": 0.0,
+      "stage3_vocab_intro_tokens": 24,
+      "stage3_component_saved": 11494,
+      "stage3_used_entries": 0,
+      "stage3_used_entries_variable": 0,
+      "stage3_used_entries_attribute": 0,
+      "stage3_used_entries_string": 0,
+      "stage3_cost_model": "",
+      "stage3_assignment_by_field_json": "{}"
     }
   ],
   "top_scores_by_tokenizer": {
-    "gpt4": []
+    "gpt4": [
+      {
+        "word": "tok_type",
+        "category": "attribute",
+        "score": 37.1373,
+        "delta_T": 242.0,
+        "self_info": 6.5064,
+        "freq": 242,
+        "spt": 2.0
+      },
+      {
+        "word": "\"utf-8\"",
+        "category": "string",
+        "score": 34.2769,
+        "delta_T": 284.0,
+        "self_info": 8.2755,
+        "freq": 71,
+        "spt": 5.0
+      },
+      {
+        "word": "'''\\\n\"\"\"Utility functions for processing data files.\"\"\"\n\nimport os\nimport json\nfrom typing import Optional, List\n\n# Default output directory\nDEFAULT_OUTPUT_DIR = \"/tmp/output\"\n\n\ndef load_json_file(filepath: str) -> Optional[dict]:\n    \"\"\"Load a JSON file and return its contents as a dictionary.\"\"\"\n    if not os.path.exists(filepath):\n        print(f\"File not found: {filepath}\")\n        return None\n    with open(filepath, \"r\", encoding=\"utf-8\") as file_handle:\n        data = json.load(file_handle)\n    return data\n\n\ndef process_records(records: List[dict], output_dir: str = DEFAULT_OUTPUT_DIR) -> int:\n    \"\"\"\n    Process a list of records and write results to output_dir.\n    Returns the number of records successfully processed.\n    \"\"\"\n    success_count = 0\n    for record in records:\n        record_id = record.get(\"id\", \"unknown\")\n        record_name = record.get(\"name\", \"\")\n        if not record_name:\n            continue\n        output_path = os.path.join(output_dir, f\"{record_id}.json\")\n        try:\n            with open(output_path, \"w\", encoding=\"utf-8\") as out_file:\n                json.dump(record, out_file, indent=2)\n            success_count += 1\n        except OSError as error_obj:\n            print(f\"Failed to write {output_path}: {error_obj}\")\n    return success_count\n\n\nclass DataProcessor:\n    \"\"\"Handles batch processing of data records.\"\"\"\n\n    def __init__(self, input_dir: str, output_dir: str):\n        self.input_dir = input_dir\n        self.output_dir = output_dir\n        self.processed = 0\n        self.errors = 0\n\n    def run(self) -> bool:\n        \"\"\"Run the processing pipeline.\"\"\"\n        os.makedirs(self.output_dir, exist_ok=True)\n        for filename in os.listdir(self.input_dir):\n            if not filename.endswith(\".json\"):\n                continue\n            filepath = os.path.join(self.input_dir, filename)\n            data = load_json_file(filepath)\n            if data is None:\n                self.errors += 1\n                continue\n            records = data.get(\"records\", [])\n            count = process_records(records, self.output_dir)\n            self.processed += count\n        return self.errors == 0\n'''",
+        "category": "string",
+        "score": 32.6285,
+        "delta_T": 471.0,
+        "self_info": 14.4252,
+        "freq": 1,
+        "spt": 472.0
+      },
+      {
+        "word": "\"effective_total_net_saving\"",
+        "category": "string",
+        "score": 17.4494,
+        "delta_T": 168.0,
+        "self_info": 9.6179,
+        "freq": 28,
+        "spt": 7.0
+      },
+      {
+        "word": "\"skipped_nonpositive_occurrences\"",
+        "category": "string",
+        "score": 13.8432,
+        "delta_T": 140.0,
+        "self_info": 10.1033,
+        "freq": 20,
+        "spt": 8.0
+      },
+      {
+        "word": "\"\\n\"",
+        "category": "string",
+        "score": 13.5242,
+        "delta_T": 116.0,
+        "self_info": 8.5672,
+        "freq": 58,
+        "spt": 3.0
+      },
+      {
+        "word": "0.0",
+        "category": "number",
+        "score": 12.7111,
+        "delta_T": 110.0,
+        "self_info": 8.6439,
+        "freq": 55,
+        "spt": 3.0
+      },
+      {
+        "word": "literal_codec",
+        "category": "variable",
+        "score": 12.3799,
+        "delta_T": 97.0,
+        "self_info": 7.8253,
+        "freq": 97,
+        "spt": 2.0
+      },
+      {
+        "word": "\"__L__\"",
+        "category": "string",
+        "score": 12.1121,
+        "delta_T": 116.0,
+        "self_info": 9.5672,
+        "freq": 29,
+        "spt": 5.0
+      },
+      {
+        "word": "__future__",
+        "category": "variable",
+        "score": 11.9064,
+        "delta_T": 104.0,
+        "self_info": 8.7248,
+        "freq": 52,
+        "spt": 3.0
+      },
+      {
+        "word": "\"baseline_sequence_tokens\"",
+        "category": "string",
+        "score": 11.6329,
+        "delta_T": 112.0,
+        "self_info": 9.6179,
+        "freq": 28,
+        "spt": 5.0
+      },
+      {
+        "word": "stage2_profile",
+        "category": "attribute",
+        "score": 11.3748,
+        "delta_T": 100.0,
+        "self_info": 8.7814,
+        "freq": 50,
+        "spt": 3.0
+      },
+      {
+        "word": "VOCAB_COST_MODE",
+        "category": "variable",
+        "score": 11.1566,
+        "delta_T": 108.0,
+        "self_info": 9.6703,
+        "freq": 27,
+        "spt": 5.0
+      },
+      {
+        "word": "\"stage1_sequence_tokens\"",
+        "category": "string",
+        "score": 11.0267,
+        "delta_T": 110.0,
+        "self_info": 9.9658,
+        "freq": 22,
+        "spt": 6.0
+      },
+      {
+        "word": "\"stage1_effective_total_tokens\"",
+        "category": "string",
+        "score": 9.9731,
+        "delta_T": 105.0,
+        "self_info": 10.5183,
+        "freq": 15,
+        "spt": 8.0
+      },
+      {
+        "word": "\"replaced_occurrences\"",
+        "category": "string",
+        "score": 9.888,
+        "delta_T": 100.0,
+        "self_info": 10.1033,
+        "freq": 20,
+        "spt": 6.0
+      },
+      {
+        "word": "\"vocab_intro_tokens\"",
+        "category": "string",
+        "score": 9.7459,
+        "delta_T": 96.0,
+        "self_info": 9.8403,
+        "freq": 24,
+        "spt": 5.0
+      },
+      {
+        "word": "escape_prefix",
+        "category": "attribute",
+        "score": 9.5708,
+        "delta_T": 78.0,
+        "self_info": 8.1398,
+        "freq": 78,
+        "spt": 2.0
+      },
+      {
+        "word": "\"indent_unit\"",
+        "category": "string",
+        "score": 9.4455,
+        "delta_T": 90.0,
+        "self_info": 9.5183,
+        "freq": 30,
+        "spt": 4.0
+      },
+      {
+        "word": "FieldCodebook",
+        "category": "variable",
+        "score": 9.2891,
+        "delta_T": 84.0,
+        "self_info": 9.0329,
+        "freq": 42,
+        "spt": 3.0
+      },
+      {
+        "word": "\"\"\"\nEncode / decode Python source with Stage3 Plan A field codebooks.\n\nNAME tokens use a single identifier: ``{escape_prefix}{V|A}{code}`` where *code*\nmatches ``[A-Za-z0-9_]+``. STRING tokens are replaced with ``repr(f\"{escape_prefix}S{code}\")``.\n\nIdentifiers that already start with *escape_prefix* are escaped as ``{escape_prefix}{name}``\n(double prefix) so they remain distinguishable from compressed tokens.\n\nOnly STRING spellings present in the mined codebook are replaced (skips f-strings,\nmultiline strings, and ambiguous cases) to preserve exact roundtrip.\n\"\"\"",
+        "category": "string",
+        "score": 9.2829,
+        "delta_T": 134.0,
+        "self_info": 14.4252,
+        "freq": 1,
+        "spt": 135.0
+      },
+      {
+        "word": "repo_config",
+        "category": "variable",
+        "score": 9.2827,
+        "delta_T": 76.0,
+        "self_info": 8.1773,
+        "freq": 76,
+        "spt": 2.0
+      },
+      {
+        "word": "\"stage1_vocab_intro_tokens\"",
+        "category": "string",
+        "score": 9.1996,
+        "delta_T": 96.0,
+        "self_info": 10.4252,
+        "freq": 16,
+        "spt": 7.0
+      },
+      {
+        "word": "compute_vocab_intro_cost",
+        "category": "variable",
+        "score": 9.084,
+        "delta_T": 87.0,
+        "self_info": 9.5672,
+        "freq": 29,
+        "spt": 4.0
+      },
+      {
+        "word": "\"tiktoken\"",
+        "category": "string",
+        "score": 8.8214,
+        "delta_T": 88.0,
+        "self_info": 9.9658,
+        "freq": 22,
+        "spt": 5.0
+      },
+      {
+        "word": "\"candidate_occurrences\"",
+        "category": "string",
+        "score": 8.8214,
+        "delta_T": 88.0,
+        "self_info": 9.9658,
+        "freq": 22,
+        "spt": 5.0
+      },
+      {
+        "word": "\"indent_style\"",
+        "category": "string",
+        "score": 8.7247,
+        "delta_T": 84.0,
+        "self_info": 9.6179,
+        "freq": 28,
+        "spt": 4.0
+      },
+      {
+        "word": "tokenize",
+        "category": "attribute",
+        "score": 8.7111,
+        "delta_T": 72.0,
+        "self_info": 8.2553,
+        "freq": 72,
+        "spt": 2.0
+      },
+      {
+        "word": "\"total_compressed_sequence_tokens\"",
+        "category": "string",
+        "score": 8.5484,
+        "delta_T": 90.0,
+        "self_info": 10.5183,
+        "freq": 15,
+        "spt": 7.0
+      },
+      {
+        "word": "\"total_baseline_sequence_tokens\"",
+        "category": "string",
+        "score": 8.2143,
+        "delta_T": 85.0,
+        "self_info": 10.3378,
+        "freq": 17,
+        "spt": 6.0
+      },
+      {
+        "word": "\"variable\"",
+        "category": "string",
+        "score": 7.7709,
+        "delta_T": 72.0,
+        "self_info": 9.2553,
+        "freq": 36,
+        "spt": 3.0
+      },
+      {
+        "word": "\"hf\"",
+        "category": "string",
+        "score": 7.5221,
+        "delta_T": 70.0,
+        "self_info": 9.2959,
+        "freq": 35,
+        "spt": 3.0
+      },
+      {
+        "word": "EVAL_TOKENIZERS",
+        "category": "variable",
+        "score": 7.4603,
+        "delta_T": 76.0,
+        "self_info": 10.1773,
+        "freq": 19,
+        "spt": 5.0
+      },
+      {
+        "word": "effective_total_net_saving",
+        "category": "attribute",
+        "score": 7.4603,
+        "delta_T": 76.0,
+        "self_info": 10.1773,
+        "freq": 19,
+        "spt": 5.0
+      },
+      {
+        "word": "stage3_backend",
+        "category": "attribute",
+        "score": 7.2745,
+        "delta_T": 68.0,
+        "self_info": 9.3378,
+        "freq": 34,
+        "spt": 3.0
+      },
+      {
+        "word": "1.0",
+        "category": "number",
+        "score": 7.0281,
+        "delta_T": 66.0,
+        "self_info": 9.3808,
+        "freq": 33,
+        "spt": 3.0
+      },
+      {
+        "word": "resolve_gpt4o_base_tokenizer",
+        "category": "variable",
+        "score": 7.0154,
+        "delta_T": 77.0,
+        "self_info": 10.9658,
+        "freq": 11,
+        "spt": 8.0
+      },
+      {
+        "word": "STAGE2_ADAPTED_ORDER_LABEL",
+        "category": "variable",
+        "score": 7.0154,
+        "delta_T": 77.0,
+        "self_info": 10.9658,
+        "freq": 11,
+        "spt": 8.0
+      },
+      {
+        "word": "\"stage1_effective_reduction_ratio\"",
+        "category": "string",
+        "score": 7.0154,
+        "delta_T": 77.0,
+        "self_info": 10.9658,
+        "freq": 11,
+        "spt": 8.0
+      },
+      {
+        "word": "selected_skeletons",
+        "category": "attribute",
+        "score": 6.9615,
+        "delta_T": 69.0,
+        "self_info": 9.9017,
+        "freq": 23,
+        "spt": 4.0
+      },
+      {
+        "word": "\"plan_a\"",
+        "category": "string",
+        "score": 6.9615,
+        "delta_T": 69.0,
+        "self_info": 9.9017,
+        "freq": 23,
+        "spt": 4.0
+      },
+      {
+        "word": "dataclass",
+        "category": "variable",
+        "score": 6.6261,
+        "delta_T": 57.0,
+        "self_info": 8.5923,
+        "freq": 57,
+        "spt": 2.0
+      },
+      {
+        "word": "skeleton",
+        "category": "attribute",
+        "score": 6.6261,
+        "delta_T": 57.0,
+        "self_info": 8.5923,
+        "freq": 57,
+        "spt": 2.0
+      },
+      {
+        "word": "codebook",
+        "category": "attribute",
+        "score": 6.3555,
+        "delta_T": 55.0,
+        "self_info": 8.6439,
+        "freq": 55,
+        "spt": 2.0
+      },
+      {
+        "word": "count_sequence_tokens",
+        "category": "variable",
+        "score": 6.297,
+        "delta_T": 60.0,
+        "self_info": 9.5183,
+        "freq": 30,
+        "spt": 3.0
+      },
+      {
+        "word": "STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL",
+        "category": "variable",
+        "score": 6.2963,
+        "delta_T": 72.0,
+        "self_info": 11.4252,
+        "freq": 8,
+        "spt": 10.0
+      },
+      {
+        "word": "greedy_mdl_select",
+        "category": "variable",
+        "score": 6.1331,
+        "delta_T": 64.0,
+        "self_info": 10.4252,
+        "freq": 16,
+        "spt": 5.0
+      },
+      {
+        "word": "\"<VAR>\"",
+        "category": "string",
+        "score": 6.056,
+        "delta_T": 58.0,
+        "self_info": 9.5672,
+        "freq": 29,
+        "spt": 3.0
+      },
+      {
+        "word": "\"\"\"\n    Exact text that appears in the compressed Python source for this assignment.\n\n    For *string* field this is a full STRING token spelling (includes quotes), matching\n    ``source_codec._encode_string_token``.\n\n    Offline / generic field names (e.g. ``service_name`` from CSV demos) are treated like\n    NAME replacements: ``{escape_prefix}V{code}``, same as ``variable``.\n    \"\"\"",
+        "category": "string",
+        "score": 6.0269,
+        "delta_T": 87.0,
+        "self_info": 14.4252,
+        "freq": 1,
+        "spt": 88.0
+      },
+      {
+        "word": "\"avg_sequence_net_saving\"",
+        "category": "string",
+        "score": 6.0132,
+        "delta_T": 66.0,
+        "self_info": 10.9658,
+        "freq": 11,
+        "spt": 7.0
+      }
+    ]
   },
   "selected_skeletons_by_tokenizer": {
     "gpt4": [
@@ -662,35 +1113,6 @@
     ]
   },
   "stage3_plan_a_summary_by_tokenizer": {
-    "gpt4": {
-      "stage3_plan_a_assignments_count": 83,
-      "stage3_plan_a_fields": [
-        "variable",
-        "attribute",
-        "string"
-      ],
-      "stage3_plan_a_dictionary_coverage_mean": 0.023630355152094284,
-      "stage3_plan_a_total_expected_gain_sum": 0.3326977809379579,
-      "stage3_plan_a_assignment_by_field": {
-        "variable": 17,
-        "attribute": 10,
-        "string": 56
-      },
-      "stage3_plan_a_cost_model": "real_surface_form",
-      "stage3_plan_a_vocab_scope": "used_only",
-      "stage3_plan_a_min_gain": 0.001,
-      "stage3_plan_a_max_assignments_by_field": {
-        "variable": 256,
-        "attribute": 128,
-        "string": 128
-      },
-      "stage3_plan_a_variable_count": 14390,
-      "stage3_plan_a_attribute_count": 2732,
-      "stage3_plan_a_string_count": 3841,
-      "stage3_plan_a_protected_name_skips": 8914,
-      "stage3_plan_a_cardinality_variable": 1656,
-      "stage3_plan_a_cardinality_attribute": 455,
-      "stage3_plan_a_cardinality_string": 1449
-    }
+    "gpt4": {}
   }
 }

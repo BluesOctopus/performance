@@ -8,4 +8,10 @@ cache/*
 !cache/.gitkeep
 results/*
 !results/.gitkeep
+# Official eval / Plan A artifacts (versioned)
+!results/stage3_backend_comparison.csv
+!results/v2_compression_report*.csv
+!results/v2_eval_detail*.json
+!results/stage3_plan_a/
+!results/stage3_plan_a/*.json
 *.log
