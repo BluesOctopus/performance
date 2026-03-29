@@ -180,15 +180,108 @@ def select_replacement_set(
     return {info.word for info in eligible if info.score >= cutoff_score}
 
 
+_ENCODE_CACHE = {}
+
+def build_local_replacement_map(
+    text: str,
+    tokenizer,
+    tok_type: str,
+    min_saving: int = 1
+) -> tuple[dict[str, str], str]:
+    """
+    Build a per-file local replacement map for identifiers.
+    Returns (replacement_map, registry_header).
+    """
+    from marker_count import encode as mc_encode
+    import re
+    from collections import Counter
+
+    # 1. Extract all potential identifiers (variables and attributes)
+    words = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', text)
+    counts = Counter(words)
+    
+    # Filter out Python keywords and special markers
+    import keyword
+    marker_pattern = re.compile(r'^SYN_\d+$|^<SYN_\d+>$|^<D>$|^<I>$|^<VAR.*>$|^<ATTR.*>$|^<STR.*>$|^<FSTR.*>$|^<NUM.*>$|^<V\d+>$|^<R>$|^</R>$')
+    candidates = {w: freq for w, freq in counts.items() 
+                  if not keyword.iskeyword(w) 
+                  and len(w) > 2 
+                  and not marker_pattern.match(w)}
+    
+    if not candidates:
+        return {}, ""
+
+    # 2. Calculate savings for each candidate
+    scored_candidates = []
+    for word, freq in candidates.items():
+        if word not in _ENCODE_CACHE:
+            _ENCODE_CACHE[word] = len(mc_encode(tokenizer, tok_type, word))
+        orig_toks = _ENCODE_CACHE[word]
+        
+        overhead = orig_toks + 1
+        net_saved = (orig_toks - 1) * freq - overhead
+        if net_saved >= min_saving:
+            scored_candidates.append((word, net_saved))
+            
+    scored_candidates.sort(key=lambda x: x[1], reverse=True)
+    
+    if not scored_candidates:
+        return {}, ""
+
+    # 3. Build map and header
+    rmap = {}
+    registry_words = []
+    for i, (word, _) in enumerate(scored_candidates):
+        rmap[word] = f"<V{i}>"
+        registry_words.append(word)
+        
+    header = f"<R>{','.join(registry_words)}</R>"
+    return rmap, header
+
+
+def apply_local_token_replacement(text: str, rmap: dict[str, str], header: str) -> str:
+    """Apply local replacements and prepend header."""
+    if not rmap:
+        return text
+        
+    import re
+    def replace_func(match):
+        word = match.group(0)
+        return rmap.get(word, word)
+    
+    pattern = re.compile(r'\b(' + '|'.join(re.escape(w) for w in sorted(rmap.keys(), key=len, reverse=True)) + r')\b')
+    compressed_text = pattern.sub(replace_func, text)
+    
+    return f"{header}\n{compressed_text}"
+
+
 def build_replacement_map(
     scores: dict[str, TokenInfo],
     replacement_set: set[str],
 ) -> dict[str, str]:
+    """Build a stable replacement map with unique indices per category."""
     rmap: dict[str, str] = {}
-    for word in replacement_set:
-        if word in scores:
-            placeholder = PLACEHOLDERS.get(scores[word].category, "<UNK>")
-            rmap[word] = placeholder
+    
+    sorted_words = sorted(
+        [scores[w] for w in replacement_set if w in scores],
+        key=lambda x: (-x.score, x.word)
+    )
+    
+    counters = {
+        "variable": 0,
+        "attribute": 0,
+        "string": 0,
+        "fstring": 0,
+        "number": 0
+    }
+    
+    for info in sorted_words:
+        cat = info.category
+        idx = counters.get(cat, 0)
+        prefix = PLACEHOLDERS.get(cat, "<UNK>")
+        rmap[info.word] = f"{prefix[:-1]}_{idx}>"
+        counters[cat] += 1
+        
     return rmap
 
 
@@ -201,15 +294,13 @@ _NUMBER_RE = re.compile(r'\b(\d+(?:\.\d*)?(?:[eE][+-]?\d+)?[jJ]?|\d+)\b')
 
 
 def apply_token_replacement(text: str, rmap: dict[str, str]) -> str:
-    """Replace strings, then numbers, then identifiers (regex; OK post–Stage 1)."""
+    """Replace strings, then numbers, then identifiers using the stable mapping."""
     if not rmap:
         return text
 
-    str_words = {w: p for w, p in rmap.items()
-                 if p in (PLACEHOLDERS["string"], PLACEHOLDERS["fstring"])}
-    num_words  = {w: p for w, p in rmap.items() if p == PLACEHOLDERS["number"]}
-    id_words   = {w: p for w, p in rmap.items()
-                  if p in (PLACEHOLDERS["variable"], PLACEHOLDERS["attribute"])}
+    str_words = {w: p for w, p in rmap.items() if "<STR_" in p or "<FSTR_" in p}
+    num_words = {w: p for w, p in rmap.items() if "<NUM_" in p}
+    id_words  = {w: p for w, p in rmap.items() if "<VAR_" in p or "<ATTR_" in p}
 
     if str_words:
         def _replace_str(m):
@@ -231,6 +322,28 @@ def apply_token_replacement(text: str, rmap: dict[str, str]) -> str:
 
     return text
 
+
+def reverse_local_token_replacement(compressed_text: str) -> str:
+    """Extract registry header and restore identifiers."""
+    match = re.match(r'^<R>(.*?)</R>\n', compressed_text)
+    if not match:
+        return compressed_text
+        
+    registry_str = match.group(1)
+    body = compressed_text[match.end():]
+    
+    if not registry_str:
+        return body
+        
+    words = registry_str.split(',')
+    rmap_rev = {f"<V{i}>": word for i, word in enumerate(words)}
+    
+    def replace_func(match):
+        marker = match.group(0)
+        return rmap_rev.get(marker, marker)
+        
+    pattern = re.compile(r'<V\d+>')
+    return pattern.sub(replace_func, body)
 
 def score_summary(scores: dict[str, TokenInfo], top_n: int = 20) -> list[dict]:
     """Top-*n* by score as dict rows."""

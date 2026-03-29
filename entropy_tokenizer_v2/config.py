@@ -31,16 +31,16 @@ EVAL_TOKENIZERS = {
     },
 }
 
-AST_MIN_FREQ          = 20     # skeleton must appear ≥ N times to be a candidate
+AST_MIN_FREQ          = 5      # skeleton must appear ≥ N times to be a candidate
 MDL_CODEBOOK_OVERHEAD = 2      # tokens needed to encode one operator in codebook
 
 # (enabled, is_lossy, description)
 CLEANING_RULES = {
-    "remove_comments":            (False, False, "R01 Remove # inline comments [default off]"),
+    "remove_comments":            (True,  False, "R01 Remove # inline comments"),
+    "remove_docstrings":          (True,  True,  "R05 Remove docstrings [LOSSY]"),
+    "use_minimalist_indent":      (True,  True,  "R04 Implicit IND after ':', explicit <D> [LOSSY]"),
     "remove_blank_lines":         (True,  False, "R02 Remove empty lines"),
     "remove_trailing_whitespace": (True,  False, "R03 Remove trailing spaces/tabs"),
-    "remove_docstrings":          (False, True,  "R05 Remove docstrings [LOSSY, default off]"),
-    "remove_indentation":         (True,  True,  "R04 Remove all indentation [LOSSY]"),
 }
 
 SCORE_EPSILON             = 0.01   # ε in Score(w) denominator

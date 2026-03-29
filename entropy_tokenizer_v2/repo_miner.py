@@ -15,7 +15,7 @@ from config import (
 from lossy_cleaner import lossless_clean
 from syntax_compressor import (
     SkeletonCandidate, build_candidate_pool,
-    greedy_mdl_select, mine_skeletons,
+    greedy_mdl_select, mine_block_patterns,
 )
 from marker_count import encode as _encode
 from token_scorer import (
@@ -111,23 +111,23 @@ def mine_repo(
         N_baseline += len(_encode(tokenizer, tok_type, src))
 
     if verbose:
-        print("[repo_miner] Stage 1 - mining AST skeletons ...")
-    skeleton_counts = mine_skeletons(clean_sources, min_freq=min_freq)
+        print("[repo_miner] Stage 1 - mining Block patterns ...")
+    block_counts = mine_block_patterns(clean_sources, min_freq=min_freq)
     if verbose:
-        print(f"  {len(skeleton_counts)} unique skeletons (freq >= {min_freq})")
+        print(f"  {len(block_counts)} unique block patterns (freq >= {min_freq})")
 
     candidates = build_candidate_pool(
-        skeleton_counts, tokenizer, tok_type, sources=clean_sources
+        block_counts, tokenizer, tok_type, sources=clean_sources
     )
     selected_skeletons = greedy_mdl_select(candidates, N_baseline, V0)
     if verbose:
-        print(f"  MDL K* = {len(selected_skeletons)} accepted skeletons")
+        print(f"  MDL K* = {len(selected_skeletons)} accepted block patterns")
         for c in selected_skeletons[:5]:
-            print(f"    [{c.skeleton[:60]}]  spi={c.savings_per_instance} "
+            print(f"    [{c.skeleton[:60]}]  spi={c.savings_per_instance:.2f} "
                   f"freq={c.frequency} net_benefit={c.mdl_net_benefit:.0f}")
 
     if verbose:
-        print("[repo_miner] Stage 3 - computing token importance scores ...")
+        print("[repo_miner] Stage 3 - computing stable token importance scores ...")
     vocab = build_vocabulary(clean_sources)
     scores = compute_scores(vocab, tokenizer, tok_type)
     replacement_set = select_replacement_set(scores, score_percentile)
