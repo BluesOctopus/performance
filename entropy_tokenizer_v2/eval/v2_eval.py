@@ -16,12 +16,24 @@ import bootstrap_v2
 bootstrap_v2.ensure()
 
 from config import (
-    CACHE_DIR, EVAL_DATASET, EVAL_NUM_SAMPLES,
-    EVAL_TOKENIZERS, HF_DISK_DATASET_FALLBACK, HF_TOKEN, RESULTS_DIR,
-    STAGE2_DEFAULT_MODE, STAGE2_DEFAULT_PROFILE,
+    CACHE_DIR,
+    EVAL_DATASET,
+    EVAL_NUM_SAMPLES,
+    EVAL_TOKENIZERS,
+    HF_DISK_DATASET_FALLBACK,
+    HF_TOKEN,
+    RESULTS_DIR,
+    STAGE2_DEFAULT_MODE,
+    STAGE2_DEFAULT_PROFILE,
+    VOCAB_COST_MODE,
 )
 from repo_miner import RepoConfig, _encode, _load_tokenizer, _vocab_size
 from pipeline import CompressionBreakdown, apply_pipeline
+from placeholder_accounting import compute_vocab_intro_cost
+from token_scorer import (
+    build_stage3_vocab_entries_from_used_placeholders,
+    collect_used_stage3_placeholders,
+)
 
 
 def apply_v2_compression(
@@ -116,6 +128,13 @@ class EvalResult:
     V0:                  int
     k_star_syntax:       int
     n_replacement_words: int
+    stage3_backend: str = "legacy"
+    stage3_assignments: int = 0
+    stage3_fields: str = ""
+    stage3_dictionary_coverage: float = 0.0
+    stage3_expected_gain: float = 0.0
+    stage3_vocab_intro_tokens: int = 0
+    stage3_component_saved: int = 0
 
 
 def evaluate(
@@ -137,9 +156,11 @@ def evaluate(
         after_cleaning=0, after_replacement=0,
     )
     baseline_token_counts: Counter = Counter()
+    legacy_stage3_used: list[str] = []
+    legacy_seen: set[str] = set()
 
     for src in tqdm(sources, desc=f"  [{tokenizer_key}] compressing", leave=False):
-        _, fr = apply_v2_compression(
+        compressed, fr = apply_v2_compression(
             src,
             repo_config,
             tokenizer,
@@ -157,8 +178,45 @@ def evaluate(
         agg.after_cleaning    += fr.after_cleaning
         agg.after_replacement += fr.after_replacement
 
+        if getattr(repo_config, "stage3_backend", "legacy") == "legacy" and repo_config.replacement_map:
+            for ph in collect_used_stage3_placeholders(compressed, repo_config.replacement_map):
+                if ph not in legacy_seen:
+                    legacy_seen.add(ph)
+                    legacy_stage3_used.append(ph)
+
     B = agg.baseline_tokens
     F = max(1, agg.after_replacement)
+
+    backend = getattr(repo_config, "stage3_backend", "legacy")
+    sm = getattr(repo_config, "stage3_plan_a_summary", None) or {}
+    stage3_assignments = int(sm.get("stage3_plan_a_assignments_count", 0))
+    stage3_fields = ",".join(sm.get("stage3_plan_a_fields", []) or [])
+    stage3_dictionary_coverage = float(sm.get("stage3_plan_a_dictionary_coverage_mean", 0.0))
+    stage3_expected_gain = float(sm.get("stage3_plan_a_total_expected_gain_sum", 0.0))
+
+    if backend == "plan_a":
+        from placeholder_accounting import build_plan_a_vocab_entries
+        from repo_miner import load_plan_a_codebooks
+
+        books = load_plan_a_codebooks(repo_config)
+        entries = build_plan_a_vocab_entries(
+            books,
+            escape_prefix=getattr(repo_config, "stage3_escape_prefix", "__L__"),
+        )
+        stage3_vocab_intro_tokens = compute_vocab_intro_cost(
+            entries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+    else:
+        entries = build_stage3_vocab_entries_from_used_placeholders(legacy_stage3_used)
+        stage3_vocab_intro_tokens = compute_vocab_intro_cost(
+            entries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
 
     return EvalResult(
         tokenizer_key       = tokenizer_key,
@@ -183,6 +241,13 @@ def evaluate(
         V0                  = V0,
         k_star_syntax       = len(repo_config.selected_skeletons),
         n_replacement_words = len(repo_config.replacement_map),
+        stage3_backend      = backend,
+        stage3_assignments  = stage3_assignments,
+        stage3_fields       = stage3_fields,
+        stage3_dictionary_coverage = stage3_dictionary_coverage,
+        stage3_expected_gain = stage3_expected_gain,
+        stage3_vocab_intro_tokens = stage3_vocab_intro_tokens,
+        stage3_component_saved = agg.replacement_saved,
     )
 
 
@@ -195,7 +260,7 @@ def print_report(results: list[EvalResult]):
     hdr = (f"  {'Tokenizer':<20} {'Profile':<18} {'Mode':<9} {'Baseline':>10} {'Final':>10} "
            f"{'Total%':>7} {'Syntax%':>7} {'Clean%':>7} {'Token%':>7} "
            f"{'BPB_base':>9} {'BPB_final':>9} "
-           f"{'K*_syn':>6} {'N_repl':>7}")
+           f"{'K*_syn':>6} {'N_repl':>7} {'S3be':>8} {'S3voc':>7}")
     print(hdr)
     print("-" * w)
 
@@ -206,31 +271,50 @@ def print_report(results: list[EvalResult]):
             f"{r.reduction_pct:>6.1f}% {r.syntax_pct:>6.1f}% "
             f"{r.cleaning_pct:>6.1f}% {r.replacement_pct:>6.1f}% "
             f"{r.baseline_bpb:>9.4f} {r.final_bpb:>9.4f} "
-            f"{r.k_star_syntax:>6} {r.n_replacement_words:>7}"
+            f"{r.k_star_syntax:>6} {r.n_replacement_words:>7} "
+            f"{r.stage3_backend:>8} {r.stage3_vocab_intro_tokens:>7}"
         )
 
     print("=" * w)
-    print("  Syntax%/Clean%/Token% = stage1/2/3 savings vs baseline; K*_syn, N_repl = skeletons, replacement_map size")
+    print(
+        "  Syntax%/Clean%/Token% = stage1/2/3 savings vs baseline; "
+        "K*_syn, N_repl = skeletons, legacy replacement_map size; "
+        "S3be = stage3_backend; S3voc = stage3 vocab intro (corpus-once union for legacy placeholders)"
+    )
 
 
-def save_results(results: list[EvalResult], repo_config_by_tok: dict):
+def save_results(
+    results: list[EvalResult],
+    repo_config_by_tok: dict,
+    *,
+    csv_name: str = "v2_compression_report.csv",
+    detail_name: str = "v2_eval_detail.json",
+):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    csv_path = RESULTS_DIR / "v2_compression_report.csv"
+    csv_path = RESULTS_DIR / csv_name
     fields = [f.name for f in EvalResult.__dataclass_fields__.values()]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for r in results:
             row = asdict(r)
-            for k in ("reduction_pct", "syntax_pct", "cleaning_pct",
-                      "replacement_pct", "baseline_bpb", "final_bpb",
-                      "baseline_entropy"):
+            for k in (
+                "reduction_pct",
+                "syntax_pct",
+                "cleaning_pct",
+                "replacement_pct",
+                "baseline_bpb",
+                "final_bpb",
+                "baseline_entropy",
+                "stage3_dictionary_coverage",
+                "stage3_expected_gain",
+            ):
                 row[k] = f"{row[k]:.6f}"
             writer.writerow(row)
     print(f"\n[eval] CSV saved → {csv_path}")
 
-    detail_path = RESULTS_DIR / "v2_eval_detail.json"
+    detail_path = RESULTS_DIR / detail_name
     detail = {
         "results": [asdict(r) for r in results],
         "top_scores_by_tokenizer": {
@@ -239,6 +323,10 @@ def save_results(results: list[EvalResult], repo_config_by_tok: dict):
         },
         "selected_skeletons_by_tokenizer": {
             tok_key: cfg.selected_skeletons
+            for tok_key, cfg in repo_config_by_tok.items()
+        },
+        "stage3_plan_a_summary_by_tokenizer": {
+            tok_key: getattr(cfg, "stage3_plan_a_summary", {})
             for tok_key, cfg in repo_config_by_tok.items()
         },
     }
@@ -253,8 +341,17 @@ def run_evaluation(
     verbose: bool = True,
     stage2_profile: str = STAGE2_DEFAULT_PROFILE,
     stage2_mode: str = STAGE2_DEFAULT_MODE,
+    *,
+    stage3_backend: str | None = None,
+    output_csv: str = "v2_compression_report.csv",
+    output_detail: str = "v2_eval_detail.json",
 ) -> list[EvalResult]:
+    from config import STAGE3_BACKEND
     from repo_miner import mine_from_sources
+
+    backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
+    if backend not in {"legacy", "plan_a"}:
+        backend = "legacy"
 
     if tokenizer_keys is None:
         tokenizer_keys = list(EVAL_TOKENIZERS.keys())
@@ -284,6 +381,7 @@ def run_evaluation(
             cache_name=f"eval_{num_samples}_{stage2_profile}_{stage2_mode}",
             cache=True,
             verbose=verbose,
+            stage3_backend=backend,
         )
         repo_config_by_tok[tok_key] = repo_config
 
@@ -304,5 +402,5 @@ def run_evaluation(
                   f"Token {result.replacement_pct:.1f}%)")
 
     print_report(all_results)
-    save_results(all_results, repo_config_by_tok)
+    save_results(all_results, repo_config_by_tok, csv_name=output_csv, detail_name=output_detail)
     return all_results

@@ -117,6 +117,43 @@ def compute_vocab_intro_cost(
     raise ValueError(f"unknown vocab cost mode: {mode}")
 
 
+def build_plan_a_vocab_entries(
+    codebooks: dict,
+    *,
+    escape_prefix: str,
+    tag_by_field: dict[str, str] | None = None,
+) -> list[dict]:
+    """
+    Vocab introduction entries for Stage3 Plan A (literal => compressed identifier).
+
+    *codebooks* maps field name -> objects with ``assignments`` list of
+    ``(literal, code, ...)`` (``FieldCodebook`` from stage3 literal_codec).
+    """
+    tag_by_field = tag_by_field or {
+        "variable": "V",
+        "attribute": "A",
+        "string": "S",
+    }
+    entries: list[dict] = []
+    for field, cb in codebooks.items():
+        tag = tag_by_field.get(field)
+        if tag is None:
+            continue
+        assignments = getattr(cb, "assignments", []) or []
+        for a in assignments:
+            literal = getattr(a, "literal", "")
+            code = getattr(a, "code", "")
+            token = f"{escape_prefix}{tag}{code}"
+            entries.append(
+                {
+                    "token": token,
+                    "kind": "stage3_plan_a",
+                    "definition": repr(literal),
+                }
+            )
+    return entries
+
+
 def compute_effective_total_tokens(
     text: str,
     vocab_entries: list[dict],

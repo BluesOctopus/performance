@@ -13,6 +13,7 @@ from config import (
     EVAL_TOKENIZERS,
     STAGE2_DEFAULT_MODE,
     STAGE2_DEFAULT_PROFILE,
+    STAGE3_BACKEND,
 )
 
 
@@ -36,13 +37,17 @@ def cmd_eval(args):
 
         results = []
         configs = {}
+        backend = args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND
+        tag = getattr(args, "stage3_output_tag", "") or ""
+        csv_name = f"v2_compression_report{tag}.csv" if tag else "v2_compression_report.csv"
+        detail_name = f"v2_eval_detail{tag}.json" if tag else "v2_eval_detail.json"
         for tok_key in (tok_keys or list(EVAL_TOKENIZERS.keys())):
             cfg = EVAL_TOKENIZERS.get(tok_key)
             if cfg is None:
                 print(f"Unknown tokenizer '{tok_key}', skipping")
                 continue
             repo_config = mine_from_repo_path(
-                args.repo, tok_key, cfg, cache=True
+                args.repo, tok_key, cfg, cache=True, stage3_backend=backend
             )
             configs[tok_key] = repo_config
             r = evaluate(
@@ -56,16 +61,23 @@ def cmd_eval(args):
             results.append(r)
 
         print_report(results)
-        save_results(results, configs)
+        save_results(results, configs, csv_name=csv_name, detail_name=detail_name)
 
     else:
         # Use the HF eval dataset
         n = args.samples or EVAL_NUM_SAMPLES
+        backend = args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND
+        tag = getattr(args, "stage3_output_tag", "") or ""
+        csv_name = f"v2_compression_report{tag}.csv" if tag else "v2_compression_report.csv"
+        detail_name = f"v2_eval_detail{tag}.json" if tag else "v2_eval_detail.json"
         run_evaluation(
             tokenizer_keys=tok_keys,
             num_samples=n,
             stage2_profile=args.stage2_profile,
             stage2_mode=args.stage2_mode,
+            stage3_backend=backend,
+            output_csv=csv_name,
+            output_detail=detail_name,
         )
 
 
@@ -103,6 +115,7 @@ def cmd_demo(args):
         cache=True,
         verbose=True,
         min_freq=1,
+        stage3_backend=args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND,
     )
 
     compressed, fr = apply_v2_compression(source, repo_config, tokenizer, tok_type)
@@ -223,12 +236,37 @@ def main():
         choices=["linewise", "blockwise"],
         help="Stage2 mode",
     )
+    p_eval.add_argument(
+        "--stage3-backend",
+        type=str,
+        default=None,
+        choices=["legacy", "plan_a"],
+        help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
+    )
+    p_eval.add_argument(
+        "--stage3-output-tag",
+        type=str,
+        default="",
+        help="Optional suffix for v2_compression_report*.csv and v2_eval_detail*.json",
+    )
+    p_eval.add_argument(
+        "--stage3-use-tiktoken",
+        action="store_true",
+        help="Reserved; Plan A uses the same tokenizer as eval for consistent costs",
+    )
 
     p_demo = sub.add_parser("demo", help="Show compression on a single file")
     p_demo.add_argument("--file", type=str, default=None,
                         help="Python source file to compress (default: built-in toy code)")
     p_demo.add_argument("--tokenizer", type=str, default=None,
                         help="Tokenizer key (default: first in config)")
+    p_demo.add_argument(
+        "--stage3-backend",
+        type=str,
+        default=None,
+        choices=["legacy", "plan_a"],
+        help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
+    )
 
     args = parser.parse_args()
 

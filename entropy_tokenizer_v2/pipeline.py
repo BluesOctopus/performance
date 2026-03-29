@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import ast
+import sys
 from dataclasses import dataclass
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any
 
 from config import STAGE2_DEFAULT_MODE, STAGE2_DEFAULT_PROFILE, VOCAB_COST_MODE
 from marker_count import count_augmented
@@ -27,6 +29,13 @@ from token_scorer import (
     build_stage3_vocab_entries_from_used_placeholders,
     collect_used_stage3_placeholders,
 )
+
+
+def _ensure_stage3_pkg() -> None:
+    root = Path(__file__).resolve().parent / "stage3"
+    s = str(root)
+    if s not in sys.path:
+        sys.path.insert(0, s)
 
 
 @dataclass
@@ -95,10 +104,30 @@ def _stage1_vocab_intro(repo_config, tokenizer, tok_type: str) -> int:
     )
 
 
-def _stage3_vocab_intro(text: str, rmap: dict, tokenizer, tok_type: str) -> int:
+def _stage3_vocab_intro(repo_config, after_s3_text: str, tokenizer, tok_type: str) -> int:
+    backend = getattr(repo_config, "stage3_backend", "legacy")
+    if backend == "plan_a":
+        from placeholder_accounting import build_plan_a_vocab_entries
+
+        from repo_miner import load_plan_a_codebooks
+
+        codebooks = load_plan_a_codebooks(repo_config)
+        if not codebooks:
+            return 0
+        entries = build_plan_a_vocab_entries(
+            codebooks,
+            escape_prefix=getattr(repo_config, "stage3_escape_prefix", "__L__"),
+        )
+        return compute_vocab_intro_cost(
+            entries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+    rmap = repo_config.replacement_map
     if not rmap:
         return 0
-    used = collect_used_stage3_placeholders(text, rmap)
+    used = collect_used_stage3_placeholders(after_s3_text, rmap)
     entries = build_stage3_vocab_entries_from_used_placeholders(used)
     return compute_vocab_intro_cost(
         entries,
@@ -281,6 +310,18 @@ def apply_stage2(
 
 
 def apply_stage3(text: str, repo_config) -> str:
+    backend = getattr(repo_config, "stage3_backend", "legacy")
+    if backend == "plan_a":
+        _ensure_stage3_pkg()
+        from literal_codec.pipeline.source_codec import encode_python_source_plan_a
+
+        from repo_miner import load_plan_a_codebooks
+
+        books = load_plan_a_codebooks(repo_config)
+        if not books:
+            return text
+        esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
+        return encode_python_source_plan_a(text, books, escape_prefix=esc)
     rmap = repo_config.replacement_map
     if not rmap:
         return text
@@ -314,7 +355,7 @@ def apply_pipeline(
     after_s3_tokens = count_fn(after_s3)
 
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
-    s3_intro = _stage3_vocab_intro(after_s3, repo_config.replacement_map, tokenizer, tok_type)
+    s3_intro = _stage3_vocab_intro(repo_config, after_s3, tokenizer, tok_type)
 
     breakdown = CompressionBreakdown(
         baseline_tokens=baseline_tokens,

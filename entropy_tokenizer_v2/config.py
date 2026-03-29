@@ -15,6 +15,30 @@ DATA_DIR     = Path(os.getenv("ET_DATA_DIR", PROJECT_ROOT / "data"))
 RESULTS_DIR  = Path(os.getenv("ET_RESULTS_DIR", PROJECT_ROOT / "results"))
 CACHE_DIR    = Path(os.getenv("ET_CACHE_DIR", PROJECT_ROOT / "cache"))
 
+# Stage3 backend: legacy replacement_map vs Plan A literal codec (see docs/stage3_plan_a_integration.md).
+STAGE3_BACKEND = os.getenv("ET_STAGE3_BACKEND", "legacy").strip().lower()
+if STAGE3_BACKEND not in {"legacy", "plan_a"}:
+    STAGE3_BACKEND = "legacy"
+
+STAGE3_CODEBOOK_VERSION = os.getenv("ET_STAGE3_CODEBOOK_VERSION", "v1")
+STAGE3_ESCAPE_PREFIX = os.getenv("ET_STAGE3_ESCAPE_PREFIX", "__L__")
+STAGE3_PLAN_A_ENABLED_CATEGORIES = tuple(
+    x.strip()
+    for x in os.getenv(
+        "ET_STAGE3_PLAN_A_ENABLED_CATEGORIES", "variable,attribute,string"
+    ).split(",")
+    if x.strip()
+)
+STAGE3_PLAN_A_MIN_GAIN = float(os.getenv("ET_STAGE3_PLAN_A_MIN_GAIN", "0"))
+STAGE3_PLAN_A_USE_TIKTOKEN = os.getenv("ET_STAGE3_PLAN_A_USE_TIKTOKEN", "0").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+STAGE3_ARTIFACT_DIR = Path(
+    os.getenv("ET_STAGE3_ARTIFACT_DIR", str(RESULTS_DIR / "stage3_plan_a"))
+)
+
 HF_TOKEN         = os.getenv("HF_TOKEN", "")
 EVAL_DATASET     = os.getenv("ET_EVAL_DATASET", "zhensuuu/starcoderdata_100star_py")
 EVAL_NUM_SAMPLES = int(os.getenv("ET_EVAL_NUM_SAMPLES", "1000"))

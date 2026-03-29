@@ -1,0 +1,5 @@
+tokenizer_key,stage2_profile,stage2_mode,stage3_backend,n_files,baseline_tokens,syntax_tokens,cleaning_tokens,final_tokens,total_saved,reduction_pct,stage3_component_saved,stage3_vocab_intro_tokens,stage3_assignments,stage3_dictionary_coverage,stage3_expected_gain,notes
+gpt4,stage2_aggressive,linewise,legacy,80,84686,82843,75979,65006,19680,23.238788,10973,24,0,0.000000,0.000000,entropy_tokenizer_v2 repo; 80 samples; n_replacement_words=841
+gpt4,stage2_aggressive,linewise,plan_a,80,84686,82843,75979,86583,-1897,-2.240040,-10604,13772,1159,0.253893,2.150845,gpt4 tokenizes __L__* expansions; corpus-once vocab intro dominates accounting
+gpt2,stage2_aggressive,linewise,legacy,80,165861,158662,110606,88381,77480,46.713815,22225,26,0,0.000000,0.000000,n_replacement_words=890; HF tokenizer length warnings on long files
+gpt2,stage2_aggressive,linewise,plan_a,80,165861,158662,110606,114427,51434,31.010304,-3821,19713,1373,0.293633,3.937678,replacement_saved negative; mining gain uses per-literal tokenizer model not full-file interaction
