@@ -83,11 +83,11 @@ python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-prof
 
 ## 实验结果摘要（本地 repo，80 文件）
 
-以 `results/stage3_backend_comparison.csv` 为准（与 `v2_compression_report_*.csv` 同步刷新）。当前评测在 **互斥采集 + real_surface_form + used-only vocab** 下重跑。
+以 `results/stage3_backend_comparison.csv` 为准（与 `v2_compression_report_*.csv` 同步刷新；表内含 `sequence_*` 与 `effective_total_*`）。当前评测在 **互斥采集 + real_surface_form + used-only vocab** 下重跑。
 
-- **gpt4 + Plan A（示例）**：总压缩率可为正；`stage3_expected_gain`（挖掘侧期望）与 `stage3_component_saved`（评测侧序列收益）同号、数量级可比；`stage3_vocab_intro_tokens` 为 **实际出现过的 (field,code)** 词条成本，不再按整本码表摊销。
-- **gpt2 + Plan A**：同上；gpt2 下 Plan A 的 vocab intro 仍可能高于 gpt4（词条序列更长），需看 `stage3_used_entries_*`。
-- **legacy**：`<VAR>` 等 placeholder 仍按既有 placeholder 计数；与 Plan A 的「真实 tokenizer 长度」口径不同，勿横向直接比绝对 token 数。
+- **主指标**：`effective_total_reduction_pct`（整语料共享 Stage1/3 词表后的最终压缩率）；**对照**：`sequence_reduction_pct`（仅正文序列）。
+- **当前矩阵（gpt4/gpt2 × legacy/plan_a）**：在同一 80-file 切片上，**legacy 的 effective-total 压缩率均高于 plan_a**；plan_a 常见 **Eff% < Seq%**，因 Stage3 used-only 词条 intro 在 tokenizer 下仍显著。
+- **legacy vs Plan A 横向比较**：以各自行的 `effective_total_*` 为准；两种 backend 的序列计数规则不同，勿只比 raw `final_tokens` 绝对值。
 
 ## 测试
 
@@ -96,9 +96,22 @@ python -m pytest tests/ -q
 cd stage3 && python -m pytest tests/ -q
 ```
 
+## 评测指标：序列 vs 整语料有效总成本
+
+`eval/v2_eval.py` 的 `EvalResult` 同时给出：
+
+| 字段 | 含义 |
+|------|------|
+| `sequence_final_tokens` / `sequence_reduction_pct` | 仅 **正文序列** token（占位符计 1）；与历史 `final_tokens` / `reduction_pct` 同义。 |
+| `effective_total_tokens` / `effective_total_reduction_pct` | **整语料共享词表后的最终总成本**：`sequence_final_tokens + corpus_once_vocab_intro`。 |
+| `final_vocab_intro_tokens` | `stage1_vocab_intro_tokens + stage2_vocab_intro_tokens + stage3_vocab_intro_tokens`（当前 Stage2 无独立 intro，为 0）。 |
+
+**Corpus-once**：Stage1 骨架词条只计一次；Stage3 legacy 为全语料出现过的 placeholder 并集；Stage3 Plan A 为 **used-only** 的 `(field, code)` 词条。评测循环中 **不按文件重复叠加** intro。
+
+解读实验结论时，**优先看 `effective_total_reduction_pct`**；`sequence_reduction_pct` 保留用于与旧结果、纯序列对比对齐。
+
 ## 已知限制与后续
 
-1. **有效总 token**（序列 + vocab intro）尚未写入 `EvalResult.reduction_pct`；当前 reduction 仍为 sequence-only，与 legacy 口径一致。
-2. Plan A 的 **mining 期望收益** 已与写回源码的 **surface form**（`__L__V/A/S`、字符串 `repr(...)`）对齐；全文件级仍可能存在上下文与边界效应，但与「裸 code 长度」类旧 bug 无关。
-3. **f-string / number / 多行字符串** 未纳入 Plan A 压缩。
-4. 方案 B/C 仍通过 `stage3/literal_codec/drift/` 等占位扩展。
+1. Plan A 的 **mining 期望收益** 已与写回源码的 **surface form**（`__L__V/A/S`、字符串 `repr(...)`）对齐；全文件级仍可能存在上下文与边界效应，但与「裸 code 长度」类旧 bug 无关。
+2. **f-string / number / 多行字符串** 未纳入 Plan A 压缩。
+3. 方案 B/C 仍通过 `stage3/literal_codec/drift/` 等占位扩展。

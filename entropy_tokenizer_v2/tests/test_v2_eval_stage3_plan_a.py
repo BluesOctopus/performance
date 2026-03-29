@@ -33,3 +33,11 @@ def test_evaluate_plan_a_has_extra_columns():
     assert hasattr(r, "stage3_assignments")
     fields = [f.name for f in EvalResult.__dataclass_fields__.values()]
     assert "stage3_dictionary_coverage" in fields
+    assert r.sequence_final_tokens == r.final_tokens
+    assert r.sequence_reduction_pct == r.reduction_pct
+    assert r.effective_total_tokens == r.sequence_final_tokens + r.final_vocab_intro_tokens
+    assert r.final_vocab_intro_tokens == (
+        r.stage1_vocab_intro_tokens
+        + r.stage2_vocab_intro_tokens
+        + r.stage3_vocab_intro_tokens
+    )

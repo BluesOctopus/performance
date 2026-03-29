@@ -40,13 +40,20 @@ def _ensure_stage3_pkg() -> None:
 
 @dataclass
 class CompressionBreakdown:
-    """Per-stage **sequence-only** token counts (placeholders count as 1 each)."""
+    """
+    Per-file **sequence-only** token counts (placeholders count as 1 each).
+
+    * ``after_replacement`` — final compressed **sequence** tokens for this file (no vocab intro).
+    * ``stage{1,2,3}_vocab_intro_tokens`` — corpus-once intro costs **replicated** on each row for
+      convenience; eval must **not** sum these across files (use one shot + corpus-wide Stage3 union).
+    * ``final_effective_total_tokens`` — sequence + vocab for this row only (per-file; not corpus).
+    """
 
     baseline_tokens: int
     after_syntax: int
     after_cleaning: int
     after_replacement: int
-    # One-shot vocab introduction (same for every file that shares this repo_config).
+    # One-shot vocab introduction (same numeric value on every file for this repo_config).
     stage1_vocab_intro_tokens: int = 0
     stage2_vocab_intro_tokens: int = 0
     stage3_vocab_intro_tokens: int = 0

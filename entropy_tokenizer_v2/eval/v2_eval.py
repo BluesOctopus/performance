@@ -37,7 +37,7 @@ from config import (
     VOCAB_COST_MODE,
 )
 from repo_miner import RepoConfig, _encode, _load_tokenizer, _vocab_size
-from pipeline import CompressionBreakdown, apply_pipeline
+from pipeline import CompressionBreakdown, apply_pipeline, _stage1_vocab_intro
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import (
     build_stage3_vocab_entries_from_used_placeholders,
@@ -128,6 +128,15 @@ class EvalResult:
     replacement_saved:   int
     total_saved:         int
     reduction_pct:       float
+    sequence_final_tokens: int
+    sequence_reduction_pct: float
+    stage1_vocab_intro_tokens: int
+    stage2_vocab_intro_tokens: int
+    stage3_vocab_intro_tokens: int
+    final_vocab_intro_tokens: int
+    effective_total_tokens: int
+    effective_total_saved: int
+    effective_total_reduction_pct: float
     syntax_pct:          float
     cleaning_pct:        float
     replacement_pct:     float
@@ -142,7 +151,6 @@ class EvalResult:
     stage3_fields: str = ""
     stage3_dictionary_coverage: float = 0.0
     stage3_expected_gain: float = 0.0
-    stage3_vocab_intro_tokens: int = 0
     stage3_component_saved: int = 0
     stage3_used_entries: int = 0
     stage3_used_entries_variable: int = 0
@@ -214,7 +222,8 @@ def evaluate(
             plan_a_used_union |= extract_used_plan_a_entries(compressed, plan_books, plan_esc)
 
     B = agg.baseline_tokens
-    F = max(1, agg.after_replacement)
+    F_seq = agg.after_replacement
+    F = max(1, F_seq)
 
     sm = getattr(repo_config, "stage3_plan_a_summary", None) or {}
     stage3_assignments = int(sm.get("stage3_plan_a_assignments_count", 0))
@@ -261,6 +270,14 @@ def evaluate(
             elif fld == "string":
                 used_s += 1
 
+    s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
+    s2_intro = 0
+    final_vocab_intro = s1_intro + s2_intro + stage3_vocab_intro_tokens
+    effective_total = F_seq + final_vocab_intro
+    effective_saved = B - effective_total
+    seq_red = (1.0 - F_seq / B) * 100.0 if B else 0.0
+    eff_red = (1.0 - effective_total / B) * 100.0 if B else 0.0
+
     return EvalResult(
         tokenizer_key       = tokenizer_key,
         stage2_profile      = stage2_profile,
@@ -269,12 +286,21 @@ def evaluate(
         baseline_tokens     = B,
         syntax_tokens       = agg.after_syntax,
         cleaning_tokens     = agg.after_cleaning,
-        final_tokens        = F,
+        final_tokens        = F_seq,
         syntax_saved        = agg.syntax_saved,
         cleaning_saved      = agg.cleaning_saved,
         replacement_saved   = agg.replacement_saved,
         total_saved         = agg.total_saved,
-        reduction_pct       = (1.0 - F / B) * 100.0 if B else 0.0,
+        reduction_pct       = seq_red,
+        sequence_final_tokens=F_seq,
+        sequence_reduction_pct=seq_red,
+        stage1_vocab_intro_tokens=s1_intro,
+        stage2_vocab_intro_tokens=s2_intro,
+        stage3_vocab_intro_tokens=stage3_vocab_intro_tokens,
+        final_vocab_intro_tokens=final_vocab_intro,
+        effective_total_tokens=effective_total,
+        effective_total_saved=effective_saved,
+        effective_total_reduction_pct=eff_red,
         syntax_pct          = (agg.syntax_saved   / B) * 100.0 if B else 0.0,
         cleaning_pct        = (agg.cleaning_saved / B) * 100.0 if B else 0.0,
         replacement_pct     = (agg.replacement_saved / B) * 100.0 if B else 0.0,
@@ -289,7 +315,6 @@ def evaluate(
         stage3_fields       = stage3_fields,
         stage3_dictionary_coverage = stage3_dictionary_coverage,
         stage3_expected_gain = stage3_expected_gain,
-        stage3_vocab_intro_tokens = stage3_vocab_intro_tokens,
         stage3_component_saved = agg.replacement_saved,
         stage3_used_entries=len(plan_a_used_union) if backend == "plan_a" else 0,
         stage3_used_entries_variable=used_v,
@@ -301,34 +326,42 @@ def evaluate(
 
 
 def print_report(results: list[EvalResult]):
-    w = 120
+    w = 168
     print("\n" + "=" * w)
     print("  v2 compression — evaluation report")
     print("=" * w)
 
-    hdr = (f"  {'Tokenizer':<20} {'Profile':<18} {'Mode':<9} {'Baseline':>10} {'Final':>10} "
-           f"{'Total%':>7} {'Syntax%':>7} {'Clean%':>7} {'Token%':>7} "
-           f"{'BPB_base':>9} {'BPB_final':>9} "
-           f"{'K*_syn':>6} {'N_repl':>7} {'S3be':>8} {'S3voc':>7}")
+    hdr = (
+        f"  {'Tokenizer':<20} {'Profile':<18} {'Mode':<9} {'Baseline':>10} "
+        f"{'SeqFinal':>10} {'Seq%':>7} {'EffTotal':>10} {'Eff%':>7} "
+        f"{'Vocab':>8} {'S1voc':>6} {'S3voc':>6} "
+        f"{'Syn%':>6} {'Cln%':>6} {'Tok%':>6} "
+        f"{'BPB_b':>8} {'BPB_f':>8} {'K*':>4} {'Nrp':>5} {'S3be':>8}"
+    )
     print(hdr)
     print("-" * w)
 
     for r in results:
         print(
             f"  {r.tokenizer_key:<20} {r.stage2_profile:<18} {r.stage2_mode:<9} "
-            f"{r.baseline_tokens:>10,}   {r.final_tokens:>10,} "
-            f"{r.reduction_pct:>6.1f}% {r.syntax_pct:>6.1f}% "
-            f"{r.cleaning_pct:>6.1f}% {r.replacement_pct:>6.1f}% "
-            f"{r.baseline_bpb:>9.4f} {r.final_bpb:>9.4f} "
-            f"{r.k_star_syntax:>6} {r.n_replacement_words:>7} "
-            f"{r.stage3_backend:>8} {r.stage3_vocab_intro_tokens:>7}"
+            f"{r.baseline_tokens:>10,} {r.sequence_final_tokens:>10,} "
+            f"{r.sequence_reduction_pct:>6.1f}% {r.effective_total_tokens:>10,} "
+            f"{r.effective_total_reduction_pct:>6.1f}% "
+            f"{r.final_vocab_intro_tokens:>8,} {r.stage1_vocab_intro_tokens:>6,} "
+            f"{r.stage3_vocab_intro_tokens:>6,} "
+            f"{r.syntax_pct:>5.1f}% {r.cleaning_pct:>5.1f}% {r.replacement_pct:>5.1f}% "
+            f"{r.baseline_bpb:>8.4f} {r.final_bpb:>8.4f} "
+            f"{r.k_star_syntax:>4} {r.n_replacement_words:>5} "
+            f"{r.stage3_backend:>8}"
         )
 
     print("=" * w)
     print(
-        "  Syntax%/Clean%/Token% = stage1/2/3 savings vs baseline; "
-        "K*_syn, N_repl = skeletons, legacy replacement_map size; "
-        "S3be = stage3_backend; S3voc = stage3 vocab intro (corpus-once union for legacy placeholders)"
+        "  SeqFinal / Seq% = corpus sequence tokens only (placeholders as 1); "
+        "EffTotal / Eff% = SeqFinal + corpus-once vocab intro (S1+S2+S3); "
+        "Vocab = S1voc+S2voc+S3voc (S2voc=0 here); S3voc = Stage3 intro only; "
+        "Syn%/Cln%/Tok% = stage1/2/3 sequence savings vs baseline; "
+        "Nrp = legacy replacement_map size (0 for plan_a)."
     )
 
 
@@ -350,6 +383,8 @@ def save_results(
             row = asdict(r)
             for k in (
                 "reduction_pct",
+                "sequence_reduction_pct",
+                "effective_total_reduction_pct",
                 "syntax_pct",
                 "cleaning_pct",
                 "replacement_pct",
@@ -445,10 +480,14 @@ def run_evaluation(
         all_results.append(result)
 
         if verbose:
-            print(f"  Total reduction: {result.reduction_pct:.1f}%  "
-                  f"(Syntax {result.syntax_pct:.1f}% + "
-                  f"Clean {result.cleaning_pct:.1f}% + "
-                  f"Token {result.replacement_pct:.1f}%)")
+            print(
+                f"  Sequence reduction: {result.sequence_reduction_pct:.1f}%  "
+                f"(Syntax {result.syntax_pct:.1f}% + "
+                f"Clean {result.cleaning_pct:.1f}% + "
+                f"Token {result.replacement_pct:.1f}%)  |  "
+                f"Effective-total reduction: {result.effective_total_reduction_pct:.1f}%  "
+                f"(vocab intro {result.final_vocab_intro_tokens:,} tok)"
+            )
 
     print_report(all_results)
     save_results(all_results, repo_config_by_tok, csv_name=output_csv, detail_name=output_detail)
