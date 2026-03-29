@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from config import STAGE2_DEFAULT_MODE, STAGE2_DEFAULT_PROFILE, VOCAB_COST_MODE
+from config import (
+    STAGE2_DEFAULT_MODE,
+    STAGE2_DEFAULT_PROFILE,
+    VOCAB_COST_MODE,
+    resolve_hybrid_ab_settings,
+)
 from marker_count import count_augmented
 from markers import RE_ALL_MARKERS, get_syn_line_spans, make_syn_marker
 from placeholder_accounting import compute_vocab_intro_cost
@@ -127,6 +132,17 @@ def _stage3_vocab_intro(repo_config, after_s3_text: str, tokenizer, tok_type: st
         esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
         used = extract_used_plan_a_entries(after_s3_text, codebooks, esc)
         entries = build_used_plan_a_vocab_entries(codebooks, used, escape_prefix=esc)
+        return compute_vocab_intro_cost(
+            entries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+    if backend == "hybrid_ab":
+        meta = getattr(repo_config, "_stage3_hybrid_last_meta", {}) or {}
+        entries = meta.get("stage3_ab_vocab_entries", []) or []
+        if not entries:
+            return 0
         return compute_vocab_intro_cost(
             entries,
             mode=VOCAB_COST_MODE,
@@ -318,7 +334,7 @@ def apply_stage2(
     )
 
 
-def apply_stage3(text: str, repo_config) -> str:
+def apply_stage3(text: str, repo_config, tokenizer=None, tok_type: str | None = None) -> str:
     backend = getattr(repo_config, "stage3_backend", "legacy")
     if backend == "plan_a":
         _ensure_stage3_pkg()
@@ -331,6 +347,25 @@ def apply_stage3(text: str, repo_config) -> str:
             return text
         esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
         return encode_python_source_plan_a(text, books, escape_prefix=esc)
+    if backend == "hybrid_ab":
+        if tokenizer is None or not tok_type:
+            return text
+        _ensure_stage3_pkg()
+        from hybrid_ab import HybridABConfig, encode_stage3_hybrid_ab, summary_dict
+
+        cfg_raw = dict(getattr(repo_config, "stage3_ab_summary", {}) or {})
+        conf = HybridABConfig(
+            free_text_min_chars=int(cfg_raw.get("free_text_min_chars", resolve_hybrid_ab_settings("gpt2")["free_text_min_chars"])),
+            free_text_min_words=int(cfg_raw.get("free_text_min_words", resolve_hybrid_ab_settings("gpt2")["free_text_min_words"])),
+            b_similarity_threshold=float(cfg_raw.get("b_similarity_threshold", resolve_hybrid_ab_settings("gpt2")["b_similarity_threshold"])),
+            b_risk_threshold=float(cfg_raw.get("b_risk_threshold", resolve_hybrid_ab_settings("gpt2")["b_risk_threshold"])),
+            b_min_cluster_size=int(cfg_raw.get("b_min_cluster_size", resolve_hybrid_ab_settings("gpt2")["b_min_cluster_size"])),
+        )
+        if not bool(cfg_raw.get("enable_b", True)):
+            conf.b_min_cluster_size = 10**9
+        res = encode_stage3_hybrid_ab(text, tokenizer=tokenizer, tok_type=tok_type, cfg=conf)
+        setattr(repo_config, "_stage3_hybrid_last_meta", summary_dict(res))
+        return res.encoded_text
     rmap = repo_config.replacement_map
     if not rmap:
         return text
@@ -360,7 +395,11 @@ def apply_pipeline(
     after_s2 = apply_stage2(after_s1, profile=stage2_profile, mode=stage2_mode)
     after_s2_tokens = count_fn(after_s2)
 
-    after_s3 = apply_stage3(after_s2, repo_config)
+    try:
+        after_s3 = apply_stage3(after_s2, repo_config, tokenizer=tokenizer, tok_type=tok_type)
+    except TypeError:
+        # Backward-compatible for tests/mocks patching apply_stage3(text, repo_config).
+        after_s3 = apply_stage3(after_s2, repo_config)
     after_s3_tokens = count_fn(after_s3)
 
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)

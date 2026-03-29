@@ -1,6 +1,7 @@
 tokenizer_key,stage2_profile,stage2_mode,stage3_backend,stage3_plan_a_profile,n_files,baseline_tokens,sequence_final_tokens,sequence_reduction_pct,effective_total_tokens,effective_total_reduction_pct,stage1_vocab_intro_tokens,stage3_vocab_intro_tokens,final_vocab_intro_tokens,stage3_component_saved,stage3_assignments,stage3_used_entries_string,notes
-gpt4,stage2_aggressive,linewise,legacy,,80,90624,69623,23.173773,70062,22.689354,415,24,439,11671,0,0,placeholder Stage3; baseline for gpt4
-gpt4,stage2_aggressive,linewise,plan_a,gpt4_conservative,80,90624,81183,10.417770,81658,9.893626,415,60,475,111,4,2,"default gpt4 Plan A: tokenizer-aware profile + string filter + post-prune; see v2_compression_report_stage3_plan_a_gpt4_conservative.csv"
-gpt4,stage2_aggressive,linewise,plan_a,gpt4_va_only,80,90624,81243,10.351562,81684,9.864936,415,26,441,51,2,0,"variable+attribute only; lower S3voc than conservative; similar Eff%"
-gpt2,stage2_aggressive,linewise,legacy,,80,177257,94511,46.681372,94975,46.419605,438,26,464,23824,0,0,gpt2 legacy baseline
-gpt2,stage2_aggressive,linewise,plan_a,default,80,177257,113136,36.174030,116548,34.249141,438,2974,3412,5199,180,49,gpt2 uses wide default Plan A profile (not gpt4_conservative)
+gpt4,stage2_aggressive,linewise,legacy,,80,90730,71071,21.667585,71510,21.183732,415,24,439,10400,0,0,from v2_eval_detail_s3legacy_gpt4.json
+gpt4,stage2_aggressive,linewise,plan_a,gpt4_conservative,80,90730,81369,10.317425,81844,9.793894,415,60,475,102,4,2,from v2_eval_detail_stage3_plan_a_gpt4_conservative.json
+gpt4,stage2_aggressive,linewise,hybrid_ab,,80,90730,79965,11.864874,83632,7.823212,447,3220,3667,5622,0,82,from v2_eval_detail_stage3_hybrid_ab_gpt4.json
+gpt2,stage2_aggressive,linewise,legacy,,80,178261,97138,45.507991,97602,45.247699,438,26,464,21504,0,0,from v2_eval_detail_s3legacy_gpt2.json
+gpt2,stage2_aggressive,linewise,plan_a,default,80,178261,113903,36.103242,117219,34.243048,438,2878,3316,4739,180,46,from v2_eval_detail_gpt2_plan_a.json
+gpt2,stage2_aggressive,linewise,hybrid_ab,,80,178261,104983,41.107141,116128,34.855072,490,10655,11145,19134,0,149,from v2_eval_detail_stage3_hybrid_ab_gpt2.json

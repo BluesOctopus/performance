@@ -159,6 +159,23 @@ class EvalResult:
     stage3_cost_model: str = ""
     stage3_plan_a_profile: str = ""
     stage3_assignment_by_field_json: str = ""
+    stage3_ab_a_candidates: int = 0
+    stage3_ab_a_selected: int = 0
+    stage3_ab_a_used_entries: int = 0
+    stage3_ab_a_intro_tokens: int = 0
+    stage3_ab_a_sequence_saved: int = 0
+    stage3_ab_a_effective_net_saving: int = 0
+    stage3_ab_b_candidates: int = 0
+    stage3_ab_b_cluster_count: int = 0
+    stage3_ab_b_used_clusters: int = 0
+    stage3_ab_b_intro_tokens: int = 0
+    stage3_ab_b_sequence_saved: int = 0
+    stage3_ab_b_effective_net_saving: int = 0
+    stage3_ab_b_fallback_count: int = 0
+    stage3_ab_b_avg_similarity: float = 0.0
+    stage3_ab_b_risk_reject_count: int = 0
+    stage3_ab_fallback_count: int = 0
+    stage3_ab_mode: str = ""
 
 
 def evaluate(
@@ -191,6 +208,10 @@ def evaluate(
     legacy_stage3_used: list[str] = []
     legacy_seen: set[str] = set()
     plan_a_used_union: set[tuple[str, str]] = set()
+    ab_vocab_entries: list[dict] = []
+    ab_sum: Counter = Counter()
+    ab_similarity_weighted_sum = 0.0
+    ab_similarity_weight = 0
 
     for src in tqdm(sources, desc=f"  [{tokenizer_key}] compressing", leave=False):
         compressed, fr = apply_v2_compression(
@@ -221,6 +242,33 @@ def evaluate(
             from literal_codec.pipeline.source_codec import extract_used_plan_a_entries
 
             plan_a_used_union |= extract_used_plan_a_entries(compressed, plan_books, plan_esc)
+        elif backend == "hybrid_ab":
+            meta = getattr(repo_config, "_stage3_hybrid_last_meta", {}) or {}
+            for k in (
+                "stage3_ab_a_candidates",
+                "stage3_ab_a_selected",
+                "stage3_ab_a_used_entries",
+                "stage3_ab_a_used_entries_variable",
+                "stage3_ab_a_used_entries_attribute",
+                "stage3_ab_a_used_entries_string",
+                "stage3_ab_a_intro_tokens",
+                "stage3_ab_a_sequence_saved",
+                "stage3_ab_a_effective_net_saving",
+                "stage3_ab_b_candidates",
+                "stage3_ab_b_cluster_count",
+                "stage3_ab_b_used_clusters",
+                "stage3_ab_b_intro_tokens",
+                "stage3_ab_b_sequence_saved",
+                "stage3_ab_b_effective_net_saving",
+                "stage3_ab_b_fallback_count",
+                "stage3_ab_b_risk_reject_count",
+            ):
+                ab_sum[k] += int(meta.get(k, 0))
+            sim = float(meta.get("stage3_ab_b_avg_similarity", 0.0))
+            used_cluster = int(meta.get("stage3_ab_b_used_clusters", 0))
+            ab_similarity_weighted_sum += sim * used_cluster
+            ab_similarity_weight += used_cluster
+            ab_vocab_entries.extend(meta.get("stage3_ab_vocab_entries", []) or [])
 
     B = agg.baseline_tokens
     F_seq = agg.after_replacement
@@ -253,8 +301,16 @@ def evaluate(
             tokenizer=tokenizer,
             tok_type=tok_type,
         )
-    else:
+    elif backend == "legacy":
         entries = build_stage3_vocab_entries_from_used_placeholders(legacy_stage3_used)
+        stage3_vocab_intro_tokens = compute_vocab_intro_cost(
+            entries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+    else:
+        entries = ab_vocab_entries
         stage3_vocab_intro_tokens = compute_vocab_intro_cost(
             entries,
             mode=VOCAB_COST_MODE,
@@ -271,6 +327,17 @@ def evaluate(
                 used_a += 1
             elif fld == "string":
                 used_s += 1
+
+    stage3_component_saved = agg.replacement_saved
+    if backend == "hybrid_ab":
+        used_v = int(ab_sum.get("stage3_ab_a_used_entries_variable", 0))
+        used_a = int(ab_sum.get("stage3_ab_a_used_entries_attribute", 0))
+        # string used = A-string + B-used-clusters
+        used_s = int(ab_sum.get("stage3_ab_a_used_entries_string", 0) + ab_sum.get("stage3_ab_b_used_clusters", 0))
+        stage3_component_saved = int(
+            ab_sum.get("stage3_ab_a_sequence_saved", 0)
+            + ab_sum.get("stage3_ab_b_sequence_saved", 0)
+        )
 
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
     s2_intro = 0
@@ -317,14 +384,39 @@ def evaluate(
         stage3_fields       = stage3_fields,
         stage3_dictionary_coverage = stage3_dictionary_coverage,
         stage3_expected_gain = stage3_expected_gain,
-        stage3_component_saved = agg.replacement_saved,
-        stage3_used_entries=len(plan_a_used_union) if backend == "plan_a" else 0,
+        stage3_component_saved = stage3_component_saved,
+        stage3_used_entries=(
+            len(plan_a_used_union)
+            if backend == "plan_a"
+            else int(ab_sum.get("stage3_ab_a_used_entries", 0) + ab_sum.get("stage3_ab_b_used_clusters", 0))
+            if backend == "hybrid_ab"
+            else 0
+        ),
         stage3_used_entries_variable=used_v,
         stage3_used_entries_attribute=used_a,
         stage3_used_entries_string=used_s,
         stage3_cost_model=stage3_cost_model,
         stage3_plan_a_profile=stage3_plan_a_profile,
         stage3_assignment_by_field_json=stage3_assignment_by_field_json,
+        stage3_ab_a_candidates=int(ab_sum.get("stage3_ab_a_candidates", 0)),
+        stage3_ab_a_selected=int(ab_sum.get("stage3_ab_a_selected", 0)),
+        stage3_ab_a_used_entries=int(ab_sum.get("stage3_ab_a_used_entries", 0)),
+        stage3_ab_a_intro_tokens=int(ab_sum.get("stage3_ab_a_intro_tokens", 0)),
+        stage3_ab_a_sequence_saved=int(ab_sum.get("stage3_ab_a_sequence_saved", 0)),
+        stage3_ab_a_effective_net_saving=int(ab_sum.get("stage3_ab_a_effective_net_saving", 0)),
+        stage3_ab_b_candidates=int(ab_sum.get("stage3_ab_b_candidates", 0)),
+        stage3_ab_b_cluster_count=int(ab_sum.get("stage3_ab_b_cluster_count", 0)),
+        stage3_ab_b_used_clusters=int(ab_sum.get("stage3_ab_b_used_clusters", 0)),
+        stage3_ab_b_intro_tokens=int(ab_sum.get("stage3_ab_b_intro_tokens", 0)),
+        stage3_ab_b_sequence_saved=int(ab_sum.get("stage3_ab_b_sequence_saved", 0)),
+        stage3_ab_b_effective_net_saving=int(ab_sum.get("stage3_ab_b_effective_net_saving", 0)),
+        stage3_ab_b_fallback_count=int(ab_sum.get("stage3_ab_b_fallback_count", 0)),
+        stage3_ab_b_avg_similarity=(
+            ab_similarity_weighted_sum / ab_similarity_weight if ab_similarity_weight else 0.0
+        ),
+        stage3_ab_b_risk_reject_count=int(ab_sum.get("stage3_ab_b_risk_reject_count", 0)),
+        stage3_ab_fallback_count=int(ab_sum.get("stage3_ab_b_fallback_count", 0)),
+        stage3_ab_mode=str((getattr(repo_config, "stage3_ab_summary", {}) or {}).get("stage3_ab_mode", "")),
     )
 
 
@@ -416,6 +508,10 @@ def save_results(
             tok_key: getattr(cfg, "stage3_plan_a_summary", {})
             for tok_key, cfg in repo_config_by_tok.items()
         },
+        "stage3_hybrid_ab_summary_by_tokenizer": {
+            tok_key: getattr(cfg, "stage3_ab_summary", {})
+            for tok_key, cfg in repo_config_by_tok.items()
+        },
     }
     with open(detail_path, "w", encoding="utf-8") as f:
         json.dump(detail, f, indent=2, ensure_ascii=False)
@@ -437,7 +533,7 @@ def run_evaluation(
     from repo_miner import mine_from_sources
 
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
-    if backend not in {"legacy", "plan_a"}:
+    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
 
     if tokenizer_keys is None:

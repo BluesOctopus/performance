@@ -24,6 +24,7 @@ from config import (
     STAGE3_PLAN_A_VOCAB_SCOPE,
     plan_a_profile_name_for_tokenizer,
     resolve_plan_a_settings,
+    resolve_hybrid_ab_settings,
 )
 from lossy_cleaner import lossless_clean
 from syntax_compressor import (
@@ -58,6 +59,7 @@ class RepoConfig:
     stage3_plan_a_codebooks: dict[str, Any] = field(default_factory=dict)
     stage3_plan_a_report: dict[str, Any] = field(default_factory=dict)
     stage3_plan_a_summary: dict[str, Any] = field(default_factory=dict)
+    stage3_ab_summary: dict[str, Any] = field(default_factory=dict)
 
     def skeleton_candidates(self) -> list[SkeletonCandidate]:
         from dataclasses import fields
@@ -89,6 +91,7 @@ class RepoConfig:
         d.setdefault("stage3_plan_a_codebooks", {})
         d.setdefault("stage3_plan_a_report", {})
         d.setdefault("stage3_plan_a_summary", {})
+        d.setdefault("stage3_ab_summary", {})
         valid = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in d.items() if k in valid})
 
@@ -227,12 +230,13 @@ def mine_repo(
             )
 
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
-    if backend not in {"legacy", "plan_a"}:
+    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
 
     stage3_plan_a_codebooks: dict = {}
     stage3_plan_a_report: dict = {}
     stage3_plan_a_summary: dict = {}
+    stage3_ab_summary: dict = {}
     rmap: dict[str, str] = {}
     summary: list[dict] = []
 
@@ -289,7 +293,7 @@ def mine_repo(
         except OSError as exc:
             if verbose:
                 print(f"[repo_miner] Plan A artifact write skipped: {exc}")
-    else:
+    elif backend == "legacy":
         if verbose:
             print("[repo_miner] Stage 3 (legacy) - computing token importance scores ...")
         vocab = build_vocabulary(clean_sources)
@@ -308,6 +312,14 @@ def mine_repo(
         from token_scorer import score_summary
 
         summary = score_summary(scores, top_n=50)
+    else:
+        stage3_ab_summary = resolve_hybrid_ab_settings(tokenizer_key or "gpt2")
+        stage3_ab_summary["stage3_ab_mode"] = "first_pass_semantic_routing"
+        if verbose:
+            print(
+                "[repo_miner] Stage 3 hybrid_ab - runtime local routing "
+                f"(B={'on' if stage3_ab_summary.get('enable_b', True) else 'off'})"
+            )
 
     return RepoConfig(
         selected_skeletons=[
@@ -350,6 +362,7 @@ def mine_repo(
         stage3_plan_a_codebooks=stage3_plan_a_codebooks,
         stage3_plan_a_report=stage3_plan_a_report,
         stage3_plan_a_summary=stage3_plan_a_summary,
+        stage3_ab_summary=stage3_ab_summary,
     )
 
 
@@ -363,7 +376,7 @@ def mine_from_repo_path(
     stage3_backend: str | None = None,
 ) -> RepoConfig:
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
-    if backend not in {"legacy", "plan_a"}:
+    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
     _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
     cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}.json"
@@ -413,7 +426,7 @@ def mine_from_sources(
 ) -> RepoConfig:
     """Mine from a list of source strings (e.g., loaded from HF dataset)."""
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
-    if backend not in {"legacy", "plan_a"}:
+    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
     if cache and cache_name:
         _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""

@@ -240,7 +240,7 @@ def main():
         "--stage3-backend",
         type=str,
         default=None,
-        choices=["legacy", "plan_a"],
+        choices=["legacy", "plan_a", "hybrid_ab"],
         help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
     )
     p_eval.add_argument(
@@ -264,7 +264,7 @@ def main():
         "--stage3-backend",
         type=str,
         default=None,
-        choices=["legacy", "plan_a"],
+        choices=["legacy", "plan_a", "hybrid_ab"],
         help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
     )
 

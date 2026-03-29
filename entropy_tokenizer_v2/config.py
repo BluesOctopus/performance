@@ -16,9 +16,9 @@ DATA_DIR     = Path(os.getenv("ET_DATA_DIR", PROJECT_ROOT / "data"))
 RESULTS_DIR  = Path(os.getenv("ET_RESULTS_DIR", PROJECT_ROOT / "results"))
 CACHE_DIR    = Path(os.getenv("ET_CACHE_DIR", PROJECT_ROOT / "cache"))
 
-# Stage3 backend: legacy replacement_map vs Plan A literal codec (see docs/stage3_plan_a_integration.md).
+# Stage3 backend: legacy replacement_map vs Plan A literal codec vs hybrid AB routing.
 STAGE3_BACKEND = os.getenv("ET_STAGE3_BACKEND", "legacy").strip().lower()
-if STAGE3_BACKEND not in {"legacy", "plan_a"}:
+if STAGE3_BACKEND not in {"legacy", "plan_a", "hybrid_ab"}:
     STAGE3_BACKEND = "legacy"
 
 STAGE3_CODEBOOK_VERSION = os.getenv("ET_STAGE3_CODEBOOK_VERSION", "v1")
@@ -65,6 +65,41 @@ STAGE3_PLAN_A_POST_PRUNE = os.getenv("ET_STAGE3_PLAN_A_POST_PRUNE", "1").lower()
     "true",
     "yes",
 )
+
+# Stage3 Hybrid AB knobs (A=exact aliasing, B=semantic clustering).
+STAGE3_AB_FREE_TEXT_MIN_CHARS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_CHARS", "24"))
+STAGE3_AB_FREE_TEXT_MIN_WORDS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_WORDS", "4"))
+STAGE3_AB_B_SIMILARITY_THRESHOLD = float(
+    os.getenv("ET_STAGE3_AB_B_SIMILARITY_THRESHOLD", "0.82")
+)
+STAGE3_AB_B_RISK_THRESHOLD = float(os.getenv("ET_STAGE3_AB_B_RISK_THRESHOLD", "0.72"))
+STAGE3_AB_B_MIN_CLUSTER_SIZE = int(os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", "2"))
+STAGE3_AB_ENABLE_B = os.getenv("ET_STAGE3_AB_ENABLE_B", "1").lower() in ("1", "true", "yes")
+
+
+def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
+    """
+    Resolve hybrid_ab runtime settings with tokenizer-aware defaults.
+
+    gpt4 defaults to slightly stricter semantic merge threshold.
+    """
+    tok = (tokenizer_key or "").strip().lower()
+    sim_default = 0.84 if tok == "gpt4" else STAGE3_AB_B_SIMILARITY_THRESHOLD
+    risk_default = 0.74 if tok == "gpt4" else STAGE3_AB_B_RISK_THRESHOLD
+    return {
+        "free_text_min_chars": STAGE3_AB_FREE_TEXT_MIN_CHARS,
+        "free_text_min_words": STAGE3_AB_FREE_TEXT_MIN_WORDS,
+        "b_similarity_threshold": float(
+            os.getenv("ET_STAGE3_AB_B_SIMILARITY_THRESHOLD", str(sim_default))
+        ),
+        "b_risk_threshold": float(os.getenv("ET_STAGE3_AB_B_RISK_THRESHOLD", str(risk_default))),
+        "b_min_cluster_size": int(
+            os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", str(STAGE3_AB_B_MIN_CLUSTER_SIZE))
+        ),
+        "enable_b": os.getenv("ET_STAGE3_AB_ENABLE_B", "1" if STAGE3_AB_ENABLE_B else "0")
+        .lower()
+        in ("1", "true", "yes"),
+    }
 
 
 def plan_a_profile_name_for_tokenizer(tokenizer_key: str) -> str:

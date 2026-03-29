@@ -1,5 +1,7 @@
 # Stage3 Plan A 接入主 Pipeline（literal codec）
 
+> 补充：Stage3 现已支持 `hybrid_ab` 双通道后端（A 精确 alias + B 语义聚类），详见 `docs/stage3_hybrid_ab.md`。
+
 ## 目标
 
 - 在 **固定 tokenizer** 下，将 `stage3/literal_codec` 的字段级 Plan A（variable / attribute / string）接到 `pipeline.apply_stage3` 与 `repo_miner` 挖掘链路。
