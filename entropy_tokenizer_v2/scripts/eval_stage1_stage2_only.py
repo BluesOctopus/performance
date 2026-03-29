@@ -24,10 +24,22 @@ from config import AST_MIN_FREQ, VOCAB_COST_MODE, VOCAB_COST_SCOPE
 from lossy_cleaner import CleaningStats, lossless_clean
 from marker_count import count_augmented, encode as mc_encode
 from markers import make_syn_marker
-from pipeline import apply_stage1_stage2_adapted, apply_stage1_with_stats
+from pipeline import (
+    apply_stage1_stage2_adapted,
+    apply_stage1_stage2_layout_safe_experimental,
+    apply_stage1_with_stats,
+)
 from placeholder_accounting import compute_vocab_intro_cost
 from stage2.cleaning import run_stage2_pre_safe
-from stage2.config import STAGE2_ADAPTED_ORDER_LABEL, build_stage2_execution_plan
+from stage2.config import (
+    STAGE2_ADAPTED_ORDER_LABEL,
+    STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
+    build_stage2_execution_plan,
+)
+from stage2.layout_encoding import (
+    decode_layout_indentation,
+    estimate_layout_encoding_effect,
+)
 from syntax_compressor import (
     SkeletonCandidate,
     build_candidate_pool,
@@ -48,13 +60,16 @@ EXPERIMENT_PRE_ONLY = "stage2_safe_pre_only"
 EXPERIMENT_STAGE1_ONLY = "stage1_only"
 EXPERIMENT_ADAPTED_SAFE = "stage1_stage2_safe_adapted"
 EXPERIMENT_ADAPTED_AGG = "stage1_stage2_aggressive_upper_bound"
+EXPERIMENT_LAYOUT_EXPERIMENTAL = "stage1_stage2_layout_safe_experimental"
 
 TEXT_PREVIEW_LEN = 420
 
 NOTES = (
     "Adapted pipeline: stage2_pre_safe (AST docstrings + directive-preserving comment removal) "
     "-> stage1 -> stage2_post_surface (blank/ws; indent strip only for aggressive_upper_bound). "
-    "No Stage3. | aggressive_upper_bound is not the default line (lossy indent)."
+    "No Stage3. | aggressive_upper_bound is not the default line (lossy indent). "
+    "| stage1_stage2_layout_safe_experimental adds reversible <NL0>-<NL8> after safe post_surface "
+    "(non-destructive; round-trip checked; source files never written)."
 )
 
 
@@ -97,6 +112,28 @@ def _preview(text: str, n: int = TEXT_PREVIEW_LEN) -> str:
     return t[:n] + "\n…"
 
 
+def _layout_field_defaults() -> dict[str, Any]:
+    return {
+        "layout_encoding_used": False,
+        "layout_roundtrip_equal": False,
+        "layout_encode_success": False,
+        "layout_decode_success": False,
+        "layout_tokens_used_count": 0,
+        "layout_encoded_line_count": 0,
+        "layout_skipped_line_count": 0,
+        "layout_indent_unit": "",
+        "layout_indent_style": "",
+        "layout_effective_total_delta": 0,
+        "layout_sequence_net_saving": 0,
+        "layout_vocab_intro_tokens_file": 0,
+        "stage2_post_layout_preview": "",
+        "_layout_vocab_tokens": [],
+        "_post_surface_for_layout": "",
+        "_layout_indent_unit_int": None,
+        "_layout_indent_style_raw": "",
+    }
+
+
 def process_one_file_experiment(
     sample: dict[str, Any],
     *,
@@ -109,6 +146,7 @@ def process_one_file_experiment(
     raw = sample["text"]
     clean, _ = lossless_clean(raw)
     base_tokens = int(sample.get("base_tokens", 0))
+    layout_extras = _layout_field_defaults()
 
     def tok(s: str) -> int:
         return count_augmented(s, tokenizer, tok_type)
@@ -117,6 +155,7 @@ def process_one_file_experiment(
     pre_text = clean
     stage1_text = clean
     final_text = clean
+    post_surface_text = clean
     pre_stats = CleaningStats()
     post_stats = CleaningStats()
     changed_pre = False
@@ -131,6 +170,7 @@ def process_one_file_experiment(
         pre_text, pre_stats = run_stage2_pre_safe(clean, plan.pre_cfg, path=path)
         final_text = pre_text
         changed_pre = pre_text != clean
+        post_surface_text = final_text
 
     elif experiment_name == EXPERIMENT_STAGE1_ONLY:
         if stage1_repo is not None:
@@ -139,6 +179,7 @@ def process_one_file_experiment(
             )
             final_text = stage1_text
             changed_s1 = stage1_text != clean
+            post_surface_text = final_text
 
     elif experiment_name == EXPERIMENT_ADAPTED_SAFE:
         if stage1_repo is not None:
@@ -158,6 +199,7 @@ def process_one_file_experiment(
             changed_pre = pre_text != clean
             changed_s1 = stage1_text != pre_text
             changed_post = final_text != stage1_text
+            post_surface_text = final_text
 
     elif experiment_name == EXPERIMENT_ADAPTED_AGG:
         if stage1_repo is not None:
@@ -177,6 +219,52 @@ def process_one_file_experiment(
             changed_pre = pre_text != clean
             changed_s1 = stage1_text != pre_text
             changed_post = final_text != stage1_text
+            post_surface_text = final_text
+
+    elif experiment_name == EXPERIMENT_LAYOUT_EXPERIMENTAL:
+        if stage1_repo is not None:
+            out = apply_stage1_stage2_layout_safe_experimental(
+                clean,
+                stage1_repo,
+                tokenizer=tokenizer,
+                tok_type=tok_type,
+                path=path,
+            )
+            pre_text = out["stage2_pre_text"]
+            stage1_text = out["stage1_text"]
+            post_surface_text = out["stage2_post_surface_text"]
+            final_text = out["stage2_post_text"]
+            pre_stats = out["stage2_pre_stats"]
+            post_stats = out["stage2_post_stats"]
+            changed_pre = pre_text != clean
+            changed_s1 = stage1_text != pre_text
+            changed_post = final_text != post_surface_text
+            lm = out["layout_meta"]
+            layout_extras["layout_encoding_used"] = bool(lm.get("layout_encoding_used"))
+            layout_extras["layout_roundtrip_equal"] = bool(lm.get("layout_roundtrip_equal"))
+            layout_extras["layout_encode_success"] = bool(lm.get("layout_encode_success"))
+            layout_extras["layout_decode_success"] = bool(lm.get("layout_decode_success"))
+            layout_extras["layout_tokens_used_count"] = int(lm.get("layout_tokens_used_count", 0))
+            layout_extras["layout_encoded_line_count"] = int(lm.get("layout_encoded_line_count", 0))
+            layout_extras["layout_skipped_line_count"] = int(lm.get("layout_skipped_line_count", 0))
+            iu = lm.get("indent_unit")
+            layout_extras["layout_indent_unit"] = "" if iu is None else str(iu)
+            layout_extras["layout_indent_style"] = str(lm.get("indent_style") or "")
+            layout_extras["_layout_vocab_tokens"] = list(lm.get("layout_tokens_used") or [])
+            layout_extras["_post_surface_for_layout"] = post_surface_text
+            layout_extras["_layout_indent_unit_int"] = lm.get("indent_unit")
+            layout_extras["_layout_indent_style_raw"] = str(lm.get("indent_style") or "")
+            eff = estimate_layout_encoding_effect(
+                post_surface_text,
+                final_text,
+                layout_extras["_layout_vocab_tokens"],
+                tokenizer=tokenizer,
+                tok_type=tok_type,
+            )
+            layout_extras["layout_sequence_net_saving"] = int(eff["sequence_net_saving"])
+            layout_extras["layout_vocab_intro_tokens_file"] = int(eff["vocab_intro_tokens"])
+            layout_extras["layout_effective_total_delta"] = int(eff["effective_total_net_saving"])
+            layout_extras["stage2_post_layout_preview"] = _preview(final_text)
 
     else:
         raise ValueError(f"unknown experiment: {experiment_name}")
@@ -188,6 +276,14 @@ def process_one_file_experiment(
     rep_pre = pre_stats.docstring_removal_report or {}
     pc = (rep_pre.get("path_context") or {}) if rep_pre else {}
 
+    parse_final = final_text
+    if experiment_name == EXPERIMENT_LAYOUT_EXPERIMENTAL and layout_extras.get(
+        "layout_encoding_used"
+    ):
+        parse_final = post_surface_text
+
+    post_surface_sequence_tokens = tok(post_surface_text)
+
     return {
         "path": path,
         "original_text_preview": _preview(clean),
@@ -198,11 +294,12 @@ def process_one_file_experiment(
         "baseline_sequence_tokens": baseline_sequence_tokens,
         "stage2_pre_sequence_tokens": stage2_pre_sequence_tokens,
         "stage1_sequence_tokens": stage1_sequence_tokens,
+        "stage2_post_surface_sequence_tokens": post_surface_sequence_tokens,
         "final_sequence_tokens": final_sequence_tokens,
         "baseline_parse_success": safe_parse_success(clean),
         "stage2_pre_parse_success": safe_parse_success(pre_text),
         "stage1_parse_success": safe_parse_success(stage1_text),
-        "final_parse_success": safe_parse_success(final_text),
+        "final_parse_success": safe_parse_success(parse_final),
         "stage2_pre_removed_blank_lines": int(pre_stats.removed_blank_lines),
         "stage2_pre_removed_docstring_chars": int(pre_stats.removed_docstring_chars),
         "stage2_pre_removed_indent_chars": int(pre_stats.removed_indent_chars),
@@ -217,10 +314,12 @@ def process_one_file_experiment(
         "changed_stage2_pre": changed_pre,
         "changed_stage1": changed_s1,
         "changed_stage2_post": changed_post,
+        **layout_extras,
         "_original_clean": clean,
         "_pre_text": pre_text,
         "_stage1_text": stage1_text,
         "_final_text": final_text,
+        "_post_surface_text": post_surface_text,
         "_experiment_name": experiment_name,
     }
 
@@ -346,6 +445,8 @@ def _row_from_core(
     r: dict[str, Any],
     s: dict[str, Any],
     vocab_amort: int,
+    *,
+    layout_vocab_amort: int = 0,
 ) -> dict[str, Any]:
     if experiment_name == EXPERIMENT_BASELINE:
         s1_eff = r["baseline_sequence_tokens"]
@@ -355,7 +456,7 @@ def _row_from_core(
         fin_eff = r["final_sequence_tokens"]
     else:
         s1_eff = r["stage1_sequence_tokens"] + vocab_amort
-        fin_eff = r["final_sequence_tokens"] + vocab_amort
+        fin_eff = r["final_sequence_tokens"] + vocab_amort + layout_vocab_amort
     return {
         "experiment_name": experiment_name,
         "path": r["path"],
@@ -367,6 +468,9 @@ def _row_from_core(
         "baseline_sequence_tokens": r["baseline_sequence_tokens"],
         "stage2_pre_sequence_tokens": r["stage2_pre_sequence_tokens"],
         "stage1_sequence_tokens": r["stage1_sequence_tokens"],
+        "stage2_post_surface_sequence_tokens": r.get(
+            "stage2_post_surface_sequence_tokens", r["final_sequence_tokens"]
+        ),
         "final_sequence_tokens": r["final_sequence_tokens"],
         "stage1_effective_total_tokens": s1_eff,
         "final_effective_total_tokens": fin_eff,
@@ -385,6 +489,19 @@ def _row_from_core(
         "changed_stage2_pre": r["changed_stage2_pre"],
         "changed_stage1": r["changed_stage1"],
         "changed_stage2_post": r["changed_stage2_post"],
+        "layout_encoding_used": r.get("layout_encoding_used", False),
+        "layout_roundtrip_equal": r.get("layout_roundtrip_equal", False),
+        "layout_encode_success": r.get("layout_encode_success", False),
+        "layout_decode_success": r.get("layout_decode_success", False),
+        "layout_tokens_used_count": r.get("layout_tokens_used_count", 0),
+        "layout_encoded_line_count": r.get("layout_encoded_line_count", 0),
+        "layout_skipped_line_count": r.get("layout_skipped_line_count", 0),
+        "layout_indent_unit": r.get("layout_indent_unit", ""),
+        "layout_indent_style": r.get("layout_indent_style", ""),
+        "layout_effective_total_delta": r.get("layout_effective_total_delta", 0),
+        "layout_sequence_net_saving": r.get("layout_sequence_net_saving", 0),
+        "layout_vocab_intro_tokens_file": r.get("layout_vocab_intro_tokens_file", 0),
+        "stage2_post_layout_preview": r.get("stage2_post_layout_preview", ""),
     }
 
 
@@ -466,12 +583,75 @@ def run_experiment_batch(
     stage2_profile: str,
     stage2_order: str,
     apply_vocab_amort: bool,
+    layout_snapshot_sink: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     repo = ctx["repo_config"] if experiment_name != EXPERIMENT_BASELINE else None
     intro = int(ctx["stage1_vocab_intro_tokens"]) if apply_vocab_amort else 0
     amort = _amortize_vocab_intro(len(samples), intro) if apply_vocab_amort else [0] * len(samples)
 
-    rows_out: list[dict[str, Any]] = []
+    if experiment_name == EXPERIMENT_LAYOUT_EXPERIMENTAL:
+        tmp: list[dict[str, Any]] = []
+        for s in samples:
+            tmp.append(
+                process_one_file_experiment(
+                    s,
+                    tokenizer=tokenizer,
+                    tok_type=tok_type,
+                    stage1_repo=repo,
+                    experiment_name=experiment_name,
+                )
+            )
+        union: set[str] = set()
+        for rr in tmp:
+            union.update(rr.get("_layout_vocab_tokens") or [])
+        lentries = [
+            {"token": t, "definition": t, "kind": "layout"} for t in sorted(union)
+        ]
+        lintro = compute_vocab_intro_cost(
+            lentries,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+        lamort = (
+            _amortize_vocab_intro(len(samples), lintro) if apply_vocab_amort else [0] * len(samples)
+        )
+        if layout_snapshot_sink is not None:
+            for r in tmp:
+                layout_snapshot_sink.append(
+                    {
+                        "path": r["path"],
+                        "post_surface": r.get("_post_surface_for_layout")
+                        or r.get("_post_surface_text", ""),
+                        "encoded": r["_final_text"],
+                        "indent_unit": int(r.get("_layout_indent_unit_int") or 1),
+                        "indent_style": r.get("_layout_indent_style_raw") or "spaces",
+                        "roundtrip_equal": bool(r.get("layout_roundtrip_equal")),
+                        "layout_tokens_used": list(r.get("_layout_vocab_tokens") or []),
+                        "sequence_net_saving": int(r.get("layout_sequence_net_saving", 0)),
+                        "effective_total_net_saving": int(r.get("layout_effective_total_delta", 0)),
+                    }
+                )
+        rows_out: list[dict[str, Any]] = []
+        for i, r in enumerate(tmp):
+            va = amort[i] if apply_vocab_amort else 0
+            la = lamort[i] if apply_vocab_amort else 0
+            row = _row_from_core(
+                experiment_name,
+                r,
+                samples[i],
+                va,
+                layout_vocab_amort=la,
+            )
+            rows_out.append(row)
+        summary = _summarize_rows(
+            experiment_name, stage2_profile, stage2_order, rows_out, ctx, intro
+        )
+        summary["_layout_corpus_vocab_intro_tokens"] = lintro
+        summary["_layout_corpus_unique_token_count"] = len(union)
+        return summary, rows_out
+
+    rows_out = []
     for i, s in enumerate(samples):
         r = process_one_file_experiment(
             s,
@@ -622,6 +802,133 @@ def write_adaptation_markdown(
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def build_layout_encoding_summary_row(
+    experiment_name: str,
+    batch_summary: dict[str, Any],
+    layout_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    n = len(layout_rows)
+    t_pre = sum(int(x.get("stage2_post_surface_sequence_tokens", 0)) for x in layout_rows)
+    t_enc = sum(int(x.get("final_sequence_tokens", 0)) for x in layout_rows)
+    vocab_corpus = int(batch_summary.get("_layout_corpus_vocab_intro_tokens", 0))
+    seq_net = t_pre - t_enc
+    return {
+        "experiment_name": experiment_name,
+        "num_files": n,
+        "num_layout_used_files": sum(1 for x in layout_rows if x.get("layout_encoding_used")),
+        "num_roundtrip_success_files": sum(1 for x in layout_rows if x.get("layout_roundtrip_equal")),
+        "num_roundtrip_failed_files": sum(
+            1
+            for x in layout_rows
+            if x.get("layout_encoding_used") and not x.get("layout_roundtrip_equal")
+        ),
+        "total_baseline_sequence_tokens": t_pre,
+        "total_encoded_sequence_tokens": t_enc,
+        "total_sequence_net_saving": seq_net,
+        "total_vocab_intro_tokens": vocab_corpus,
+        "total_effective_net_saving": seq_net - vocab_corpus,
+        "layout_corpus_unique_token_count": int(
+            batch_summary.get("_layout_corpus_unique_token_count", 0)
+        ),
+    }
+
+
+def layout_snapshots_to_example_dicts(
+    snapshots: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for sn in snapshots:
+        orig = str(sn.get("post_surface") or "")
+        enc = str(sn.get("encoded") or "")
+        iu = int(sn.get("indent_unit") or 1)
+        ist = str(sn.get("indent_style") or "spaces")
+        dec = decode_layout_indentation(enc, indent_unit=iu, indent_style=ist)
+        norm = orig.replace("\r\n", "\n").replace("\r", "\n")
+        rt = dec == norm
+        notes = "stored roundtrip flag matches decode" if rt == sn.get("roundtrip_equal") else (
+            "warning: decode vs stored roundtrip flag differ"
+        )
+        out.append(
+            {
+                "path": sn.get("path", ""),
+                "original_excerpt": _preview(orig),
+                "encoded_excerpt": _preview(enc),
+                "decoded_excerpt": _preview(dec),
+                "roundtrip_equal": rt,
+                "layout_tokens_used": sn.get("layout_tokens_used") or [],
+                "indent_unit": sn.get("indent_unit"),
+                "sequence_net_saving": sn.get("sequence_net_saving", 0),
+                "effective_total_net_saving": sn.get("effective_total_net_saving", 0),
+                "notes": notes,
+            }
+        )
+    return out
+
+
+def write_layout_encoding_reports(
+    output_dir: Path,
+    *,
+    batch_summary: dict[str, Any],
+    layout_rows: list[dict[str, Any]],
+    snapshots: list[dict[str, Any]],
+) -> None:
+    summary_row = build_layout_encoding_summary_row(
+        EXPERIMENT_LAYOUT_EXPERIMENTAL, batch_summary, layout_rows
+    )
+    keys = list(summary_row.keys())
+    with (output_dir / "stage2_layout_encoding_summary.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as f:
+        w = csv.DictWriter(f, fieldnames=keys)
+        w.writeheader()
+        w.writerow(summary_row)
+
+    examples = layout_snapshots_to_example_dicts(snapshots)
+    (output_dir / "stage2_layout_encoding_examples.jsonl").write_text(
+        "\n".join(json.dumps(x, ensure_ascii=False) for x in examples) + "\n",
+        encoding="utf-8",
+    )
+
+    lines = [
+        "# Layout encoding experiment (reversible `<NL0>`–`<NL8>`)",
+        "",
+        "Post-surface text (after safe Stage2 post) is encoded; **source files are never modified**.",
+        "",
+    ]
+    for i, ex in enumerate(examples, 1):
+        lines += [
+            f"## Example {i}: `{ex['path']}`",
+            "",
+            "### Original (post-surface, before layout tokens)",
+            "```python",
+            ex["original_excerpt"],
+            "```",
+            "",
+            "### Encoded",
+            "```python",
+            ex["encoded_excerpt"],
+            "```",
+            "",
+            "### Decoded",
+            "```python",
+            ex["decoded_excerpt"],
+            "```",
+            "",
+            f"**Round-trip equals original:** {ex['roundtrip_equal']}",
+            "",
+            f"**layout_tokens_used:** {ex.get('layout_tokens_used')}",
+            f"**indent_unit:** {ex.get('indent_unit')}",
+            f"**sequence_net_saving (file-local estimate):** {ex.get('sequence_net_saving')}",
+            f"**effective_total_net_saving (file-local estimate):** {ex.get('effective_total_net_saving')}",
+            "",
+            f"**Notes:** {ex.get('notes', '')}",
+            "",
+        ]
+    (output_dir / "stage2_layout_encoding_examples.md").write_text(
+        "\n".join(lines), encoding="utf-8"
+    )
+
+
 def write_stage1_stage2_only_reports(
     summaries: list[dict[str, Any]],
     per_file_rows: list[dict[str, Any]],
@@ -634,6 +941,7 @@ def write_stage1_stage2_only_reports(
     run_status: str,
     rule_breakdown_rows: list[dict[str, Any]],
     adaptation_examples: list[dict[str, Any]],
+    layout_sidecar: dict[str, Any] | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -706,6 +1014,7 @@ def write_stage1_stage2_only_reports(
         **manifest,
         "experiments": [s["experiment_name"] for s in summaries],
         "stage2_adapted_order_default": STAGE2_ADAPTED_ORDER_LABEL,
+        "stage2_layout_experimental_order": STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
     }
     (output_dir / "stage1_stage2_only_manifest.json").write_text(
         json.dumps(manifest_out, indent=2, ensure_ascii=False),
@@ -731,6 +1040,14 @@ def write_stage1_stage2_only_reports(
         write_adaptation_markdown(
             adaptation_examples,
             output_dir / "stage1_stage2_adaptation_examples.md",
+        )
+
+    if layout_sidecar:
+        write_layout_encoding_reports(
+            output_dir,
+            batch_summary=layout_sidecar["summary"],
+            layout_rows=layout_sidecar["rows"],
+            snapshots=layout_sidecar["snapshots"],
         )
 
 
@@ -770,6 +1087,7 @@ def run_all_experiments(
     dict[str, Any],
     list[dict[str, Any]],
     list[dict[str, Any]],
+    dict[str, Any],
 ]:
     clean_texts = [lossless_clean(s["text"])[0] for s in samples]
     ctx = build_stage1_mining_context(clean_texts, tokenizer, tok_type)
@@ -845,10 +1163,31 @@ def run_all_experiments(
     per_file.extend(r)
     rule_rows.append(_rule_breakdown_for_summary("aggressive_upper_bound_adapted", s))
 
+    layout_snapshots: list[dict[str, Any]] = []
+    s_layout, r_layout = run_experiment_batch(
+        samples,
+        experiment_name=EXPERIMENT_LAYOUT_EXPERIMENTAL,
+        tokenizer=tokenizer,
+        tok_type=tok_type,
+        ctx=ctx,
+        stage2_profile="layout_safe_experimental",
+        stage2_order=STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
+        apply_vocab_amort=True,
+        layout_snapshot_sink=layout_snapshots,
+    )
+    summaries.append(s_layout)
+    per_file.extend(r_layout)
+
+    layout_sidecar = {
+        "summary": s_layout,
+        "rows": r_layout,
+        "snapshots": layout_snapshots,
+    }
+
     ex_safe, ex_agg = pick_adaptation_examples(per_file)
     adaptation_examples = ex_safe + ex_agg
 
-    return summaries, per_file, ctx, rule_rows, adaptation_examples
+    return summaries, per_file, ctx, rule_rows, adaptation_examples, layout_sidecar
 
 
 def main() -> int:
@@ -965,8 +1304,8 @@ def main() -> int:
             run_status = str(manifest.get("run_status", "unknown"))
 
     log.info("Running adapted Stage1+Stage2 on %d files …", len(samples))
-    summaries, per_file, ctx, rule_rows, adaptation_examples = run_all_experiments(
-        samples, tokenizer=tokenizer, tok_type=tok_type
+    summaries, per_file, ctx, rule_rows, adaptation_examples, layout_sidecar = (
+        run_all_experiments(samples, tokenizer=tokenizer, tok_type=tok_type)
     )
 
     manifest.setdefault("num_files", len(samples))
@@ -981,6 +1320,7 @@ def main() -> int:
         run_status=run_status,
         rule_breakdown_rows=rule_rows,
         adaptation_examples=adaptation_examples,
+        layout_sidecar=layout_sidecar,
     )
     log.info("Wrote reports under %s", args.output_dir.resolve())
     return 0

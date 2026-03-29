@@ -10,6 +10,7 @@ from lossy_cleaner import CleaningConfig
 STAGE2_PROFILES: dict[str, dict[str, bool]] = dict(STAGE2_PROFILE_FLAGS)
 
 STAGE2_ADAPTED_ORDER_LABEL = "pre_safe -> stage1 -> post_surface"
+STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL = "pre_safe -> stage1 -> post_layout_encode"
 
 
 @dataclass(frozen=True)

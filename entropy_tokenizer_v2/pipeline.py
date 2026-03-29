@@ -15,7 +15,12 @@ from stage2.cleaning import (
     run_stage2_pre_safe,
     stage2_clean_skip_syn,
 )
-from stage2.config import build_stage2_config, build_stage2_execution_plan
+from stage2.config import (
+    STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
+    build_stage2_config,
+    build_stage2_execution_plan,
+)
+from stage2.layout_encoding import run_stage2_post_layout_encode
 from syntax_compressor import build_stage1_vocab_entry, compress_source_syntax
 from token_scorer import (
     apply_token_replacement_with_protected_spans,
@@ -190,6 +195,73 @@ def apply_stage1_stage2_adapted(
         "stage1_vocab_tokens": stage1_vocab_tokens,
         "stage2_order": plan.order_label,
         "stage2_profile": stage2_profile,
+    }
+
+
+def apply_stage1_stage2_layout_safe_experimental(
+    source: str,
+    repo_config,
+    *,
+    tokenizer,
+    tok_type: str,
+    path: str | None = None,
+) -> dict[str, Any]:
+    """
+    Experimental: ``stage2_pre_safe -> stage1 -> post_surface (safe) -> layout encode``.
+
+    Does not strip indentation; layout tokens are reversible on the post-surface text.
+    """
+    plan = build_stage2_execution_plan("safe")
+    pre_text, pre_stats = run_stage2_pre_safe(source, plan.pre_cfg, path=path)
+    stage1_text, _s1_detail = apply_stage1_with_stats(
+        pre_text, repo_config, tokenizer, tok_type
+    )
+    post_surface_text, post_stats = run_stage2_post_surface(
+        stage1_text, plan.post_cfg, path=path
+    )
+    post_text, layout_meta = run_stage2_post_layout_encode(
+        post_surface_text, path=path
+    )
+
+    baseline_sequence_tokens = _count_with_ops(source, tokenizer, tok_type)
+    stage2_pre_sequence_tokens = _count_with_ops(pre_text, tokenizer, tok_type)
+    stage1_sequence_tokens = _count_with_ops(stage1_text, tokenizer, tok_type)
+    post_surface_sequence_tokens = _count_with_ops(
+        post_surface_text, tokenizer, tok_type
+    )
+    final_sequence_tokens = _count_with_ops(post_text, tokenizer, tok_type)
+
+    s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
+    final_effective_total_tokens = final_sequence_tokens + s1_intro
+
+    cands = repo_config.skeleton_candidates()
+    selected_skeletons = [x.skeleton for x in cands]
+    stage1_vocab_tokens = [make_syn_marker(i) for i in range(len(cands))]
+
+    return {
+        "original_text": source,
+        "stage2_pre_text": pre_text,
+        "stage1_text": stage1_text,
+        "stage2_post_surface_text": post_surface_text,
+        "stage2_post_text": post_text,
+        "baseline_sequence_tokens": baseline_sequence_tokens,
+        "stage2_pre_sequence_tokens": stage2_pre_sequence_tokens,
+        "stage1_sequence_tokens": stage1_sequence_tokens,
+        "stage2_post_surface_sequence_tokens": post_surface_sequence_tokens,
+        "final_sequence_tokens": final_sequence_tokens,
+        "stage1_vocab_intro_tokens": s1_intro,
+        "final_effective_total_tokens": final_effective_total_tokens,
+        "baseline_parse_success": _parse_ok(source),
+        "stage2_pre_parse_success": _parse_ok(pre_text),
+        "stage1_parse_success": _parse_ok(stage1_text),
+        "final_parse_success": _parse_ok(post_surface_text),
+        "stage2_pre_stats": pre_stats,
+        "stage2_post_stats": post_stats,
+        "selected_skeletons": selected_skeletons,
+        "stage1_vocab_tokens": stage1_vocab_tokens,
+        "stage2_order": STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
+        "stage2_profile": "layout_safe_experimental",
+        "layout_meta": layout_meta,
     }
 
 

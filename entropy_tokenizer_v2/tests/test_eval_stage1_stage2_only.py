@@ -156,8 +156,8 @@ def test_write_stage1_stage2_only_reports(tmp_path: Path) -> None:
         def n_vocab(self):
             return 50000
 
-    summaries, per_file, ctx, rule_rows, adaptation_examples = ev.run_all_experiments(
-        samples, tokenizer=Tok(), tok_type="tiktoken"
+    summaries, per_file, ctx, rule_rows, adaptation_examples, layout_sidecar = (
+        ev.run_all_experiments(samples, tokenizer=Tok(), tok_type="tiktoken")
     )
     manifest = {
         "dataset_name": "unit",
@@ -176,6 +176,7 @@ def test_write_stage1_stage2_only_reports(tmp_path: Path) -> None:
         run_status="test",
         rule_breakdown_rows=rule_rows,
         adaptation_examples=adaptation_examples,
+        layout_sidecar=layout_sidecar,
     )
     assert (tmp_path / "stage1_stage2_only_summary.csv").exists()
     assert (tmp_path / "stage1_stage2_only_summary.json").exists()
@@ -186,5 +187,9 @@ def test_write_stage1_stage2_only_reports(tmp_path: Path) -> None:
     assert (tmp_path / "stage2_rule_breakdown.csv").exists()
     assert (tmp_path / "stage1_stage2_adaptation_examples.jsonl").exists()
     assert (tmp_path / "stage1_stage2_adaptation_examples.md").exists()
+    assert (tmp_path / "stage2_layout_encoding_summary.csv").exists()
+    assert (tmp_path / "stage2_layout_encoding_examples.md").exists()
+    assert (tmp_path / "stage2_layout_encoding_examples.jsonl").exists()
     mj = json.loads((tmp_path / "stage1_stage2_only_manifest.json").read_text(encoding="utf-8"))
     assert "experiments" in mj
+    assert ev.EXPERIMENT_LAYOUT_EXPERIMENTAL in mj["experiments"]

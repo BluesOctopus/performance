@@ -62,6 +62,7 @@ PLACEHOLDER_PATTERNS = [
     r"<STR>",
     r"<FSTR>",
     r"<NUM>",
+    r"<NL[0-8]>",
 ]
 
 # Vocab introduction cost for effective-total accounting.
