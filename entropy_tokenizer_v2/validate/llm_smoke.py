@@ -1,74 +1,76 @@
-"""Validation smoke runner with strict JSON answer contract."""
+"""LLM smoke runner for original vs compressed text."""
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
-from typing import Callable
+from dataclasses import asdict, dataclass
+from typing import Callable, Iterable
 
-from validate.question_gen import ValidationQuestion, generate_questions_for_sample
+from validate.question_gen import ValidationQuestion, generate_questions
+
+_RE_IDENT = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b")
 
 
 @dataclass(slots=True)
-class SmokeSample:
-    sample_id: str
-    original_text: str
-    compressed_text: str
+class QAAnswer:
+    qtype: str
+    question: str
+    answer: str
 
 
-def _default_answer_fn(text: str, q: ValidationQuestion) -> str:
-    """
-    Cheap local baseline responder.
-    Returns JSON string with a single 'answer' field.
-    """
-    words = re.findall(r"[A-Za-z_][A-Za-z0-9_]*", text)
-    top = words[:10]
-    if q.qtype == "variable_tracing":
-        ans = ", ".join(top[:5])
-    elif q.qtype == "bug_hint":
-        ans = "Potential edge case: empty input, None value, or index boundary handling."
-    else:
-        ans = f"This code appears to handle {top[0] if top else 'processing'} logic."
-    return json.dumps({"answer": ans}, ensure_ascii=False)
+@dataclass(slots=True)
+class SampleValidation:
+    sample_id: int
+    questions: list[ValidationQuestion]
+    raw_answers: list[QAAnswer]
+    compressed_answers: list[QAAnswer]
 
 
-def _parse_answer(raw: str) -> str:
-    obj = json.loads(raw)
-    if not isinstance(obj, dict) or "answer" not in obj:
-        raise ValueError("Invalid answer JSON schema")
-    ans = obj["answer"]
-    if not isinstance(ans, str):
-        raise ValueError("Answer must be string")
-    return ans
+def _stub_answer_model(text: str, question: ValidationQuestion) -> str:
+    """Cheap deterministic stand-in for strict JSON smoke."""
+    tokens = _RE_IDENT.findall(text)
+    if question.qtype == "code_qa":
+        return f"code touches: {', '.join(tokens[:6]) if tokens else 'none'}"
+    if question.qtype == "variable_trace":
+        return tokens[0] if tokens else "none"
+    if question.qtype == "bug_hint":
+        for k in ("timeout", "race", "index", "null", "overflow"):
+            if k in text.lower():
+                return k
+        return "none"
+    return "none"
 
 
-def run_validation_smoke(
-    samples: list[SmokeSample],
+def run_llm_smoke(
+    samples: Iterable[tuple[str, str]],
     *,
-    answer_fn: Callable[[str, ValidationQuestion], str] | None = None,
+    max_samples: int = 6,
+    llm_fn: Callable[[str, ValidationQuestion], str] | None = None,
 ) -> dict:
-    """
-    Run original-vs-compressed QA smoke.
-
-    Returns structured JSON-friendly dict for compare_answers.
-    """
-    afn = answer_fn or _default_answer_fn
-    out: list[dict] = []
-    for s in samples:
-        qs = generate_questions_for_sample(s.sample_id)
-        qrows: list[dict] = []
-        for q in qs:
-            o_raw = afn(s.original_text, q)
-            c_raw = afn(s.compressed_text, q)
-            qrows.append(
-                {
-                    "qid": q.qid,
-                    "qtype": q.qtype,
-                    "question": q.question,
-                    "original_answer": _parse_answer(o_raw),
-                    "compressed_answer": _parse_answer(c_raw),
-                }
+    """Run fixed-question smoke on `(raw, compressed)` pairs."""
+    ask = llm_fn or _stub_answer_model
+    out: list[SampleValidation] = []
+    for idx, (raw, comp) in enumerate(samples):
+        if idx >= max_samples:
+            break
+        qs = generate_questions(raw)
+        raw_ans = [QAAnswer(q.qtype, q.prompt, ask(raw, q)) for q in qs]
+        comp_ans = [QAAnswer(q.qtype, q.prompt, ask(comp, q)) for q in qs]
+        out.append(
+            SampleValidation(
+                sample_id=idx,
+                questions=qs,
+                raw_answers=raw_ans,
+                compressed_answers=comp_ans,
             )
-        out.append({"sample_id": s.sample_id, "qa": qrows})
-    return {"samples": out, "n_samples": len(samples), "questions_per_sample": 3}
+        )
+
+    payload = {
+        "n_samples": len(out),
+        "questions_per_sample": 3,
+        "samples": [asdict(x) for x in out],
+    }
+    json.dumps(payload, ensure_ascii=False)
+    return payload
+

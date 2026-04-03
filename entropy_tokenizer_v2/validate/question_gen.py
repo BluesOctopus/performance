@@ -1,4 +1,4 @@
-"""Generate low-cost validation questions for code understanding smoke tests."""
+"""Low-cost question generation for code compression validation smoke."""
 
 from __future__ import annotations
 
@@ -7,27 +7,26 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class ValidationQuestion:
-    qid: str
     qtype: str
-    question: str
+    prompt: str
 
 
-def generate_questions_for_sample(sample_id: str) -> list[ValidationQuestion]:
-    """Generate 3 fixed low-cost questions per sample."""
+def generate_questions(source: str) -> list[ValidationQuestion]:
+    """Generate 3 fixed question types per sample."""
+    head = source.strip().splitlines()
+    preview = " ".join(head[:2])[:120]
     return [
         ValidationQuestion(
-            qid=f"{sample_id}:qa",
             qtype="code_qa",
-            question="What does this code primarily do? Answer in one sentence.",
+            prompt=f"Summarize what this code does in one short sentence: {preview}",
         ),
         ValidationQuestion(
-            qid=f"{sample_id}:trace",
-            qtype="variable_tracing",
-            question="List up to 5 key variables or identifiers involved in the main logic.",
+            qtype="variable_trace",
+            prompt="Name one variable that is assigned and later read.",
         ),
         ValidationQuestion(
-            qid=f"{sample_id}:bug",
             qtype="bug_hint",
-            question="Give one plausible bug risk or edge case in this code.",
+            prompt="Give one potential bug risk keyword only.",
         ),
     ]
+

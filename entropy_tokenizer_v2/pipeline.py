@@ -354,34 +354,33 @@ def apply_stage3(text: str, repo_config, tokenizer=None, tok_type: str | None = 
 
         cfg_raw = dict(getattr(repo_config, "stage3_ab_summary", {}) or {})
         if not cfg_raw:
-            # Safe fallback: exact-only with defaults when repo config misses hybrid settings.
-            cfg_raw = {
-                "mode": "exact_only",
-                "free_text_min_chars": 24,
-                "free_text_min_words": 4,
-                "b_similarity_threshold": 0.82,
-                "b_risk_threshold": 0.72,
-                "b_min_cluster_size": 2,
-                "enable_b": False,
-                "a_min_occ": 2,
-                "a_min_net_gain": 1,
-                "a_alias_style": "short",
-                "key_like_patterns": [],
-            }
+            # Strictly avoid hidden defaults in pipeline; skip Stage3 safely.
+            setattr(
+                repo_config,
+                "_stage3_hybrid_last_meta",
+                {
+                    "stage3_ab_mode": "exact_only",
+                    "stage3_ab_similarity_kind": "lexical_bow_cosine",
+                    "stage3_ab_b_mode": "disabled",
+                    "stage3_ab_runtime_warning": "missing stage3_ab_summary; stage3 skipped",
+                    "stage3_ab_vocab_entries": [],
+                },
+            )
+            return text
         mode = str(cfg_raw.get("mode", "exact_only")).strip().lower()
         if mode not in {"exact_only", "hybrid"}:
             mode = "exact_only"
         conf = HybridABConfig(
             mode=mode,
-            free_text_min_chars=int(cfg_raw.get("free_text_min_chars", 24)),
-            free_text_min_words=int(cfg_raw.get("free_text_min_words", 4)),
+            free_text_min_chars=int(cfg_raw["free_text_min_chars"]),
+            free_text_min_words=int(cfg_raw["free_text_min_words"]),
             key_like_patterns=tuple(cfg_raw.get("key_like_patterns", []) or ()),
-            a_min_occ=int(cfg_raw.get("a_min_occ", 2)),
-            a_min_net_gain=int(cfg_raw.get("a_min_net_gain", 1)),
-            a_alias_style=str(cfg_raw.get("a_alias_style", "short")),
-            b_similarity_threshold=float(cfg_raw.get("b_similarity_threshold", 0.82)),
-            b_risk_threshold=float(cfg_raw.get("b_risk_threshold", 0.72)),
-            b_min_cluster_size=int(cfg_raw.get("b_min_cluster_size", 2)),
+            a_min_occ=int(cfg_raw["a_min_occ"]),
+            a_min_net_gain=int(cfg_raw["a_min_net_gain"]),
+            a_alias_style=str(cfg_raw["a_alias_style"]),
+            b_similarity_threshold=float(cfg_raw["b_similarity_threshold"]),
+            b_risk_threshold=float(cfg_raw["b_risk_threshold"]),
+            b_min_cluster_size=int(cfg_raw["b_min_cluster_size"]),
         )
         if mode != "hybrid" or not bool(cfg_raw.get("enable_b", False)):
             conf.mode = "exact_only"

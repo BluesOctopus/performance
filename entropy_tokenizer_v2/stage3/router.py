@@ -6,13 +6,7 @@ import ast
 import re
 from dataclasses import dataclass
 
-
-_RE_PATH_LIKE = re.compile(r"[/\\]|\.py$|\.json$|\.ya?ml$|\.toml$|\.ini$", re.I)
-_RE_IDENTIFIER_LIKE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
-_RE_REGEX_LIKE = re.compile(
-    r"(\\b|\\d\+|\\s\*|\[\^\\w\\s\]|\(\?:|\.\*|\[[A-Za-z0-9_^-]+\][+*?])"
-)
-_RE_URL = re.compile(r"^https?://", re.I)
+from rules import RE_IDENTIFIER_LIKE, RE_PATH_LIKE, RE_REGEX_LIKE, RE_URL
 
 
 @dataclass(slots=True)
@@ -58,11 +52,11 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
         return "fallback"
     if "\n" in s or "\r" in s:
         return "fallback"
-    if _RE_URL.search(s) or _RE_PATH_LIKE.search(s):
+    if RE_URL.search(s) or RE_PATH_LIKE.search(s):
         return "A"
-    if _RE_REGEX_LIKE.search(s):
+    if RE_REGEX_LIKE.search(s):
         return "A"
-    if _RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
+    if RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
         return "A"
     for p in cfg.key_like_patterns:
         try:
@@ -95,11 +89,11 @@ def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tu
         return "fallback", "empty"
     if "\n" in s or "\r" in s:
         return "fallback", "multiline"
-    if _RE_URL.search(s) or _RE_PATH_LIKE.search(s):
+    if RE_URL.search(s) or RE_PATH_LIKE.search(s):
         return "A", "path_or_url"
-    if _RE_REGEX_LIKE.search(s):
+    if RE_REGEX_LIKE.search(s):
         return "A", "regex_like"
-    if _RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
+    if RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
         return "A", "identifier_like"
     for p in cfg.key_like_patterns:
         try:

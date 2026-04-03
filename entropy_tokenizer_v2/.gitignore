@@ -11,4 +11,9 @@ results/*
 # Versioned minimal benchmark summary
 !results/stage3_backend_comparison.csv
 !results/artifacts/.gitkeep
+# Keep benchmark snapshots local by default
+results/v2_compression_report_*.csv
+results/v2_eval_detail_*.json
+results/stage3_plan_a/codebook_*_sources.json
+results/stage3_plan_a/report_*_sources.json
 *.log

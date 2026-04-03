@@ -313,7 +313,7 @@ def mine_repo(
 
         summary = score_summary(scores, top_n=50)
     else:
-        stage3_ab_summary = resolve_hybrid_ab_settings(tokenizer_key or "gpt2")
+        stage3_ab_summary = resolve_hybrid_ab_settings(tokenizer_key)
         stage3_ab_summary["stage3_ab_mode"] = stage3_ab_summary.get("mode", "exact_only")
         stage3_ab_summary["stage3_ab_similarity_kind"] = "lexical_bow_cosine"
         stage3_ab_summary["stage3_ab_b_mode"] = (
