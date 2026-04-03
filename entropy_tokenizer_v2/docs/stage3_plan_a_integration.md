@@ -1,7 +1,5 @@
 # Stage3 Plan A 接入主 Pipeline（literal codec）
 
-> 补充：Stage3 现已支持 `hybrid_ab` 双通道后端（A 精确 alias + B 语义聚类），详见 `docs/stage3_hybrid_ab.md`。
-
 ## 目标
 
 - 在 **固定 tokenizer** 下，将 `stage3/literal_codec` 的字段级 Plan A（variable / attribute / string）接到 `pipeline.apply_stage3` 与 `repo_miner` 挖掘链路。
@@ -56,8 +54,8 @@
 # Legacy + gpt4
 python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt4 --stage2-profile stage2_aggressive --stage3-backend legacy --stage3-output-tag _s3legacy_gpt4
 
-# Plan A + gpt4（生成 v2_compression_report_stage3_plan_a.csv）
-python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt4 --stage2-profile stage2_aggressive --stage3-backend plan_a --stage3-output-tag _stage3_plan_a
+# Plan A + gpt4
+python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt4 --stage2-profile stage2_aggressive --stage3-backend plan_a --stage3-output-tag _stage3_plan_a_gpt4_conservative
 
 # gpt2 对照
 python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-profile stage2_aggressive --stage3-backend legacy --stage3-output-tag _s3legacy_gpt2
@@ -82,20 +80,9 @@ python eval/run_v2.py eval --repo . --samples 80 --tokenizers gpt2 --stage2-prof
 
 | 产物 | 路径 |
 |------|------|
-| Plan A 码表/报告（挖掘时写入） | `results/stage3_plan_a/codebook_<tok>_sources.json`、`report_*.json` |
-| 带语料标签的副本 | `results/stage3_plan_a/codebook_gpt4_entropy_tokenizer_v2.json` 等 |
-| 单次评测 CSV/JSON | `results/v2_compression_report*.csv`、`results/v2_eval_detail*.json` |
-| 正式 Plan A 报告名 | `results/v2_compression_report_stage3_plan_a.csv`、`results/v2_eval_detail_stage3_plan_a.json` |
-| 对照表 | `results/stage3_backend_comparison.csv` |
+| 对照摘要（版本化） | `results/stage3_backend_comparison.csv` |
+| 评测细节（本地产物） | `results/artifacts/`（建议不纳入版本控制） |
 | 挖掘缓存 | `cache/repo_config_<tok>_<name>_<backend>_<plan_a_profile>.json`（仅 `plan_a` 带 profile 后缀） |
-
-## 实验结果摘要（本地 repo，80 文件）
-
-以 `results/stage3_backend_comparison.csv` 为准（与 `v2_compression_report_*.csv` 同步刷新；表内含 `sequence_*` 与 `effective_total_*`）。当前评测在 **互斥采集 + real_surface_form + used-only vocab** 下重跑。
-
-- **主指标**：`effective_total_reduction_pct`（整语料共享 Stage1/3 词表后的最终压缩率）；**对照**：`sequence_reduction_pct`（仅正文序列）。
-- **当前矩阵（gpt4/gpt2 × legacy/plan_a）**：在同一 80-file 切片上，**legacy 的 effective-total 压缩率均高于 plan_a**；plan_a 常见 **Eff% < Seq%**，因 Stage3 used-only 词条 intro 在 tokenizer 下仍显著。
-- **legacy vs Plan A 横向比较**：以各自行的 `effective_total_*` 为准；两种 backend 的序列计数规则不同，勿只比 raw `final_tokens` 绝对值。
 
 ## 测试
 
@@ -104,19 +91,11 @@ python -m pytest tests/ -q
 cd stage3 && python -m pytest tests/ -q
 ```
 
-## 评测指标：序列 vs 整语料有效总成本
+## 结果解读
 
-`eval/v2_eval.py` 的 `EvalResult` 同时给出：
-
-| 字段 | 含义 |
-|------|------|
-| `sequence_final_tokens` / `sequence_reduction_pct` | 仅 **正文序列** token（占位符计 1）；与历史 `final_tokens` / `reduction_pct` 同义。 |
-| `effective_total_tokens` / `effective_total_reduction_pct` | **整语料共享词表后的最终总成本**：`sequence_final_tokens + corpus_once_vocab_intro`。 |
-| `final_vocab_intro_tokens` | `stage1_vocab_intro_tokens + stage2_vocab_intro_tokens + stage3_vocab_intro_tokens`（当前 Stage2 无独立 intro，为 0）。 |
-
-**Corpus-once**：Stage1 骨架词条只计一次；Stage3 legacy 为全语料出现过的 placeholder 并集；Stage3 Plan A 为 **used-only** 的 `(field, code)` 词条。评测循环中 **不按文件重复叠加** intro。
-
-解读实验结论时，**优先看 `effective_total_reduction_pct`**；`sequence_reduction_pct` 保留用于与旧结果、纯序列对比对齐。
+- Plan A 的主指标建议使用 `effective_total_reduction_pct`。
+- `sequence_reduction_pct` 仅用于查看正文序列变化。
+- Stage3 Plan A 词条成本口径为 `corpus_once`（used-codebook-union）。
 
 ## 已知限制与后续
 
