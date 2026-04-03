@@ -21,6 +21,7 @@
 - `ET_STAGE3_AB_B_SIMILARITY_THRESHOLD`（默认 `0.82`，gpt4 默认更严格）
 - `ET_STAGE3_AB_B_RISK_THRESHOLD`（默认 `0.72`，gpt4 默认更严格）
 - `ET_STAGE3_AB_B_MIN_CLUSTER_SIZE`（默认 `2`）
+- `ET_STAGE3_AB_KEY_LIKE_PATTERNS`（key-like 正则，`||` 分隔多条；用于路由器将其归入 A 通道）
 - `ET_STAGE3_AB_ENABLE_B`（兼容开关，主控制由 `ET_STAGE3_AB_MODE`）
 - `ET_STAGE3_AB_A_MIN_OCC`（默认 `2`）
 - `ET_STAGE3_AB_A_MIN_NET_GAIN`（默认 `1`）
@@ -34,6 +35,7 @@
 - `stage3_ab_b_*`：B 候选、簇数、使用簇、intro、sequence saved、fallback、avg_similarity
 - `stage3_ab_fallback_count`
 - `stage3_ab_similarity_kind=lexical_bow_cosine`
+- `stage3_ab_b_mode=lexical_free_text_baseline`（B 通道是 lexical baseline）
 - `stage3_ab_mode=exact_only|hybrid`
 
 并保持总账一致：
