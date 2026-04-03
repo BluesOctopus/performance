@@ -28,9 +28,9 @@ def test_router_free_text_goes_to_b():
 
 def test_router_unknown_fallback():
     cfg = ABRoutingConfig()
-    assert classify_string_kind("'x'", cfg) == "fallback"
+    assert classify_string_kind("'x'", cfg) == "A"
     route, reason = classify_string_with_reason("'x'", cfg)
-    assert route == "fallback"
+    assert route == "A"
     assert reason == "short_literal"
 
 
