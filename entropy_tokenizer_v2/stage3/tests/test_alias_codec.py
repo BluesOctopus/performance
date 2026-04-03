@@ -1,6 +1,11 @@
 from config import EVAL_TOKENIZERS
 from repo_miner import _load_tokenizer
-from stage3.exact.alias_codec import decode_exact_aliases, encode_exact_aliases
+from marker_count import encode as mc_encode
+from stage3.exact.alias_codec import (
+    build_alias_alphabet,
+    decode_exact_aliases,
+    encode_exact_aliases,
+)
 from stage3.routing.router import ABRoutingConfig
 
 
@@ -93,3 +98,10 @@ def test_alias_codec_mnemonic_style_prefix():
     )
     if res.entries:
         assert res.entries[0].alias.startswith("_ve")
+
+
+def test_alias_alphabet_sorted_by_token_cost():
+    tok, tt = _load_tokenizer("gpt4", EVAL_TOKENIZERS["gpt4"])
+    cands = build_alias_alphabet(tok, tt, style="short", max_n=16)
+    costs = [len(mc_encode(tok, tt, c)) for c in cands]
+    assert costs == sorted(costs)

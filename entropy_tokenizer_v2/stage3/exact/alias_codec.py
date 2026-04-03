@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import builtins
-import hashlib
 import io
 import json
 import keyword
@@ -55,8 +54,13 @@ def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
 
 
 def _alias_cache_id(tokenizer: Any, tok_type: str) -> str:
-    ident = f"{tok_type}:{tokenizer.__class__.__module__}.{tokenizer.__class__.__name__}"
-    return hashlib.sha256(ident.encode("utf-8")).hexdigest()[:16]
+    model_name = getattr(tokenizer, "name_or_path", "") or getattr(tokenizer, "model", "")
+    if not isinstance(model_name, str):
+        model_name = str(model_name)
+    cls_name = f"{tokenizer.__class__.__module__}.{tokenizer.__class__.__name__}"
+    raw = f"{tok_type}_{model_name or cls_name}".strip()
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", raw).strip("_.-")
+    return safe or f"{tok_type}_tokenizer"
 
 
 def _load_alias_alphabet_cache(tokenizer: Any, tok_type: str) -> dict[str, Any]:
