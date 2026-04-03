@@ -29,7 +29,7 @@ from config import (
 )
 from repo_miner import RepoConfig, _encode, _load_tokenizer, _vocab_size
 from pipeline import CompressionBreakdown, apply_pipeline, _stage1_vocab_intro
-from placeholder_accounting import compute_vocab_intro_cost
+from placeholder_accounting import compute_vocab_intro_cost, dedupe_vocab_entries
 from token_scorer import (
     build_stage3_vocab_entries_from_used_placeholders,
     collect_used_stage3_placeholders,
@@ -135,6 +135,10 @@ class EvalResult:
     V0:                  int
     k_star_syntax:       int
     n_replacement_words: int
+    stage3_vocab_intro_tokens_raw: int = 0
+    stage3_vocab_intro_tokens_dedup: int = 0
+    effective_total_tokens_dedup: int = 0
+    effective_total_reduction_pct_dedup: float = 0.0
     stage3_backend: str = "legacy"
     stage3_selected_units: int = 0
     stage3_selected_units_exact: int = 0
@@ -160,6 +164,11 @@ class EvalResult:
     stage3_ab_a_intro_tokens: int = 0
     stage3_ab_a_sequence_saved: int = 0
     stage3_ab_a_effective_net_saving: int = 0
+    stage3_ab_a_protected_name_count: int = 0
+    stage3_ab_a_min_occ_reject_count: int = 0
+    stage3_ab_a_net_gain_reject_count: int = 0
+    stage3_ab_a_route_reject_count: int = 0
+    stage3_ab_a_reject_reason_json: str = ""
     stage3_ab_b_candidates: int = 0
     stage3_ab_b_cluster_count: int = 0
     stage3_ab_b_used_clusters: int = 0
@@ -167,8 +176,11 @@ class EvalResult:
     stage3_ab_b_sequence_saved: int = 0
     stage3_ab_b_effective_net_saving: int = 0
     stage3_ab_b_fallback_count: int = 0
+    stage3_ab_b_intro_not_worth_count: int = 0
     stage3_ab_b_avg_similarity: float = 0.0
     stage3_ab_b_risk_reject_count: int = 0
+    stage3_ab_b_route_reject_count: int = 0
+    stage3_ab_b_reject_reason_json: str = ""
     stage3_ab_fallback_count: int = 0
     stage3_ab_mode: str = ""
     stage3_ab_similarity_kind: str = ""
@@ -210,6 +222,8 @@ def evaluate(
     ab_similarity_weight = 0
     ab_mode_seen = ""
     ab_similarity_kind_seen = ""
+    ab_a_reject_reasons: Counter = Counter()
+    ab_b_reject_reasons: Counter = Counter()
 
     for src in tqdm(sources, desc=f"  [{tokenizer_key}] compressing", leave=False):
         compressed, fr = apply_v2_compression(
@@ -257,6 +271,9 @@ def evaluate(
                 "stage3_ab_a_intro_tokens",
                 "stage3_ab_a_sequence_saved",
                 "stage3_ab_a_effective_net_saving",
+                "stage3_ab_a_protected_name_count",
+                "stage3_ab_a_min_occ_reject_count",
+                "stage3_ab_a_net_gain_reject_count",
                 "stage3_ab_b_candidates",
                 "stage3_ab_b_cluster_count",
                 "stage3_ab_b_used_clusters",
@@ -265,8 +282,13 @@ def evaluate(
                 "stage3_ab_b_effective_net_saving",
                 "stage3_ab_b_fallback_count",
                 "stage3_ab_b_risk_reject_count",
+                "stage3_ab_b_intro_not_worth_count",
             ):
                 ab_sum[k] += int(meta.get(k, 0))
+            for rk, rv in (meta.get("stage3_ab_a_reject_reason_counts", {}) or {}).items():
+                ab_a_reject_reasons[str(rk)] += int(rv)
+            for rk, rv in (meta.get("stage3_ab_b_reject_reason_counts", {}) or {}).items():
+                ab_b_reject_reasons[str(rk)] += int(rv)
             sim = float(meta.get("stage3_ab_b_avg_similarity", 0.0))
             used_cluster = int(meta.get("stage3_ab_b_used_clusters", 0))
             ab_similarity_weighted_sum += sim * used_cluster
@@ -290,12 +312,14 @@ def evaluate(
         if backend == "legacy"
         else "plan_a used-codebook-union / corpus-once"
         if backend == "plan_a"
-        else "hybrid_ab request-local entries summed over files"
+        else "hybrid_ab request-local entries (raw + dedup accounting)"
     )
     stage3_assignment_by_field_json = json.dumps(
         sm.get("stage3_plan_a_assignment_by_field", {}), ensure_ascii=False
     )
 
+    stage3_vocab_intro_tokens_raw = 0
+    stage3_vocab_intro_tokens_dedup = 0
     if backend == "plan_a":
         from placeholder_accounting import build_used_plan_a_vocab_entries
         from repo_miner import load_plan_a_codebooks
@@ -312,6 +336,8 @@ def evaluate(
             tokenizer=tokenizer,
             tok_type=tok_type,
         )
+        stage3_vocab_intro_tokens_raw = stage3_vocab_intro_tokens
+        stage3_vocab_intro_tokens_dedup = stage3_vocab_intro_tokens
     elif backend == "legacy":
         entries = build_stage3_vocab_entries_from_used_placeholders(legacy_stage3_used)
         stage3_vocab_intro_tokens = compute_vocab_intro_cost(
@@ -320,14 +346,24 @@ def evaluate(
             tokenizer=tokenizer,
             tok_type=tok_type,
         )
+        stage3_vocab_intro_tokens_raw = stage3_vocab_intro_tokens
+        stage3_vocab_intro_tokens_dedup = stage3_vocab_intro_tokens
     else:
-        entries = ab_vocab_entries
-        stage3_vocab_intro_tokens = compute_vocab_intro_cost(
-            entries,
+        entries_raw = ab_vocab_entries
+        entries_dedup = dedupe_vocab_entries(entries_raw, key_fields=("token", "definition"))
+        stage3_vocab_intro_tokens_raw = compute_vocab_intro_cost(
+            entries_raw,
             mode=VOCAB_COST_MODE,
             tokenizer=tokenizer,
             tok_type=tok_type,
         )
+        stage3_vocab_intro_tokens_dedup = compute_vocab_intro_cost(
+            entries_dedup,
+            mode=VOCAB_COST_MODE,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+        )
+        stage3_vocab_intro_tokens = stage3_vocab_intro_tokens_raw
 
     used_v = used_a = used_s = 0
     if backend == "plan_a":
@@ -375,10 +411,13 @@ def evaluate(
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
     s2_intro = 0
     final_vocab_intro = s1_intro + s2_intro + stage3_vocab_intro_tokens
+    final_vocab_intro_dedup = s1_intro + s2_intro + stage3_vocab_intro_tokens_dedup
     effective_total = F_seq + final_vocab_intro
+    effective_total_dedup = F_seq + final_vocab_intro_dedup
     effective_saved = B - effective_total
     seq_red = (1.0 - F_seq / B) * 100.0 if B else 0.0
     eff_red = (1.0 - effective_total / B) * 100.0 if B else 0.0
+    eff_red_dedup = (1.0 - effective_total_dedup / B) * 100.0 if B else 0.0
 
     return EvalResult(
         tokenizer_key       = tokenizer_key,
@@ -410,6 +449,10 @@ def evaluate(
         V0                  = V0,
         k_star_syntax       = len(repo_config.selected_skeletons),
         n_replacement_words = len(repo_config.replacement_map),
+        stage3_vocab_intro_tokens_raw=stage3_vocab_intro_tokens_raw,
+        stage3_vocab_intro_tokens_dedup=stage3_vocab_intro_tokens_dedup,
+        effective_total_tokens_dedup=effective_total_dedup,
+        effective_total_reduction_pct_dedup=eff_red_dedup,
         stage3_backend      = backend,
         stage3_selected_units=stage3_selected_units,
         stage3_selected_units_exact=stage3_selected_units_exact,
@@ -441,6 +484,11 @@ def evaluate(
         stage3_ab_a_intro_tokens=int(ab_sum.get("stage3_ab_a_intro_tokens", 0)),
         stage3_ab_a_sequence_saved=int(ab_sum.get("stage3_ab_a_sequence_saved", 0)),
         stage3_ab_a_effective_net_saving=int(ab_sum.get("stage3_ab_a_effective_net_saving", 0)),
+        stage3_ab_a_protected_name_count=int(ab_sum.get("stage3_ab_a_protected_name_count", 0)),
+        stage3_ab_a_min_occ_reject_count=int(ab_sum.get("stage3_ab_a_min_occ_reject_count", 0)),
+        stage3_ab_a_net_gain_reject_count=int(ab_sum.get("stage3_ab_a_net_gain_reject_count", 0)),
+        stage3_ab_a_route_reject_count=int(sum(ab_a_reject_reasons.values())),
+        stage3_ab_a_reject_reason_json=json.dumps(dict(ab_a_reject_reasons), ensure_ascii=False),
         stage3_ab_b_candidates=int(ab_sum.get("stage3_ab_b_candidates", 0)),
         stage3_ab_b_cluster_count=int(ab_sum.get("stage3_ab_b_cluster_count", 0)),
         stage3_ab_b_used_clusters=int(ab_sum.get("stage3_ab_b_used_clusters", 0)),
@@ -448,10 +496,13 @@ def evaluate(
         stage3_ab_b_sequence_saved=int(ab_sum.get("stage3_ab_b_sequence_saved", 0)),
         stage3_ab_b_effective_net_saving=int(ab_sum.get("stage3_ab_b_effective_net_saving", 0)),
         stage3_ab_b_fallback_count=int(ab_sum.get("stage3_ab_b_fallback_count", 0)),
+        stage3_ab_b_intro_not_worth_count=int(ab_sum.get("stage3_ab_b_intro_not_worth_count", 0)),
         stage3_ab_b_avg_similarity=(
             ab_similarity_weighted_sum / ab_similarity_weight if ab_similarity_weight else 0.0
         ),
         stage3_ab_b_risk_reject_count=int(ab_sum.get("stage3_ab_b_risk_reject_count", 0)),
+        stage3_ab_b_route_reject_count=int(sum(ab_b_reject_reasons.values())),
+        stage3_ab_b_reject_reason_json=json.dumps(dict(ab_b_reject_reasons), ensure_ascii=False),
         stage3_ab_fallback_count=int(ab_sum.get("stage3_ab_b_fallback_count", 0)),
         stage3_ab_mode=ab_mode_seen or str((getattr(repo_config, "stage3_ab_summary", {}) or {}).get("stage3_ab_mode", "")),
         stage3_ab_similarity_kind=ab_similarity_kind_seen or str(

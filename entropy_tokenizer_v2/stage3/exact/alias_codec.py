@@ -9,6 +9,7 @@ import json
 import keyword
 import re
 import tokenize
+from collections import Counter
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -17,7 +18,7 @@ from config import CACHE_DIR, VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from ..routing.router import ABRoutingConfig, classify_string_kind
+from ..routing.router import ABRoutingConfig, classify_string_with_reason
 
 _PROTECTED = set(keyword.kwlist) | set(dir(builtins)) | {"self", "cls", "True", "False", "None"}
 
@@ -45,6 +46,10 @@ class ACodecResult:
     sequence_saved: int = 0
     effective_net_saving: int = 0
     vocab_entries: list[dict[str, Any]] = field(default_factory=list)
+    reject_reason_counts: dict[str, int] = field(default_factory=dict)
+    protected_name_count: int = 0
+    min_occ_reject_count: int = 0
+    net_gain_reject_count: int = 0
 
 
 def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
@@ -91,6 +96,7 @@ def build_alias_alphabet(
     style: str,
     prefix: Optional[str] = None,
     max_n: int = 256,
+    candidate_style: str = "token_cost_sorted",
 ) -> list[str]:
     style = (style or "").strip().lower()
     style = style if style in {"short", "mnemonic"} else "short"
@@ -98,17 +104,46 @@ def build_alias_alphabet(
 
     if style == "short":
         cached = cache.get("short", {})
-        if isinstance(cached, dict) and cached.get("max_n") == max_n:
+        if (
+            isinstance(cached, dict)
+            and cached.get("max_n") == max_n
+            and str(cached.get("candidate_style", "token_cost_sorted")) == candidate_style
+        ):
             cands = cached.get("candidates")
             if isinstance(cands, list) and all(isinstance(x, str) for x in cands):
                 return cands
         items: list[tuple[int, int, str]] = []
-        for n in range(max_n):
-            alias = f"__ab{n}"
+        families: list[str]
+        if candidate_style == "compact_mixed":
+            families = ["x", "v", "_x", "__ab"]
+        elif candidate_style == "underscore_heavy":
+            families = ["__ab", "__x", "_x", "x"]
+        else:
+            families = ["__ab", "_x", "x", "z"]
+        per_family = max(8, max_n // max(1, len(families)))
+        generated: list[str] = []
+        for fam in families:
+            for n in range(per_family):
+                generated.append(f"{fam}{n}")
+        # Ensure stable budget and uniqueness.
+        seen_alias: set[str] = set()
+        candidates = []
+        for a in generated:
+            if a in seen_alias:
+                continue
+            seen_alias.add(a)
+            candidates.append(a)
+            if len(candidates) >= max_n:
+                break
+        for alias in candidates:
             items.append((_token_len(tokenizer, tok_type, alias), len(alias), alias))
         items.sort(key=lambda t: (t[0], t[1], t[2]))
         out = [a for _c, _l, a in items]
-        cache["short"] = {"max_n": max_n, "candidates": out}
+        cache["short"] = {
+            "max_n": max_n,
+            "candidate_style": candidate_style,
+            "candidates": out,
+        }
         _save_alias_alphabet_cache(tokenizer, tok_type, cache)
         return out
 
@@ -179,6 +214,7 @@ def encode_exact_aliases(
     min_occ: int = 2,
     min_net_gain: int = 1,
     alias_style: str = "short",
+    alias_candidate_style: str = "token_cost_sorted",
 ) -> ACodecResult:
     try:
         toks = list(tokenize.generate_tokens(io.StringIO(text).readline))
@@ -187,11 +223,14 @@ def encode_exact_aliases(
     line_starts = _line_start_offsets(text)
     ast_protected = _collect_ast_protected_names(text)
     occ: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
+    reject_reasons: Counter[str] = Counter()
+    protected_name_count = 0
     prev_is_dot = False
     for tok in toks:
         ttype, tstr = tok.type, tok.string
         if ttype == tokenize.NAME:
             if tstr in _PROTECTED or tstr in ast_protected:
+                protected_name_count += 1
                 prev_is_dot = False
                 continue
             field = "attribute" if prev_is_dot else "variable"
@@ -200,10 +239,13 @@ def encode_exact_aliases(
             occ[(field, tstr)].append((st, ed))
             prev_is_dot = False
         elif ttype == tokenize.STRING:
-            if classify_string_kind(tstr, route_cfg) == "A":
+            route, reason = classify_string_with_reason(tstr, route_cfg)
+            if route == "A":
                 st = _pos_to_offset(line_starts, tok.start)
                 ed = _pos_to_offset(line_starts, tok.end)
                 occ[("string", tstr)].append((st, ed))
+            else:
+                reject_reasons[f"route_{reason}"] += 1
             prev_is_dot = False
         elif ttype == tokenize.OP:
             prev_is_dot = tstr == "."
@@ -219,14 +261,23 @@ def encode_exact_aliases(
     mnemonic_alias_alphabet_by_prefix: dict[str, list[str]] = {}
     mnemonic_cursor_by_prefix: defaultdict[str, int] = defaultdict(int)
     if alias_style == "short":
-        short_alias_alphabet = build_alias_alphabet(tokenizer, tok_type, style="short", max_n=256)
+        short_alias_alphabet = build_alias_alphabet(
+            tokenizer,
+            tok_type,
+            style="short",
+            max_n=256,
+            candidate_style=alias_candidate_style,
+        )
 
     selected: dict[tuple[str, str], str] = {}
     entries: list[AEntry] = []
+    min_occ_reject_count = 0
+    net_gain_reject_count = 0
     for key, spans in sorted(occ.items(), key=lambda kv: len(kv[1]), reverse=True):
         field, literal = key
         count = len(spans)
         if count < int(min_occ):
+            min_occ_reject_count += 1
             continue
         if alias_style == "mnemonic":
             prefix = _sanitize_prefix(literal)
@@ -251,6 +302,7 @@ def encode_exact_aliases(
         intro_cost = compute_vocab_intro_cost([intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type)
         gain = count * (raw_cost - alias_cost) - intro_cost
         if gain < int(min_net_gain):
+            net_gain_reject_count += 1
             continue
         if alias_style == "mnemonic":
             mnemonic_cursor_by_prefix[prefix] += 1
@@ -278,6 +330,10 @@ def encode_exact_aliases(
         sequence_saved=seq_saved,
         effective_net_saving=seq_saved - intro,
         vocab_entries=vocab_entries,
+        reject_reason_counts=dict(reject_reasons),
+        protected_name_count=protected_name_count,
+        min_occ_reject_count=min_occ_reject_count,
+        net_gain_reject_count=net_gain_reject_count,
     )
 
 

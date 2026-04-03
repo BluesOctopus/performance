@@ -31,9 +31,13 @@ def test_hybrid_ab_eval_fields_and_accounting():
     )
     assert r.effective_total_tokens == r.sequence_final_tokens + r.final_vocab_intro_tokens
     assert r.stage3_vocab_intro_tokens == r.stage3_ab_a_intro_tokens + r.stage3_ab_b_intro_tokens
+    assert r.stage3_vocab_intro_tokens_raw >= r.stage3_vocab_intro_tokens_dedup
+    assert r.effective_total_tokens_dedup <= r.effective_total_tokens
     assert r.stage3_component_saved == r.stage3_ab_a_sequence_saved + r.stage3_ab_b_sequence_saved
     assert r.stage3_selected_units >= r.stage3_selected_units_exact
     assert r.stage3_used_units_exact >= 0
+    assert r.stage3_ab_a_route_reject_count >= 0
+    assert r.stage3_ab_b_route_reject_count >= 0
 
 
 def test_legacy_and_plan_a_still_work():

@@ -9,6 +9,7 @@ from placeholder_accounting import (
     compute_vocab_intro_cost,
     count_base_tokens,
     count_sequence_tokens,
+    dedupe_vocab_entries,
     serialize_vocab_entry,
     split_text_by_placeholders,
 )
@@ -87,6 +88,18 @@ def test_compute_effective_total_tokens_sum() -> None:
     assert d["sequence_only_tokens"] == 2
     assert d["vocab_intro_tokens"] == FIXED_VOCAB_TOKEN_COST
     assert d["effective_total_tokens"] == 2 + FIXED_VOCAB_TOKEN_COST
+
+
+def test_dedupe_vocab_entries_by_token_definition() -> None:
+    rows = [
+        {"token": "__ab1", "definition": "foo", "kind": "a"},
+        {"token": "__ab1", "definition": "foo", "kind": "a"},
+        {"token": "__ab1", "definition": "bar", "kind": "a"},
+    ]
+    dedup = dedupe_vocab_entries(rows)
+    assert len(dedup) == 2
+    assert dedup[0]["definition"] == "foo"
+    assert dedup[1]["definition"] == "bar"
 
 
 def test_stage1_effective_negative_when_vocab_intro_large(monkeypatch) -> None:

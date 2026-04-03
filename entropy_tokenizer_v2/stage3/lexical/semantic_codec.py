@@ -15,7 +15,7 @@ from config import VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from .string_classifier import SemanticClassifierConfig, is_semantic_free_text
+from .string_classifier import SemanticClassifierConfig, classify_semantic_free_text
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]+")
 
@@ -44,6 +44,8 @@ class BCodecResult:
     vocab_entries: list[dict[str, Any]] = field(default_factory=list)
     similarity_kind: str = "lexical_bow_cosine"
     mode: str = "lexical_free_text_baseline"
+    reject_reason_counts: dict[str, int] = field(default_factory=dict)
+    intro_not_worth_count: int = 0
 
 
 def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
@@ -67,6 +69,25 @@ def _cos(a: Counter[str], b: Counter[str]) -> float:
     return dot / (na * nb)
 
 
+def _char_ngrams(text: str, n: int = 3) -> set[str]:
+    s = re.sub(r"\s+", " ", text.lower()).strip()
+    if not s:
+        return set()
+    if len(s) < n:
+        return {s}
+    return {s[i : i + n] for i in range(len(s) - n + 1)}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    uni = len(a | b)
+    if uni <= 0:
+        return 0.0
+    return inter / uni
+
+
 def _apply_spans(text: str, spans: list[tuple[int, int, str]]) -> str:
     out = text
     for st, ed, rep in sorted(spans, key=lambda x: x[0], reverse=True):
@@ -84,6 +105,10 @@ def encode_semantic_strings(
     min_cluster_size: int = 2,
     classifier_cfg: SemanticClassifierConfig | None = None,
     code_prefix: str = "__abB",
+    similarity_kind: str = "lexical_bow_cosine",
+    lexical_weight: float = 0.7,
+    char_weight: float = 0.3,
+    ngram_n: int = 3,
 ) -> BCodecResult:
     cfg = classifier_cfg or SemanticClassifierConfig()
     try:
@@ -94,11 +119,14 @@ def encode_semantic_strings(
     line_starts = _line_start_offsets(text)
     occurrences: dict[str, list[tuple[int, int]]] = {}
     inners: dict[str, str] = {}
+    route_rejects: Counter[str] = Counter()
     for tok in toks:
         if tok.type != tokenize.STRING:
             continue
         sp = tok.string
-        if not is_semantic_free_text(sp, cfg):
+        route, reason = classify_semantic_free_text(sp, cfg)
+        if route != "B":
+            route_rejects[f"route_{reason}"] += 1
             continue
         try:
             inner = ast.literal_eval(sp)
@@ -116,12 +144,25 @@ def encode_semantic_strings(
         return BCodecResult(encoded_text=text)
 
     vecs = {sp: _vec(inner) for sp, inner in inners.items()}
+    grams = {sp: _char_ngrams(inner, n=max(2, int(ngram_n))) for sp, inner in inners.items()}
+    use_mixed = (similarity_kind or "").strip().lower() in {"hybrid_lexical_char", "mixed"}
+    lw = max(0.0, float(lexical_weight))
+    cw = max(0.0, float(char_weight))
+    wsum = max(1e-9, lw + cw)
+
+    def _sim(lhs: str, rhs: str) -> float:
+        lexical = _cos(vecs[lhs], vecs[rhs])
+        if not use_mixed:
+            return lexical
+        char = _jaccard(grams[lhs], grams[rhs])
+        return (lw * lexical + cw * char) / wsum
+
     literals = list(occurrences.keys())
     clusters: list[list[str]] = []
     for sp in literals:
         placed = False
         for cl in clusters:
-            sims = [_cos(vecs[sp], vecs[other]) for other in cl]
+            sims = [_sim(sp, other) for other in cl]
             if sims and sum(sims) / len(sims) >= similarity_threshold:
                 cl.append(sp)
                 placed = True
@@ -134,6 +175,7 @@ def encode_semantic_strings(
     vocab_entries: list[dict[str, Any]] = []
     risk_reject_count = 0
     fallback_count = 0
+    intro_not_worth_count = 0
     seq_saved = 0
     intro = 0
     sim_values: list[float] = []
@@ -142,9 +184,18 @@ def encode_semantic_strings(
         if len(members) < min_cluster_size:
             fallback_count += len(members)
             continue
-        rep = min(members, key=lambda s: len(inners[s]))
-        rep_vec = vecs[rep]
-        sims = [_cos(vecs[m], rep_vec) for m in members if m != rep]
+        rep = min(
+            members,
+            key=lambda cand: (
+                _token_len(tokenizer, tok_type, cand),
+                -(
+                    sum(_sim(cand, other) for other in members if other != cand)
+                    / max(1, len(members) - 1)
+                ),
+                len(inners[cand]),
+            ),
+        )
+        sims = [_sim(m, rep) for m in members if m != rep]
         avg_sim = sum(sims) / len(sims) if sims else 1.0
         if avg_sim < risk_threshold:
             risk_reject_count += len(members)
@@ -170,6 +221,7 @@ def encode_semantic_strings(
             raw_total += cnt * _token_len(tokenizer, tok_type, m)
             code_total += cnt * _token_len(tokenizer, tok_type, code_surface)
         if raw_total - code_total <= intro_cost:
+            intro_not_worth_count += 1
             fallback_count += len(members)
             continue
         for m in members:
@@ -199,5 +251,9 @@ def encode_semantic_strings(
         risk_reject_count=risk_reject_count,
         avg_similarity=(sum(sim_values) / len(sim_values)) if sim_values else 0.0,
         vocab_entries=vocab_entries,
+        similarity_kind="hybrid_lexical_char" if use_mixed else "lexical_bow_cosine",
+        mode="lexical_free_text_mixed" if use_mixed else "lexical_free_text_baseline",
+        reject_reason_counts=dict(route_rejects),
+        intro_not_worth_count=intro_not_worth_count,
     )
 

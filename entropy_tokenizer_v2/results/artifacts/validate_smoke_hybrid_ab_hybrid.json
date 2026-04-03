@@ -4,12 +4,12 @@
     "stage3_ab_mode": "hybrid",
     "enable_b": true,
     "tokenizer_key": "gpt4",
-    "max_samples": 6,
+    "max_samples": 8,
     "stage2_profile": "stage2_aggressive",
     "stage2_mode": "linewise"
   },
   "payload": {
-    "n_samples": 6,
+    "n_samples": 8,
     "questions_per_sample": 3,
     "samples": [
       {
@@ -317,6 +317,108 @@
             "answer": "none"
           }
         ]
+      },
+      {
+        "sample_id": 6,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Mine per-corpus ``RepoConfig`` (Stage 1 + Stage 3 rules) and cache JSON.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Mine per-corpus ``RepoConfig`` (Stage 1 + Stage 3 rules) and cache JSON.\"\"\" ",
+            "answer": "code touches: Mine, per, corpus, RepoConfig, Stage, Stage"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Mine"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Mine per-corpus ``RepoConfig`` (Stage 1 + Stage 3 rules) and cache JSON.\"\"\" ",
+            "answer": "code touches: Mine, per, corpus, RepoConfig, Stage, Stage"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Mine"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      },
+      {
+        "sample_id": 7,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Stage 1: AST skeleton → ``<SYN_N>`` + slot values; MDL greedy selection over candidates.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Stage 1: AST skeleton → ``<SYN_N>`` + slot values; MDL greedy selection over candidates.\"\"\" ",
+            "answer": "code touches: Stage, AST, skeleton, SYN_N, slot, values"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Stage"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Stage 1: AST skeleton → ``<SYN_N>`` + slot values; MDL greedy selection over candidates.\"\"\" ",
+            "answer": "code touches: Stage, AST, skeleton, SYN_N, slot, values"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Stage"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
       }
     ]
   },
@@ -325,13 +427,13 @@
     "trace_f1": 1.0,
     "bug_keyword_overlap": 1.0,
     "rollback_recommended": false,
-    "raw_tokens_total": 10920,
-    "compressed_tokens_total": 10462,
-    "token_delta": 458,
-    "token_reduction_pct": 4.1941391941391934
+    "raw_tokens_total": 22759,
+    "compressed_tokens_total": 21453,
+    "token_delta": 1306,
+    "token_reduction_pct": 5.738389208664704
   },
-  "raw_tokens_total": 10920,
-  "compressed_tokens_total": 10462,
-  "token_delta": 458,
-  "token_reduction_pct": 4.1941391941391934
+  "raw_tokens_total": 22759,
+  "compressed_tokens_total": 21453,
+  "token_delta": 1306,
+  "token_reduction_pct": 5.738389208664704
 }

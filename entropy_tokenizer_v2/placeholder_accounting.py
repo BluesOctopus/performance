@@ -117,6 +117,23 @@ def compute_vocab_intro_cost(
     raise ValueError(f"unknown vocab cost mode: {mode}")
 
 
+def dedupe_vocab_entries(
+    vocab_entries: list[dict],
+    *,
+    key_fields: tuple[str, ...] = ("token", "definition"),
+) -> list[dict]:
+    """Stable de-duplication for intro-accounting experiments."""
+    out: list[dict] = []
+    seen: set[tuple[str, ...]] = set()
+    for e in vocab_entries or []:
+        key = tuple(str(e.get(k, "")) for k in key_fields)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(e)
+    return out
+
+
 def build_plan_a_vocab_entries(
     codebooks: dict,
     *,

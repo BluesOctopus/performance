@@ -5,8 +5,8 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
-        "candidate_pool_size": 8,
-        "feasible_codes": 1,
+        "candidate_pool_size": 19760,
+        "feasible_codes": 64,
         "assigned": 0,
         "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
@@ -24,10 +24,14 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
+        "candidate_pool_size": 12392,
+        "feasible_codes": 32,
+        "assigned": 0,
+        "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
         "field_name": "attribute",
-        "assigned": 0,
-        "feasible_codes": 0,
+        "avg_raw_token_cost_assigned": 0.0,
+        "avg_encoded_token_cost_assigned": 0.0,
         "post_pruned": true,
         "pre_prune_assignments": 0,
         "post_prune_assignments": 0
@@ -39,15 +43,34 @@
       "version": "v1",
       "escape_prefix": "__L__",
       "metadata": {
+        "candidate_pool_size": 192,
+        "feasible_codes": 16,
+        "assigned": 16,
+        "weight_mode": "p_times_cost",
         "cost_model": "real_surface_form",
         "field_name": "string",
-        "assigned": 0,
-        "feasible_codes": 0,
+        "avg_raw_token_cost_assigned": 10.5,
+        "avg_encoded_token_cost_assigned": 6.0,
         "post_pruned": true,
-        "pre_prune_assignments": 0,
-        "post_prune_assignments": 0
+        "pre_prune_assignments": 16,
+        "post_prune_assignments": 2
       },
-      "assignments": []
+      "assignments": [
+        {
+          "literal": "\"whether to train or test the model\"",
+          "code": "A",
+          "raw_token_cost": 9,
+          "code_token_cost": 6,
+          "expected_gain": 0.4838709677419355
+        },
+        {
+          "literal": "'MXNet backend does not support TimeDistributed and RNN yet'",
+          "code": "B",
+          "raw_token_cost": 15,
+          "code_token_cost": 6,
+          "expected_gain": 0.4838709677419355
+        }
+      ]
     }
   }
 }

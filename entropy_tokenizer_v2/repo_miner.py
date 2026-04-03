@@ -304,9 +304,16 @@ def mine_repo(
     else:
         stage3_ab_summary = resolve_hybrid_ab_settings(tokenizer_key)
         stage3_ab_summary["stage3_ab_mode"] = stage3_ab_summary.get("mode", "exact_only")
-        stage3_ab_summary["stage3_ab_similarity_kind"] = "lexical_bow_cosine"
+        stage3_ab_summary["stage3_ab_similarity_kind"] = stage3_ab_summary.get(
+            "b_similarity_kind",
+            "lexical_bow_cosine",
+        )
         stage3_ab_summary["stage3_ab_b_mode"] = (
-            "lexical_free_text_baseline"
+            "lexical_free_text_mixed"
+            if stage3_ab_summary.get("mode") == "hybrid"
+            and str(stage3_ab_summary.get("b_similarity_kind", "")).strip().lower()
+            in {"hybrid_lexical_char", "mixed"}
+            else "lexical_free_text_baseline"
             if stage3_ab_summary.get("mode") == "hybrid"
             else "disabled"
         )

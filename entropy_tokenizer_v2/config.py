@@ -72,11 +72,33 @@ STAGE3_PLAN_A_POST_PRUNE = os.getenv("ET_STAGE3_PLAN_A_POST_PRUNE", "1").lower()
 # Stage3 Hybrid AB knobs (A=exact aliasing, B=lexical free-text clustering baseline).
 STAGE3_AB_FREE_TEXT_MIN_CHARS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_CHARS", "24"))
 STAGE3_AB_FREE_TEXT_MIN_WORDS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_WORDS", "4"))
+STAGE3_AB_ENABLE_MID_FREE_TEXT = os.getenv("ET_STAGE3_AB_ENABLE_MID_FREE_TEXT", "1").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+STAGE3_AB_FREE_TEXT_MID_MIN_CHARS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MID_MIN_CHARS", "14"))
+STAGE3_AB_FREE_TEXT_MID_MIN_WORDS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MID_MIN_WORDS", "3"))
+STAGE3_AB_ALLOW_MULTILINE_WHITELIST = os.getenv(
+    "ET_STAGE3_AB_ALLOW_MULTILINE_WHITELIST",
+    "0",
+).lower() in ("1", "true", "yes")
+STAGE3_AB_MULTILINE_MAX_LINES = int(os.getenv("ET_STAGE3_AB_MULTILINE_MAX_LINES", "3"))
+STAGE3_AB_MULTILINE_MAX_CHARS = int(os.getenv("ET_STAGE3_AB_MULTILINE_MAX_CHARS", "220"))
 STAGE3_AB_B_SIMILARITY_THRESHOLD = float(
     os.getenv("ET_STAGE3_AB_B_SIMILARITY_THRESHOLD", "0.82")
 )
 STAGE3_AB_B_RISK_THRESHOLD = float(os.getenv("ET_STAGE3_AB_B_RISK_THRESHOLD", "0.72"))
 STAGE3_AB_B_MIN_CLUSTER_SIZE = int(os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", "2"))
+STAGE3_AB_B_SIMILARITY_KIND = os.getenv(
+    "ET_STAGE3_AB_B_SIMILARITY_KIND",
+    "lexical_bow_cosine",
+).strip().lower()
+if STAGE3_AB_B_SIMILARITY_KIND not in {"lexical_bow_cosine", "hybrid_lexical_char", "mixed"}:
+    STAGE3_AB_B_SIMILARITY_KIND = "lexical_bow_cosine"
+STAGE3_AB_B_LEXICAL_WEIGHT = float(os.getenv("ET_STAGE3_AB_B_LEXICAL_WEIGHT", "0.7"))
+STAGE3_AB_B_CHAR_WEIGHT = float(os.getenv("ET_STAGE3_AB_B_CHAR_WEIGHT", "0.3"))
+STAGE3_AB_B_CHAR_NGRAM_N = int(os.getenv("ET_STAGE3_AB_B_CHAR_NGRAM_N", "3"))
 STAGE3_AB_ENABLE_B = os.getenv("ET_STAGE3_AB_ENABLE_B", "1").lower() in ("1", "true", "yes")
 STAGE3_AB_MODE = os.getenv("ET_STAGE3_AB_MODE", "").strip().lower()
 STAGE3_AB_A_MIN_OCC = int(os.getenv("ET_STAGE3_AB_A_MIN_OCC", "2"))
@@ -129,6 +151,32 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         "mode": mode,
         "free_text_min_chars": STAGE3_AB_FREE_TEXT_MIN_CHARS,
         "free_text_min_words": STAGE3_AB_FREE_TEXT_MIN_WORDS,
+        "enable_mid_free_text": os.getenv(
+            "ET_STAGE3_AB_ENABLE_MID_FREE_TEXT",
+            "1" if STAGE3_AB_ENABLE_MID_FREE_TEXT else "0",
+        ).lower() in ("1", "true", "yes"),
+        "free_text_mid_min_chars": int(
+            os.getenv(
+                "ET_STAGE3_AB_FREE_TEXT_MID_MIN_CHARS",
+                str(STAGE3_AB_FREE_TEXT_MID_MIN_CHARS),
+            )
+        ),
+        "free_text_mid_min_words": int(
+            os.getenv(
+                "ET_STAGE3_AB_FREE_TEXT_MID_MIN_WORDS",
+                str(STAGE3_AB_FREE_TEXT_MID_MIN_WORDS),
+            )
+        ),
+        "allow_multiline_whitelist": os.getenv(
+            "ET_STAGE3_AB_ALLOW_MULTILINE_WHITELIST",
+            "1" if STAGE3_AB_ALLOW_MULTILINE_WHITELIST else "0",
+        ).lower() in ("1", "true", "yes"),
+        "multiline_max_lines": int(
+            os.getenv("ET_STAGE3_AB_MULTILINE_MAX_LINES", str(STAGE3_AB_MULTILINE_MAX_LINES))
+        ),
+        "multiline_max_chars": int(
+            os.getenv("ET_STAGE3_AB_MULTILINE_MAX_CHARS", str(STAGE3_AB_MULTILINE_MAX_CHARS))
+        ),
         "b_similarity_threshold": float(
             os.getenv("ET_STAGE3_AB_B_SIMILARITY_THRESHOLD", str(sim_default))
         ),
@@ -136,6 +184,15 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         "b_min_cluster_size": int(
             os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", str(STAGE3_AB_B_MIN_CLUSTER_SIZE))
         ),
+        "b_similarity_kind": os.getenv(
+            "ET_STAGE3_AB_B_SIMILARITY_KIND",
+            STAGE3_AB_B_SIMILARITY_KIND,
+        ).strip().lower(),
+        "b_lexical_weight": float(
+            os.getenv("ET_STAGE3_AB_B_LEXICAL_WEIGHT", str(STAGE3_AB_B_LEXICAL_WEIGHT))
+        ),
+        "b_char_weight": float(os.getenv("ET_STAGE3_AB_B_CHAR_WEIGHT", str(STAGE3_AB_B_CHAR_WEIGHT))),
+        "b_char_ngram_n": int(os.getenv("ET_STAGE3_AB_B_CHAR_NGRAM_N", str(STAGE3_AB_B_CHAR_NGRAM_N))),
         "enable_b": enable_b,
         "a_min_occ": int(os.getenv("ET_STAGE3_AB_A_MIN_OCC", str(STAGE3_AB_A_MIN_OCC))),
         "a_min_net_gain": int(
@@ -156,9 +213,22 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         ),
         "key_like_patterns": list(STAGE3_AB_KEY_LIKE_PATTERNS),
         "stage3_ab_mode": mode,
-        "stage3_ab_similarity_kind": "lexical_bow_cosine",
+        "stage3_ab_similarity_kind": os.getenv(
+            "ET_STAGE3_AB_B_SIMILARITY_KIND",
+            STAGE3_AB_B_SIMILARITY_KIND,
+        ).strip().lower(),
         "stage3_ab_b_mode": (
-            "lexical_free_text_baseline" if mode == "hybrid" and enable_b else "disabled"
+            "lexical_free_text_mixed"
+            if mode == "hybrid"
+            and enable_b
+            and os.getenv(
+                "ET_STAGE3_AB_B_SIMILARITY_KIND",
+                STAGE3_AB_B_SIMILARITY_KIND,
+            ).strip().lower()
+            in {"hybrid_lexical_char", "mixed"}
+            else "lexical_free_text_baseline"
+            if mode == "hybrid" and enable_b
+            else "disabled"
         ),
     }
 
