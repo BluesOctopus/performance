@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import io
+import json
 import keyword
+import hashlib
 import re
 import tokenize
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 import ast
 
 import builtins
@@ -17,7 +20,7 @@ from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
 from ..router import ABRoutingConfig, classify_string_kind
-from config import VOCAB_COST_MODE
+from config import CACHE_DIR, VOCAB_COST_MODE
 
 _PROTECTED = set(keyword.kwlist) | set(dir(builtins)) | {"self", "cls", "True", "False", "None"}
 
@@ -51,6 +54,91 @@ def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
     from marker_count import encode as _encode
 
     return len(_encode(tokenizer, tok_type, text))
+
+
+def _alias_cache_id(tokenizer: Any, tok_type: str) -> str:
+    ident = f"{tok_type}:{tokenizer.__class__.__module__}.{tokenizer.__class__.__name__}"
+    return hashlib.sha256(ident.encode("utf-8")).hexdigest()[:16]
+
+
+def _load_alias_alphabet_cache(tokenizer: Any, tok_type: str) -> dict[str, Any]:
+    cache_id = _alias_cache_id(tokenizer, tok_type)
+    fp = CACHE_DIR / f"alias_alphabet_{cache_id}.json"
+    if not fp.exists():
+        return {}
+    try:
+        return json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_alias_alphabet_cache(tokenizer: Any, tok_type: str, payload: dict[str, Any]) -> None:
+    cache_id = _alias_cache_id(tokenizer, tok_type)
+    fp = CACHE_DIR / f"alias_alphabet_{cache_id}.json"
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        fp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        # Best-effort cache only.
+        return
+
+
+def build_alias_alphabet(
+    tokenizer: Any,
+    tok_type: str,
+    *,
+    style: str,
+    prefix: Optional[str] = None,
+    max_n: int = 256,
+) -> list[str]:
+    """
+    Build tokenizer-aware alias candidates.
+
+    - style="short": candidates are "__ab{n}" and sorted by real token cost.
+    - style="mnemonic": candidates are "_{prefix}{n}" (prefix comes from literal),
+      sorted by real token cost.
+    """
+    style = (style or "").strip().lower()
+    style = style if style in {"short", "mnemonic"} else "short"
+    cache = _load_alias_alphabet_cache(tokenizer, tok_type)
+
+    if style == "short":
+        cached = cache.get("short", {})
+        if isinstance(cached, dict) and cached.get("max_n") == max_n:
+            cands = cached.get("candidates")
+            if isinstance(cands, list) and all(isinstance(x, str) for x in cands):
+                return cands
+
+        items: list[tuple[int, int, str]] = []
+        for n in range(max_n):
+            alias = f"__ab{n}"
+            items.append((_token_len(tokenizer, tok_type, alias), len(alias), alias))
+        items.sort(key=lambda t: (t[0], t[1], t[2]))
+        out = [a for _c, _l, a in items]
+        cache["short"] = {"max_n": max_n, "candidates": out}
+        _save_alias_alphabet_cache(tokenizer, tok_type, cache)
+        return out
+
+    # mnemonic
+    if not prefix:
+        prefix = "x"
+    cached_mn = cache.get("mnemonic_prefixes", {})
+    if isinstance(cached_mn, dict):
+        entry = cached_mn.get(prefix, {})
+        if isinstance(entry, dict) and entry.get("max_n") == max_n:
+            cands = entry.get("candidates")
+            if isinstance(cands, list) and all(isinstance(x, str) for x in cands):
+                return cands
+
+    items = []
+    for n in range(max_n):
+        alias = f"_{prefix}{n}"
+        items.append((_token_len(tokenizer, tok_type, alias), len(alias), alias))
+    items.sort(key=lambda t: (t[0], t[1], t[2]))
+    out = [a for _c, _l, a in items]
+    cache.setdefault("mnemonic_prefixes", {})[prefix] = {"max_n": max_n, "candidates": out}
+    _save_alias_alphabet_cache(tokenizer, tok_type, cache)
+    return out
 
 
 def _apply_spans(text: str, spans: list[tuple[int, int, str]]) -> str:
@@ -145,7 +233,21 @@ def encode_exact_aliases(
             prev_is_dot = False
 
     candidates = len(occ)
-    alias_iter_idx = 0
+    alias_style = (alias_style or "").strip().lower()
+    if alias_style not in {"short", "mnemonic"}:
+        alias_style = "short"
+
+    alias_iter_idx = 0  # for short style only
+    short_alias_alphabet: list[str] = []
+    mnemonic_alias_alphabet_by_prefix: dict[str, list[str]] = {}
+    mnemonic_cursor_by_prefix: defaultdict[str, int] = defaultdict(int)
+    if alias_style == "short":
+        short_alias_alphabet = build_alias_alphabet(
+            tokenizer,
+            tok_type,
+            style="short",
+            max_n=256,
+        )
     selected: dict[tuple[str, str], str] = {}
     entries: list[AEntry] = []
     for key, spans in sorted(occ.items(), key=lambda kv: len(kv[1]), reverse=True):
@@ -153,8 +255,29 @@ def encode_exact_aliases(
         count = len(spans)
         if count < int(min_occ):
             continue
-        alias_base = _build_alias_for_literal(literal, alias_iter_idx, alias_style)
-        alias_iter_idx += 1
+        if alias_style == "mnemonic":
+            prefix = _sanitize_prefix(literal)
+            if prefix not in mnemonic_alias_alphabet_by_prefix:
+                mnemonic_alias_alphabet_by_prefix[prefix] = build_alias_alphabet(
+                    tokenizer,
+                    tok_type,
+                    style="mnemonic",
+                    prefix=prefix,
+                    max_n=256,
+                )
+            cursor = mnemonic_cursor_by_prefix[prefix]
+            alias_base = (
+                mnemonic_alias_alphabet_by_prefix[prefix][cursor]
+                if cursor < len(mnemonic_alias_alphabet_by_prefix[prefix])
+                else f"_{prefix}{cursor}"
+            )
+        else:
+            cursor = alias_iter_idx
+            alias_base = (
+                short_alias_alphabet[cursor]
+                if cursor < len(short_alias_alphabet)
+                else f"__ab{cursor}"
+            )
         alias_surface = alias_base if field != "string" else repr(alias_base)
         raw_cost = _token_len(tokenizer, tok_type, literal)
         alias_cost = _token_len(tokenizer, tok_type, alias_surface)
@@ -173,6 +296,11 @@ def encode_exact_aliases(
         gain = count * (raw_cost - alias_cost) - intro_cost
         if gain < int(min_net_gain):
             continue
+        # Only advance alias cursors after we accept the alias candidate.
+        if alias_style == "mnemonic":
+            mnemonic_cursor_by_prefix[prefix] += 1
+        else:
+            alias_iter_idx += 1
         selected[key] = alias_surface
         entries.append(
             AEntry(
