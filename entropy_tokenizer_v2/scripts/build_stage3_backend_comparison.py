@@ -19,7 +19,12 @@ from eval import bootstrap_v2  # noqa: E402
 bootstrap_v2.ensure()
 
 from config import STAGE2_DEFAULT_MODE, STAGE2_DEFAULT_PROFILE  # noqa: E402
-from eval.v2_eval import EvalResult, evaluate, load_eval_samples  # noqa: E402
+from eval.v2_eval import (  # noqa: E402
+    EvalResult,
+    evaluate,
+    eval_mining_cache_name,
+    load_eval_samples,
+)
 from repo_miner import mine_from_sources  # noqa: E402
 from config import EVAL_TOKENIZERS  # noqa: E402
 
@@ -48,6 +53,9 @@ CSV_COLUMNS = [
     "stage3_used_units_semantic",
     "stage3_vocab_scope",
     "stage3_vocab_scope_detail",
+    "hybrid_ab_stage1_override_used",
+    "hybrid_ab_stage2_override_used",
+    "stage2_resolution_source",
     "notes",
 ]
 
@@ -85,7 +93,7 @@ def _run_backend(
             sources=samples,
             tokenizer_key=tok_key,
             tokenizer_cfg=cfg,
-            cache_name=f"eval_{len(samples)}_{stage2_profile}_{stage2_mode}",
+            cache_name=eval_mining_cache_name(len(samples), backend, stage2_profile, stage2_mode),
             cache=True,
             verbose=True,
             stage3_backend=backend,
@@ -130,6 +138,9 @@ def _row_from_result(r: EvalResult, notes: str) -> dict[str, str | int | float]:
         "stage3_used_units_semantic": r.stage3_used_units_semantic,
         "stage3_vocab_scope": r.stage3_vocab_scope,
         "stage3_vocab_scope_detail": r.stage3_vocab_scope_detail,
+        "hybrid_ab_stage1_override_used": r.hybrid_ab_stage1_override_used,
+        "hybrid_ab_stage2_override_used": r.hybrid_ab_stage2_override_used,
+        "stage2_resolution_source": r.stage2_resolution_source,
         "notes": notes,
     }
 

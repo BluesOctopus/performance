@@ -1,6 +1,7 @@
 """CLI: ``eval`` (HF samples or ``--repo``), ``demo`` (single file / toy). From repo: ``python .../eval/run_v2.py eval``."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -11,14 +12,17 @@ bootstrap_v2.ensure()
 from config import (
     EVAL_NUM_SAMPLES,
     EVAL_TOKENIZERS,
-    STAGE2_DEFAULT_MODE,
-    STAGE2_DEFAULT_PROFILE,
     STAGE3_BACKEND,
 )
 
 
 def cmd_eval(args):
     from v2_eval import run_evaluation
+
+    if getattr(args, "stage2_hybrid_ab_profile", None):
+        os.environ["ET_STAGE2_HYBRID_AB_PROFILE"] = str(args.stage2_hybrid_ab_profile)
+    if getattr(args, "stage2_hybrid_ab_mode", None):
+        os.environ["ET_STAGE2_HYBRID_AB_MODE"] = str(args.stage2_hybrid_ab_mode)
 
     tok_keys = args.tokenizers if args.tokenizers else None
 
@@ -225,16 +229,34 @@ def main():
     p_eval.add_argument(
         "--stage2-profile",
         type=str,
-        default=STAGE2_DEFAULT_PROFILE,
-        choices=["stage2_parseable", "stage2_aggressive"],
-        help="Stage2 profile",
+        default=None,
+        help=(
+            "Stage2 profile (omit for backend defaults: hybrid_ab uses ET_STAGE2_HYBRID_AB_PROFILE; "
+            "others use ET_STAGE2_DEFAULT_PROFILE)"
+        ),
     )
     p_eval.add_argument(
         "--stage2-mode",
         type=str,
-        default=STAGE2_DEFAULT_MODE,
+        default=None,
         choices=["linewise", "blockwise"],
-        help="Stage2 mode",
+        help=(
+            "Stage2 mode (omit for backend defaults: hybrid_ab uses ET_STAGE2_HYBRID_AB_MODE; "
+            "others use ET_STAGE2_DEFAULT_MODE)"
+        ),
+    )
+    p_eval.add_argument(
+        "--stage2-hybrid-ab-profile",
+        type=str,
+        default=None,
+        help="Set ET_STAGE2_HYBRID_AB_PROFILE for this run (hybrid_ab implicit Stage2 only).",
+    )
+    p_eval.add_argument(
+        "--stage2-hybrid-ab-mode",
+        type=str,
+        default=None,
+        choices=["linewise", "blockwise"],
+        help="Set ET_STAGE2_HYBRID_AB_MODE for this run (hybrid_ab implicit Stage2 only).",
     )
     p_eval.add_argument(
         "--stage3-backend",

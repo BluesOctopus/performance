@@ -1,0 +1,5 @@
+label,tokenizer_key,stage3_ab_mode,stage2_resolution_source,stage2_profile,stage2_mode,hybrid_ab_stage1_override_used,hybrid_ab_stage2_override_used,k_star_syntax,sequence_reduction_pct,effective_total_reduction_pct,syntax_pct,cleaning_pct,replacement_pct
+gpt4_hybrid_ab_exact_only_legacy_s12,gpt4,exact_only,explicit,stage2_aggressive,linewise,True,False,22,7.749364,7.278960,0.923898,8.899240,-2.073773
+gpt4_hybrid_ab_exact_only_aggressive_s12,gpt4,exact_only,hybrid_ab_default,stage2_hybrid_ab_aggressive,blockwise,True,True,22,11.930731,11.491072,0.923898,13.051399,-2.044565
+gpt4_hybrid_ab_hybrid_aggressive_s12,gpt4,hybrid,hybrid_ab_default,stage2_hybrid_ab_aggressive,blockwise,True,True,22,11.930731,11.491072,0.923898,13.051399,-2.044565
+gpt2_hybrid_ab_exact_only_aggressive_s12,gpt2,exact_only,hybrid_ab_default,stage2_hybrid_ab_aggressive,blockwise,True,True,35,32.394678,31.061819,3.474290,27.824763,1.095625

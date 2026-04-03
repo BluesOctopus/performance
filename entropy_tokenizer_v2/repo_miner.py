@@ -14,6 +14,11 @@ from config import (
     MDL_CODEBOOK_OVERHEAD,
     SCORE_EPSILON,
     SCORE_THRESHOLD_PERCENTILE,
+    STAGE1_HYBRID_AB_AST_MIN_FREQ,
+    STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING,
+    STAGE1_HYBRID_AB_SCORE_THRESHOLD_PERCENTILE,
+    STAGE2_HYBRID_AB_MODE,
+    STAGE2_HYBRID_AB_PROFILE,
     STAGE3_ARTIFACT_DIR,
     STAGE3_BACKEND,
     STAGE3_CODEBOOK_VERSION,
@@ -59,6 +64,13 @@ class RepoConfig:
     stage3_plan_a_report: dict[str, Any] = field(default_factory=dict)
     stage3_plan_a_summary: dict[str, Any] = field(default_factory=dict)
     stage3_ab_summary: dict[str, Any] = field(default_factory=dict)
+    # hybrid_ab-only mining / default Stage2 hints (for eval transparency).
+    hybrid_ab_stage1_override_used: bool = False
+    hybrid_ab_stage1_ast_min_freq_used: int | None = None
+    hybrid_ab_stage1_score_percentile_config: float | None = None
+    hybrid_ab_stage1_min_total_net_saving_used: int | None = None
+    hybrid_ab_stage2_default_profile: str = ""
+    hybrid_ab_stage2_default_mode: str = ""
 
     def skeleton_candidates(self) -> list[SkeletonCandidate]:
         from dataclasses import fields
@@ -91,6 +103,12 @@ class RepoConfig:
         d.setdefault("stage3_plan_a_report", {})
         d.setdefault("stage3_plan_a_summary", {})
         d.setdefault("stage3_ab_summary", {})
+        d.setdefault("hybrid_ab_stage1_override_used", False)
+        d.setdefault("hybrid_ab_stage1_ast_min_freq_used", None)
+        d.setdefault("hybrid_ab_stage1_score_percentile_config", None)
+        d.setdefault("hybrid_ab_stage1_min_total_net_saving_used", None)
+        d.setdefault("hybrid_ab_stage2_default_profile", "")
+        d.setdefault("hybrid_ab_stage2_default_mode", "")
         valid = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in d.items() if k in valid})
 
@@ -177,14 +195,32 @@ def mine_repo(
     for src in tqdm(clean_sources, desc="  baseline tokens", disable=not verbose):
         N_baseline += len(_encode(tokenizer, tok_type, src))
 
+    backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
+    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
+        backend = "legacy"
+
+    eff_min_freq = int(min_freq)
+    pool_kw: dict = {}
+    hybrid_s1_used = False
+    hybrid_s1_ast: int | None = None
+    hybrid_s1_pct: float | None = None
+    hybrid_s1_mtn: int | None = None
+    if backend == "hybrid_ab":
+        eff_min_freq = int(STAGE1_HYBRID_AB_AST_MIN_FREQ)
+        pool_kw["min_total_net_saving"] = int(STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING)
+        hybrid_s1_used = True
+        hybrid_s1_ast = eff_min_freq
+        hybrid_s1_pct = float(STAGE1_HYBRID_AB_SCORE_THRESHOLD_PERCENTILE)
+        hybrid_s1_mtn = int(STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING)
+
     if verbose:
         print("[repo_miner] Stage 1 - mining AST skeletons ...")
-    skeleton_counts = mine_skeletons(clean_sources, min_freq=min_freq)
+    skeleton_counts = mine_skeletons(clean_sources, min_freq=eff_min_freq)
     if verbose:
-        print(f"  {len(skeleton_counts)} unique skeletons (freq >= {min_freq})")
+        print(f"  {len(skeleton_counts)} unique skeletons (freq >= {eff_min_freq})")
 
     candidates = build_candidate_pool(
-        skeleton_counts, tokenizer, tok_type, sources=clean_sources
+        skeleton_counts, tokenizer, tok_type, sources=clean_sources, **pool_kw
     )
     selected_skeletons, _stage1_select_diag, stage1_total_net_saving = greedy_mdl_select(
         candidates,
@@ -218,10 +254,6 @@ def mine_repo(
                 f"    [{c.skeleton[:60]}] freq={c.frequency} "
                 f"avg_net={c.avg_net_saving:.2f} total_net={c.total_net_saving}"
             )
-
-    backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
-    if backend not in {"legacy", "plan_a", "hybrid_ab"}:
-        backend = "legacy"
 
     stage3_plan_a_codebooks: dict = {}
     stage3_plan_a_report: dict = {}
@@ -366,6 +398,12 @@ def mine_repo(
         stage3_plan_a_report=stage3_plan_a_report,
         stage3_plan_a_summary=stage3_plan_a_summary,
         stage3_ab_summary=stage3_ab_summary,
+        hybrid_ab_stage1_override_used=hybrid_s1_used,
+        hybrid_ab_stage1_ast_min_freq_used=hybrid_s1_ast,
+        hybrid_ab_stage1_score_percentile_config=hybrid_s1_pct,
+        hybrid_ab_stage1_min_total_net_saving_used=hybrid_s1_mtn,
+        hybrid_ab_stage2_default_profile=STAGE2_HYBRID_AB_PROFILE if backend == "hybrid_ab" else "",
+        hybrid_ab_stage2_default_mode=STAGE2_HYBRID_AB_MODE if backend == "hybrid_ab" else "",
     )
 
 
@@ -385,7 +423,10 @@ def mine_from_repo_path(
     _ab = ""
     if backend == "hybrid_ab":
         _ab = f"_{resolve_hybrid_ab_settings(tokenizer_key).get('mode', 'exact_only')}"
-    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}{_ab}.json"
+    _h1 = ""
+    if backend == "hybrid_ab":
+        _h1 = f"_s1f{STAGE1_HYBRID_AB_AST_MIN_FREQ}_mtn{STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING}"
+    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}{_ab}{_h1}.json"
     if cache and cache_file.exists():
         if verbose:
             print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -435,9 +476,12 @@ def mine_from_sources(
     if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
     _ab = f"_{resolve_hybrid_ab_settings(tokenizer_key).get('mode', 'exact_only')}" if backend == "hybrid_ab" else ""
+    _h1 = ""
+    if backend == "hybrid_ab":
+        _h1 = f"_s1f{STAGE1_HYBRID_AB_AST_MIN_FREQ}_mtn{STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING}"
     if cache and cache_name:
         _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}.json"
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}{_h1}.json"
         if cache_file.exists():
             if verbose:
                 print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -460,7 +504,7 @@ def mine_from_sources(
     if cache and cache_name:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}.json"
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}{_h1}.json"
         cache_file.write_text(config.to_json(), encoding="utf-8")
         if verbose:
             print(f"[repo_miner] Config saved to {cache_file}")

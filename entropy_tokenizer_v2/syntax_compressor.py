@@ -576,8 +576,15 @@ def build_candidate_pool(
     tokenizer,
     tok_type: str,
     sources: list[str],
+    *,
+    min_occurrences: int | None = None,
+    min_total_net_saving: int | None = None,
+    min_avg_net_saving: float | None = None,
 ) -> list[SkeletonCandidate]:
     """Build Stage1 candidates using net-saving under augmented counting."""
+    occ_min = STAGE1_MIN_OCCURRENCES if min_occurrences is None else int(min_occurrences)
+    tot_min = STAGE1_MIN_TOTAL_NET_SAVING if min_total_net_saving is None else int(min_total_net_saving)
+    avg_min = float(STAGE1_MIN_AVG_NET_SAVING if min_avg_net_saving is None else min_avg_net_saving)
     keys = set(skeleton_counts.keys())
     occurrences_map = collect_skeleton_occurrences(sources, keys)
     candidates: list[SkeletonCandidate] = []
@@ -598,11 +605,11 @@ def build_candidate_pool(
         total_seq_saved = int(stats["total_net_saving"])
         effective_saved = int(stats.get("effective_total_net_saving", total_seq_saved))
         avg_seq_saved = float(stats.get("avg_sequence_net_saving", stats["avg_net_saving"]))
-        if applied < STAGE1_MIN_OCCURRENCES:
+        if applied < occ_min:
             continue
-        if effective_saved < STAGE1_MIN_TOTAL_NET_SAVING:
+        if effective_saved < tot_min:
             continue
-        if avg_seq_saved < STAGE1_MIN_AVG_NET_SAVING:
+        if avg_seq_saved < avg_min:
             continue
         spi = avg_seq_saved
         candidates.append(

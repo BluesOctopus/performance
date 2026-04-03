@@ -42,8 +42,8 @@ def apply_v2_compression(
     tokenizer,
     tok_type: str,
     count_fn=None,
-    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
-    stage2_mode: str = STAGE2_DEFAULT_MODE,
+    stage2_profile: str | None = None,
+    stage2_mode: str | None = None,
 ) -> tuple[str, CompressionBreakdown]:
     return apply_pipeline(
         source,
@@ -184,6 +184,9 @@ class EvalResult:
     stage3_ab_fallback_count: int = 0
     stage3_ab_mode: str = ""
     stage3_ab_similarity_kind: str = ""
+    hybrid_ab_stage1_override_used: bool = False
+    hybrid_ab_stage2_override_used: bool = False
+    stage2_resolution_source: str = ""
 
 
 def evaluate(
@@ -191,8 +194,8 @@ def evaluate(
     repo_config: RepoConfig,
     tokenizer_key: str,
     tokenizer_cfg: dict,
-    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
-    stage2_mode: str = STAGE2_DEFAULT_MODE,
+    stage2_profile: str | None = None,
+    stage2_mode: str | None = None,
 ) -> EvalResult:
     tokenizer, tok_type = _load_tokenizer(tokenizer_key, tokenizer_cfg)
     V0 = _vocab_size(tokenizer, tok_type)
@@ -201,6 +204,13 @@ def evaluate(
     total_bytes = sum(len(s.encode("utf-8")) for s in sources)
 
     backend = getattr(repo_config, "stage3_backend", "legacy")
+    from pipeline import resolve_stage2_for_pipeline
+
+    s2_eff_profile, s2_eff_mode, s2_src = resolve_stage2_for_pipeline(
+        repo_config, stage2_profile, stage2_mode
+    )
+    hybrid_ab_s1 = bool(getattr(repo_config, "hybrid_ab_stage1_override_used", False))
+    hybrid_ab_s2 = backend == "hybrid_ab" and s2_src == "hybrid_ab_default"
     plan_books = None
     plan_esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
     if backend == "plan_a":
@@ -421,8 +431,8 @@ def evaluate(
 
     return EvalResult(
         tokenizer_key       = tokenizer_key,
-        stage2_profile      = stage2_profile,
-        stage2_mode         = stage2_mode,
+        stage2_profile      = s2_eff_profile,
+        stage2_mode         = s2_eff_mode,
         n_files             = len(sources),
         baseline_tokens     = B,
         syntax_tokens       = agg.after_syntax,
@@ -508,6 +518,9 @@ def evaluate(
         stage3_ab_similarity_kind=ab_similarity_kind_seen or str(
             (getattr(repo_config, "stage3_ab_summary", {}) or {}).get("stage3_ab_similarity_kind", "")
         ),
+        hybrid_ab_stage1_override_used=hybrid_ab_s1,
+        hybrid_ab_stage2_override_used=hybrid_ab_s2,
+        stage2_resolution_source=s2_src,
     )
 
 
@@ -616,12 +629,34 @@ def save_results(
     print(f"[eval] Detail JSON saved → {detail_path}")
 
 
+def eval_mining_cache_name(
+    num_samples: int,
+    backend: str,
+    stage2_profile: str | None,
+    stage2_mode: str | None,
+) -> str:
+    """
+    Corpus mining does not depend on Stage2, but historical caches embed a Stage2 tag.
+    hybrid_ab + implicit Stage2 uses a dedicated tag so caches stay stable and distinct.
+    """
+    if stage2_profile is None and stage2_mode is None:
+        if backend == "hybrid_ab":
+            s2tag = "s2_hybrid_ab_auto"
+        else:
+            s2tag = f"{STAGE2_DEFAULT_PROFILE}_{STAGE2_DEFAULT_MODE}"
+    else:
+        p = stage2_profile if stage2_profile is not None else STAGE2_DEFAULT_PROFILE
+        m = stage2_mode if stage2_mode is not None else STAGE2_DEFAULT_MODE
+        s2tag = f"{p}_{m}"
+    return f"eval_{num_samples}_{s2tag}"
+
+
 def run_evaluation(
     tokenizer_keys: Optional[list[str]] = None,
     num_samples: int = EVAL_NUM_SAMPLES,
     verbose: bool = True,
-    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
-    stage2_mode: str = STAGE2_DEFAULT_MODE,
+    stage2_profile: str | None = None,
+    stage2_mode: str | None = None,
     *,
     stage3_backend: str | None = None,
     output_csv: str = "v2_compression_report.csv",
@@ -659,7 +694,7 @@ def run_evaluation(
             sources=samples,
             tokenizer_key=tok_key,
             tokenizer_cfg=cfg,
-            cache_name=f"eval_{num_samples}_{stage2_profile}_{stage2_mode}",
+            cache_name=eval_mining_cache_name(num_samples, backend, stage2_profile, stage2_mode),
             cache=True,
             verbose=verbose,
             stage3_backend=backend,

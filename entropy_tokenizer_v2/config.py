@@ -341,6 +341,15 @@ STAGE1_MIN_OCCURRENCES = 2
 STAGE1_MIN_TOTAL_NET_SAVING = 1
 STAGE1_MIN_AVG_NET_SAVING = 0
 
+# Stage1 knobs used only when stage3_backend == hybrid_ab (see repo_miner.mine_repo).
+STAGE1_HYBRID_AB_AST_MIN_FREQ = int(os.getenv("ET_STAGE1_HYBRID_AB_AST_MIN_FREQ", "12"))
+STAGE1_HYBRID_AB_SCORE_THRESHOLD_PERCENTILE = float(
+    os.getenv("ET_STAGE1_HYBRID_AB_SCORE_THRESHOLD_PERCENTILE", "0.60")
+)
+STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING = int(
+    os.getenv("ET_STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING", "0")
+)
+
 # Placeholder regex fragments (consumed by ``placeholder_accounting.PLACEHOLDER_RE``).
 PLACEHOLDER_PATTERNS = [
     r"<SYN_\d+>",
@@ -397,7 +406,23 @@ STAGE2_PROFILE_FLAGS = {
         "remove_docstrings": True,
         "remove_indentation": True,
     },
+    # hybrid_ab-only default Stage2 (blockwise + docstrings); same flags as aggressive_upper_bound.
+    "stage2_hybrid_ab_aggressive": {
+        "remove_comments": True,
+        "remove_blank_lines": True,
+        "remove_trailing_whitespace": True,
+        "remove_docstrings": True,
+        "remove_indentation": True,
+    },
 }
+
+# Stage2 defaults when stage3_backend == hybrid_ab and eval does not pass explicit Stage2 (see pipeline).
+STAGE2_HYBRID_AB_PROFILE = os.getenv(
+    "ET_STAGE2_HYBRID_AB_PROFILE", "stage2_hybrid_ab_aggressive"
+).strip()
+STAGE2_HYBRID_AB_MODE = os.getenv("ET_STAGE2_HYBRID_AB_MODE", "blockwise").strip()
+if STAGE2_HYBRID_AB_MODE not in ("linewise", "blockwise"):
+    STAGE2_HYBRID_AB_MODE = "blockwise"
 
 SCORE_EPSILON              = 0.01
 SCORE_THRESHOLD_PERCENTILE = 0.70

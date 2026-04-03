@@ -29,6 +29,34 @@ from stage2.layout_encoding import run_stage2_post_layout_encode
 from syntax_compressor import build_stage1_vocab_entry, compress_source_syntax
 
 
+def resolve_stage2_for_pipeline(
+    repo_config,
+    stage2_profile: str | None,
+    stage2_mode: str | None,
+) -> tuple[str, str, str]:
+    """
+    Pick Stage2 profile/mode for ``apply_pipeline``.
+
+    Priority:
+    1. Explicit *stage2_profile* and/or *stage2_mode* (missing half filled from global defaults).
+    2. ``hybrid_ab`` backend → hybrid_ab-specific defaults (env ``ET_STAGE2_HYBRID_AB_*``).
+    3. Otherwise global ``STAGE2_DEFAULT_*``.
+
+    Returns (profile, mode, resolution_source) where *resolution_source* is
+    ``explicit`` | ``hybrid_ab_default`` | ``global_default``.
+    """
+    if stage2_profile is not None or stage2_mode is not None:
+        p = stage2_profile if stage2_profile is not None else STAGE2_DEFAULT_PROFILE
+        m = stage2_mode if stage2_mode is not None else STAGE2_DEFAULT_MODE
+        return p, m, "explicit"
+    backend = getattr(repo_config, "stage3_backend", "legacy")
+    if backend == "hybrid_ab":
+        from config import STAGE2_HYBRID_AB_MODE, STAGE2_HYBRID_AB_PROFILE
+
+        return STAGE2_HYBRID_AB_PROFILE, STAGE2_HYBRID_AB_MODE, "hybrid_ab_default"
+    return STAGE2_DEFAULT_PROFILE, STAGE2_DEFAULT_MODE, "global_default"
+
+
 @dataclass
 class CompressionBreakdown:
     """
@@ -310,8 +338,8 @@ def apply_pipeline(
     tokenizer,
     tok_type: str,
     count_fn=None,
-    stage2_profile: str = STAGE2_DEFAULT_PROFILE,
-    stage2_mode: str = STAGE2_DEFAULT_MODE,
+    stage2_profile: str | None = None,
+    stage2_mode: str | None = None,
 ) -> tuple[str, CompressionBreakdown]:
     if count_fn is None:
         def count_fn_local(text: str) -> int:
@@ -319,11 +347,15 @@ def apply_pipeline(
 
         count_fn = count_fn_local
 
+    s2_profile, s2_mode, _s2_src = resolve_stage2_for_pipeline(
+        repo_config, stage2_profile, stage2_mode
+    )
+
     baseline_tokens = count_fn(source)
     after_s1 = apply_stage1_with_stats(source, repo_config, tokenizer, tok_type)[0]
     after_s1_tokens = count_fn(after_s1)
 
-    after_s2 = apply_stage2(after_s1, profile=stage2_profile, mode=stage2_mode)
+    after_s2 = apply_stage2(after_s1, profile=s2_profile, mode=s2_mode)
     after_s2_tokens = count_fn(after_s2)
 
     # Backend-driven vocab intro payload (accounting) computed once.

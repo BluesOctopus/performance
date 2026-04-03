@@ -22,3 +22,6 @@ def test_eval_result_has_unified_stage3_unit_fields():
     ):
         assert name in fields
     assert "stage3_assignments" not in fields
+    assert "hybrid_ab_stage1_override_used" in fields
+    assert "hybrid_ab_stage2_override_used" in fields
+    assert "stage2_resolution_source" in fields

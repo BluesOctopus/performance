@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import EVAL_TOKENIZERS
+from config import EVAL_TOKENIZERS, STAGE2_HYBRID_AB_MODE, STAGE2_HYBRID_AB_PROFILE
 from repo_miner import mine_from_sources
 from eval.v2_eval import evaluate
 
@@ -38,6 +38,11 @@ def test_hybrid_ab_eval_fields_and_accounting():
     assert r.stage3_used_units_exact >= 0
     assert r.stage3_ab_a_route_reject_count >= 0
     assert r.stage3_ab_b_route_reject_count >= 0
+    assert r.hybrid_ab_stage1_override_used is True
+    assert r.hybrid_ab_stage2_override_used is True
+    assert r.stage2_resolution_source == "hybrid_ab_default"
+    assert r.stage2_profile == STAGE2_HYBRID_AB_PROFILE
+    assert r.stage2_mode == STAGE2_HYBRID_AB_MODE
 
 
 def test_legacy_and_plan_a_still_work():
@@ -54,3 +59,6 @@ def test_legacy_and_plan_a_still_work():
         )
         r = evaluate(sources, rc, "gpt4", EVAL_TOKENIZERS["gpt4"])
         assert r.stage3_backend == backend
+        assert r.hybrid_ab_stage1_override_used is False
+        assert r.hybrid_ab_stage2_override_used is False
+        assert r.stage2_resolution_source == "global_default"

@@ -10,6 +10,7 @@ results/*
 !results/.gitkeep
 # Versioned minimal benchmark summary
 !results/stage3_backend_comparison.csv
+!results/stage3_hybrid_ab_s12_ablation.csv
 !results/artifacts/
 !results/artifacts/.gitkeep
 results/artifacts/*
