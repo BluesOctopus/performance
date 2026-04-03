@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from config import (
@@ -48,6 +48,9 @@ class CompressionBreakdown:
     stage1_vocab_intro_tokens: int = 0
     stage2_vocab_intro_tokens: int = 0
     stage3_vocab_intro_tokens: int = 0
+    # Backend-specific diagnostics payload (from Stage3EncodeResult.meta).
+    # Used by evaluation/aggregation; must not be stored back into repo_config.
+    stage3_meta: dict[str, Any] = field(default_factory=dict)
 
     @property
     def syntax_saved(self) -> int:
@@ -349,5 +352,6 @@ def apply_pipeline(
         stage1_vocab_intro_tokens=s1_intro,
         stage2_vocab_intro_tokens=0,
         stage3_vocab_intro_tokens=s3_intro,
+        stage3_meta=stage3_result.meta,
     )
     return after_s3, breakdown

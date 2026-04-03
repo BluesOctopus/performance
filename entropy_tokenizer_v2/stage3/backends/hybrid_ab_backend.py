@@ -32,7 +32,6 @@ class HybridABStage3Backend:
                 "stage3_ab_runtime_warning": "missing stage3_ab_summary; stage3 skipped",
                 "stage3_ab_vocab_entries": [],
             }
-            setattr(repo_config, "_stage3_hybrid_last_meta", meta)
             return Stage3EncodeResult(encoded_text=text, vocab_entries=[], meta=meta)
 
         mode = str(cfg_raw.get("mode", "exact_only")).strip().lower()
@@ -56,7 +55,6 @@ class HybridABStage3Backend:
 
         res = encode_stage3_hybrid_ab(text, tokenizer=tokenizer, tok_type=tok_type, cfg=conf)
         meta = summary_dict(res)
-        setattr(repo_config, "_stage3_hybrid_last_meta", meta)
 
         vocab_entries = meta.get("stage3_ab_vocab_entries", []) or []
         return Stage3EncodeResult(encoded_text=res.encoded_text, vocab_entries=vocab_entries, meta=meta)
