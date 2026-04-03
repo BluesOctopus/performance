@@ -46,3 +46,42 @@ def test_alias_codec_single_occurrence_not_selected():
         route_cfg=ABRoutingConfig(),
     )
     assert res.selected == 0
+
+
+def test_alias_codec_protects_top_level_symbols():
+    tok, tt = _load_tokenizer("gpt4", EVAL_TOKENIZERS["gpt4"])
+    text = (
+        "def public_api_function():\n"
+        "    return 1\n"
+        "class ExportedClass:\n"
+        "    pass\n"
+        "__all__ = ['public_api_function', 'ExportedClass']\n"
+        "public_api_function()\n"
+        "public_api_function()\n"
+    )
+    res = encode_exact_aliases(
+        text,
+        tokenizer=tok,
+        tok_type=tt,
+        route_cfg=ABRoutingConfig(),
+    )
+    assert "public_api_function" in res.encoded_text
+    assert "ExportedClass" in res.encoded_text
+
+
+def test_alias_codec_mnemonic_style_prefix():
+    tok, tt = _load_tokenizer("gpt4", EVAL_TOKENIZERS["gpt4"])
+    text = (
+        "verylongsymbol_for_alias = 1\n"
+        "print(verylongsymbol_for_alias)\n"
+        "verylongsymbol_for_alias += 1\n"
+    )
+    res = encode_exact_aliases(
+        text,
+        tokenizer=tok,
+        tok_type=tt,
+        route_cfg=ABRoutingConfig(),
+        alias_style="mnemonic",
+    )
+    if res.entries:
+        assert res.entries[0].alias.startswith("_ve")

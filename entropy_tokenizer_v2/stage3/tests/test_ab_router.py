@@ -7,7 +7,12 @@ _S3 = Path(__file__).resolve().parents[1]
 if str(_S3) not in sys.path:
     sys.path.insert(0, str(_S3))
 
-from router import ABRoutingConfig, classify_string_kind, route_name_literal
+from router import (
+    ABRoutingConfig,
+    classify_string_kind,
+    classify_string_with_reason,
+    route_name_literal,
+)
 
 
 def test_router_name_goes_to_a():
@@ -19,7 +24,7 @@ def test_router_exact_strings_go_to_a():
     cfg = ABRoutingConfig()
     assert classify_string_kind(r"'/tmp/data/file.json'", cfg) == "A"
     assert classify_string_kind(r"'[A-Za-z_]+'", cfg) == "A"
-    assert classify_string_kind(r"'effective_total_reduction_pct'", cfg) == "A"
+    assert classify_string_kind(r"'db_config_key'", cfg) == "A"
 
 
 def test_router_free_text_goes_to_b():
@@ -31,3 +36,10 @@ def test_router_free_text_goes_to_b():
 def test_router_unknown_fallback():
     cfg = ABRoutingConfig()
     assert classify_string_kind("'x'", cfg) == "fallback"
+
+
+def test_router_key_like_from_config_and_reason():
+    cfg = ABRoutingConfig(key_like_patterns=(r"^my-custom-key$",))
+    route, reason = classify_string_with_reason("'my-custom-key'", cfg)
+    assert route == "A"
+    assert reason == "key_like"

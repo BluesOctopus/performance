@@ -33,6 +33,8 @@ def test_semantic_codec_clusters_similar_texts():
     )
     assert res.candidates >= 2
     assert res.used_clusters >= 1
+    assert res.similarity_kind == "lexical_bow_cosine"
+    assert res.mode == "lexical_free_text_baseline"
 
 
 def test_semantic_codec_low_similarity_fallback():

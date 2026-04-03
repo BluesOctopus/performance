@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import io
 import keyword
+import re
 import tokenize
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
+import ast
 
 import builtins
 
@@ -58,19 +60,43 @@ def _apply_spans(text: str, spans: list[tuple[int, int, str]]) -> str:
     return out
 
 
-def _build_alias_pool(n: int) -> list[str]:
-    out: list[str] = []
-    i = 0
-    while len(out) < n:
-        out.append(f"__ab{i}")
-        out.append(f"_a{i}")
-        out.append(f"a{i}")
-        i += 1
-    return out[:n]
+def _sanitize_prefix(name: str) -> str:
+    s = "".join(ch for ch in name if ch.isalnum() or ch == "_")
+    return (s[:2] if s else "x").lower()
 
 
-def _choose_aliases(alias_pool: list[str], tokenizer: Any, tok_type: str) -> list[str]:
-    return sorted(alias_pool, key=lambda x: (_token_len(tokenizer, tok_type, x), len(x), x))
+def _build_alias_for_literal(literal: str, idx: int, style: str) -> str:
+    if style == "mnemonic":
+        prefix = _sanitize_prefix(literal)
+        return f"_{prefix}{idx}"
+    return f"__ab{idx}"
+
+
+def _collect_ast_protected_names(text: str) -> set[str]:
+    """Protect readability-sensitive identifiers from aliasing."""
+    out: set[str] = set()
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, MemoryError):
+        return out
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.add(node.name)
+            if node.name.startswith("test_"):
+                out.add(node.name)
+            if re.match(r"^__.*__$", node.name):
+                out.add(node.name)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__all__":
+                    if isinstance(node.value, (ast.List, ast.Tuple)):
+                        for elt in node.value.elts:
+                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                out.add(elt.value)
+        elif isinstance(node, ast.Name) and node.id in {"main", "cli_main", "run_main"}:
+            out.add(node.id)
+    return out
 
 
 def encode_exact_aliases(
@@ -79,6 +105,9 @@ def encode_exact_aliases(
     tokenizer: Any,
     tok_type: str,
     route_cfg: ABRoutingConfig,
+    min_occ: int = 2,
+    min_net_gain: int = 1,
+    alias_style: str = "short",
 ) -> ACodecResult:
     """Encode variable/attribute + exact-like string literals using local aliases."""
     try:
@@ -86,12 +115,13 @@ def encode_exact_aliases(
     except (tokenize.TokenError, IndentationError, SyntaxError):
         return ACodecResult(encoded_text=text)
     line_starts = _line_start_offsets(text)
+    ast_protected = _collect_ast_protected_names(text)
     occ: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
     prev_is_dot = False
     for tok in toks:
         ttype, tstr = tok.type, tok.string
         if ttype == tokenize.NAME:
-            if tstr in _PROTECTED:
+            if tstr in _PROTECTED or tstr in ast_protected:
                 prev_is_dot = False
                 continue
             field = "attribute" if prev_is_dot else "variable"
@@ -112,18 +142,16 @@ def encode_exact_aliases(
             prev_is_dot = False
 
     candidates = len(occ)
-    alias_candidates = _choose_aliases(_build_alias_pool(max(1, candidates * 2)), tokenizer, tok_type)
-    alias_iter = iter(alias_candidates)
+    alias_iter_idx = 0
     selected: dict[tuple[str, str], str] = {}
     entries: list[AEntry] = []
     for key, spans in sorted(occ.items(), key=lambda kv: len(kv[1]), reverse=True):
         field, literal = key
         count = len(spans)
-        if count < 2:
+        if count < int(min_occ):
             continue
-        alias_base = next(alias_iter, None)
-        if not alias_base:
-            break
+        alias_base = _build_alias_for_literal(literal, alias_iter_idx, alias_style)
+        alias_iter_idx += 1
         alias_surface = alias_base if field != "string" else repr(alias_base)
         raw_cost = _token_len(tokenizer, tok_type, literal)
         alias_cost = _token_len(tokenizer, tok_type, alias_surface)
@@ -140,7 +168,7 @@ def encode_exact_aliases(
             tok_type=tok_type,
         )
         gain = count * (raw_cost - alias_cost) - intro_cost
-        if gain <= 0:
+        if gain < int(min_net_gain):
             continue
         selected[key] = alias_surface
         entries.append(

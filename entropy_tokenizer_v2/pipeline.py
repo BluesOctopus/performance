@@ -12,7 +12,6 @@ from config import (
     STAGE2_DEFAULT_MODE,
     STAGE2_DEFAULT_PROFILE,
     VOCAB_COST_MODE,
-    resolve_hybrid_ab_settings,
 )
 from marker_count import count_augmented
 from markers import RE_ALL_MARKERS, get_syn_line_spans, make_syn_marker
@@ -354,15 +353,38 @@ def apply_stage3(text: str, repo_config, tokenizer=None, tok_type: str | None = 
         from hybrid_ab import HybridABConfig, encode_stage3_hybrid_ab, summary_dict
 
         cfg_raw = dict(getattr(repo_config, "stage3_ab_summary", {}) or {})
+        if not cfg_raw:
+            # Safe fallback: exact-only with defaults when repo config misses hybrid settings.
+            cfg_raw = {
+                "mode": "exact_only",
+                "free_text_min_chars": 24,
+                "free_text_min_words": 4,
+                "b_similarity_threshold": 0.82,
+                "b_risk_threshold": 0.72,
+                "b_min_cluster_size": 2,
+                "enable_b": False,
+                "a_min_occ": 2,
+                "a_min_net_gain": 1,
+                "a_alias_style": "short",
+                "key_like_patterns": [],
+            }
+        mode = str(cfg_raw.get("mode", "exact_only")).strip().lower()
+        if mode not in {"exact_only", "hybrid"}:
+            mode = "exact_only"
         conf = HybridABConfig(
-            free_text_min_chars=int(cfg_raw.get("free_text_min_chars", resolve_hybrid_ab_settings("gpt2")["free_text_min_chars"])),
-            free_text_min_words=int(cfg_raw.get("free_text_min_words", resolve_hybrid_ab_settings("gpt2")["free_text_min_words"])),
-            b_similarity_threshold=float(cfg_raw.get("b_similarity_threshold", resolve_hybrid_ab_settings("gpt2")["b_similarity_threshold"])),
-            b_risk_threshold=float(cfg_raw.get("b_risk_threshold", resolve_hybrid_ab_settings("gpt2")["b_risk_threshold"])),
-            b_min_cluster_size=int(cfg_raw.get("b_min_cluster_size", resolve_hybrid_ab_settings("gpt2")["b_min_cluster_size"])),
+            mode=mode,
+            free_text_min_chars=int(cfg_raw.get("free_text_min_chars", 24)),
+            free_text_min_words=int(cfg_raw.get("free_text_min_words", 4)),
+            key_like_patterns=tuple(cfg_raw.get("key_like_patterns", []) or ()),
+            a_min_occ=int(cfg_raw.get("a_min_occ", 2)),
+            a_min_net_gain=int(cfg_raw.get("a_min_net_gain", 1)),
+            a_alias_style=str(cfg_raw.get("a_alias_style", "short")),
+            b_similarity_threshold=float(cfg_raw.get("b_similarity_threshold", 0.82)),
+            b_risk_threshold=float(cfg_raw.get("b_risk_threshold", 0.72)),
+            b_min_cluster_size=int(cfg_raw.get("b_min_cluster_size", 2)),
         )
-        if not bool(cfg_raw.get("enable_b", True)):
-            conf.b_min_cluster_size = 10**9
+        if mode != "hybrid" or not bool(cfg_raw.get("enable_b", False)):
+            conf.mode = "exact_only"
         res = encode_stage3_hybrid_ab(text, tokenizer=tokenizer, tok_type=tok_type, cfg=conf)
         setattr(repo_config, "_stage3_hybrid_last_meta", summary_dict(res))
         return res.encoded_text

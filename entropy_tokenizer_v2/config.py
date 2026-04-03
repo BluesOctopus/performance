@@ -66,7 +66,7 @@ STAGE3_PLAN_A_POST_PRUNE = os.getenv("ET_STAGE3_PLAN_A_POST_PRUNE", "1").lower()
     "yes",
 )
 
-# Stage3 Hybrid AB knobs (A=exact aliasing, B=semantic clustering).
+# Stage3 Hybrid AB knobs (A=exact aliasing, B=lexical free-text clustering baseline).
 STAGE3_AB_FREE_TEXT_MIN_CHARS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_CHARS", "24"))
 STAGE3_AB_FREE_TEXT_MIN_WORDS = int(os.getenv("ET_STAGE3_AB_FREE_TEXT_MIN_WORDS", "4"))
 STAGE3_AB_B_SIMILARITY_THRESHOLD = float(
@@ -75,18 +75,41 @@ STAGE3_AB_B_SIMILARITY_THRESHOLD = float(
 STAGE3_AB_B_RISK_THRESHOLD = float(os.getenv("ET_STAGE3_AB_B_RISK_THRESHOLD", "0.72"))
 STAGE3_AB_B_MIN_CLUSTER_SIZE = int(os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", "2"))
 STAGE3_AB_ENABLE_B = os.getenv("ET_STAGE3_AB_ENABLE_B", "1").lower() in ("1", "true", "yes")
+STAGE3_AB_MODE = os.getenv("ET_STAGE3_AB_MODE", "").strip().lower()
+STAGE3_AB_A_MIN_OCC = int(os.getenv("ET_STAGE3_AB_A_MIN_OCC", "2"))
+STAGE3_AB_A_MIN_NET_GAIN = int(os.getenv("ET_STAGE3_AB_A_MIN_NET_GAIN", "1"))
+STAGE3_AB_A_ALIAS_STYLE = os.getenv("ET_STAGE3_AB_A_ALIAS_STYLE", "short").strip().lower()
+if STAGE3_AB_A_ALIAS_STYLE not in {"short", "mnemonic"}:
+    STAGE3_AB_A_ALIAS_STYLE = "short"
+STAGE3_AB_KEY_LIKE_PATTERNS = tuple(
+    x.strip()
+    for x in os.getenv(
+        "ET_STAGE3_AB_KEY_LIKE_PATTERNS",
+        r"(?:^|[_\-.])(key|id|name|type|path|url|config|option|field)(?:$|[_\-.])",
+    ).split("||")
+    if x.strip()
+)
 
 
 def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
     """
     Resolve hybrid_ab runtime settings with tokenizer-aware defaults.
 
-    gpt4 defaults to slightly stricter semantic merge threshold.
+    Default mode is conservative exact_only for all tokenizers.
     """
     tok = (tokenizer_key or "").strip().lower()
     sim_default = 0.84 if tok == "gpt4" else STAGE3_AB_B_SIMILARITY_THRESHOLD
     risk_default = 0.74 if tok == "gpt4" else STAGE3_AB_B_RISK_THRESHOLD
+    mode_default = "exact_only"
+    mode = (STAGE3_AB_MODE or mode_default).strip().lower()
+    if mode not in {"exact_only", "hybrid"}:
+        mode = mode_default
+    enable_b = os.getenv("ET_STAGE3_AB_ENABLE_B", "1" if STAGE3_AB_ENABLE_B else "0")
+    enable_b = enable_b.lower() in ("1", "true", "yes")
+    if mode != "hybrid":
+        enable_b = False
     return {
+        "mode": mode,
         "free_text_min_chars": STAGE3_AB_FREE_TEXT_MIN_CHARS,
         "free_text_min_words": STAGE3_AB_FREE_TEXT_MIN_WORDS,
         "b_similarity_threshold": float(
@@ -96,9 +119,13 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         "b_min_cluster_size": int(
             os.getenv("ET_STAGE3_AB_B_MIN_CLUSTER_SIZE", str(STAGE3_AB_B_MIN_CLUSTER_SIZE))
         ),
-        "enable_b": os.getenv("ET_STAGE3_AB_ENABLE_B", "1" if STAGE3_AB_ENABLE_B else "0")
-        .lower()
-        in ("1", "true", "yes"),
+        "enable_b": enable_b,
+        "a_min_occ": int(os.getenv("ET_STAGE3_AB_A_MIN_OCC", str(STAGE3_AB_A_MIN_OCC))),
+        "a_min_net_gain": int(
+            os.getenv("ET_STAGE3_AB_A_MIN_NET_GAIN", str(STAGE3_AB_A_MIN_NET_GAIN))
+        ),
+        "a_alias_style": os.getenv("ET_STAGE3_AB_A_ALIAS_STYLE", STAGE3_AB_A_ALIAS_STYLE),
+        "key_like_patterns": list(STAGE3_AB_KEY_LIKE_PATTERNS),
     }
 
 

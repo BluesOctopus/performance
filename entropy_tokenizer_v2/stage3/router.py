@@ -13,10 +13,6 @@ _RE_REGEX_LIKE = re.compile(
     r"(\\b|\\d\+|\\s\*|\[\^\\w\\s\]|\(\?:|\.\*|\[[A-Za-z0-9_^-]+\][+*?])"
 )
 _RE_URL = re.compile(r"^https?://", re.I)
-_RE_KEY_LIKE = re.compile(
-    r"(stage\d|effective_total|sequence_reduction|tokenizer|model|profile|config|vocab)",
-    re.I,
-)
 
 
 @dataclass(slots=True)
@@ -26,6 +22,9 @@ class ABRoutingConfig:
     free_text_min_chars: int = 24
     free_text_min_words: int = 4
     fallback_unknown: bool = True
+    key_like_patterns: tuple[str, ...] = (
+        r"(?:^|[_\-.])(key|id|name|type|path|url|config|option|field)(?:$|[_\-.])",
+    )
 
 
 def _inner_string(token_spelling: str) -> str | None:
@@ -65,8 +64,14 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
         return "A"
     if _RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
         return "A"
-    if _RE_KEY_LIKE.search(s):
-        return "A"
+    for p in cfg.key_like_patterns:
+        try:
+            if re.search(p, s, re.I):
+                return "A"
+        except re.error:
+            continue
+    if len(s) <= 2:
+        return "fallback"
     words = s.split()
     # free-text signal: enough words + has whitespace + not symbol-heavy
     punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
@@ -78,3 +83,37 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
     ):
         return "B"
     return "fallback" if cfg.fallback_unknown else "A"
+
+
+def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tuple[str, str]:
+    """Return (route, reason) for diagnostics/tests."""
+    inner = _inner_string(token_spelling)
+    if inner is None:
+        return "fallback", "bad_literal"
+    s = inner.strip()
+    if not s:
+        return "fallback", "empty"
+    if "\n" in s or "\r" in s:
+        return "fallback", "multiline"
+    if _RE_URL.search(s) or _RE_PATH_LIKE.search(s):
+        return "A", "path_or_url"
+    if _RE_REGEX_LIKE.search(s):
+        return "A", "regex_like"
+    if _RE_IDENTIFIER_LIKE.match(s) and 3 <= len(s) <= 80:
+        return "A", "identifier_like"
+    for p in cfg.key_like_patterns:
+        try:
+            if re.search(p, s, re.I):
+                return "A", "key_like"
+        except re.error:
+            continue
+    words = s.split()
+    punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
+    if (
+        len(s) >= cfg.free_text_min_chars
+        and len(words) >= cfg.free_text_min_words
+        and " " in s
+        and punct / max(1, len(s)) < 0.22
+    ):
+        return "B", "free_text"
+    return ("fallback", "unknown") if cfg.fallback_unknown else ("A", "fallback_to_exact")

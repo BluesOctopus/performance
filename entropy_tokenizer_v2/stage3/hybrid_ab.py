@@ -16,9 +16,15 @@ from semantic_cluster.semantic_codec import (
 
 @dataclass(slots=True)
 class HybridABConfig:
+    mode: str = "exact_only"
     # Router
     free_text_min_chars: int = 24
     free_text_min_words: int = 4
+    key_like_patterns: tuple[str, ...] = ()
+    # Exact channel
+    a_min_occ: int = 2
+    a_min_net_gain: int = 1
+    a_alias_style: str = "short"
     # Semantic channel
     b_similarity_threshold: float = 0.82
     b_risk_threshold: float = 0.72
@@ -46,25 +52,32 @@ def encode_stage3_hybrid_ab(
         free_text_min_chars=conf.free_text_min_chars,
         free_text_min_words=conf.free_text_min_words,
         fallback_unknown=True,
+        key_like_patterns=conf.key_like_patterns or ABRoutingConfig().key_like_patterns,
     )
     a_res = encode_exact_aliases(
         text,
         tokenizer=tokenizer,
         tok_type=tok_type,
         route_cfg=route_cfg,
+        min_occ=conf.a_min_occ,
+        min_net_gain=conf.a_min_net_gain,
+        alias_style=conf.a_alias_style,
     )
-    b_res = encode_semantic_strings(
-        a_res.encoded_text,
-        tokenizer=tokenizer,
-        tok_type=tok_type,
-        similarity_threshold=conf.b_similarity_threshold,
-        risk_threshold=conf.b_risk_threshold,
-        min_cluster_size=conf.b_min_cluster_size,
-        classifier_cfg=SemanticClassifierConfig(
-            free_text_min_chars=conf.free_text_min_chars,
-            free_text_min_words=conf.free_text_min_words,
-        ),
-    )
+    if conf.mode == "hybrid":
+        b_res = encode_semantic_strings(
+            a_res.encoded_text,
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+            similarity_threshold=conf.b_similarity_threshold,
+            risk_threshold=conf.b_risk_threshold,
+            min_cluster_size=conf.b_min_cluster_size,
+            classifier_cfg=SemanticClassifierConfig(
+                free_text_min_chars=conf.free_text_min_chars,
+                free_text_min_words=conf.free_text_min_words,
+            ),
+        )
+    else:
+        b_res = BCodecResult(encoded_text=a_res.encoded_text)
     a_v = sum(1 for e in a_res.entries if e.field == "variable")
     a_a = sum(1 for e in a_res.entries if e.field == "attribute")
     a_s = sum(1 for e in a_res.entries if e.field == "string")
@@ -87,6 +100,9 @@ def encode_stage3_hybrid_ab(
         "stage3_ab_b_fallback_count": b_res.fallback_count,
         "stage3_ab_b_avg_similarity": b_res.avg_similarity,
         "stage3_ab_b_risk_reject_count": b_res.risk_reject_count,
+        "stage3_ab_similarity_kind": "lexical_bow_cosine",
+        "stage3_ab_b_mode": "lexical_free_text_baseline" if conf.mode == "hybrid" else "disabled",
+        "stage3_ab_mode": conf.mode,
         "stage3_ab_vocab_entries": a_res.vocab_entries + b_res.vocab_entries,
     }
     fallback = b_res.fallback_count

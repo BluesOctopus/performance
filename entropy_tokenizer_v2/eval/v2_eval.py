@@ -122,12 +122,10 @@ class EvalResult:
     baseline_tokens:     int
     syntax_tokens:       int
     cleaning_tokens:     int
-    final_tokens:        int
     syntax_saved:        int
     cleaning_saved:      int
     replacement_saved:   int
     total_saved:         int
-    reduction_pct:       float
     sequence_final_tokens: int
     sequence_reduction_pct: float
     stage1_vocab_intro_tokens: int
@@ -147,7 +145,11 @@ class EvalResult:
     k_star_syntax:       int
     n_replacement_words: int
     stage3_backend: str = "legacy"
-    stage3_assignments: int = 0
+    stage3_selected_units: int = 0
+    stage3_selected_units_exact: int = 0
+    stage3_selected_units_semantic: int = 0
+    stage3_used_units_exact: int = 0
+    stage3_used_units_semantic: int = 0
     stage3_fields: str = ""
     stage3_dictionary_coverage: float = 0.0
     stage3_expected_gain: float = 0.0
@@ -159,6 +161,8 @@ class EvalResult:
     stage3_cost_model: str = ""
     stage3_plan_a_profile: str = ""
     stage3_assignment_by_field_json: str = ""
+    stage3_vocab_scope: str = ""
+    stage3_vocab_scope_detail: str = ""
     stage3_ab_a_candidates: int = 0
     stage3_ab_a_selected: int = 0
     stage3_ab_a_used_entries: int = 0
@@ -176,6 +180,7 @@ class EvalResult:
     stage3_ab_b_risk_reject_count: int = 0
     stage3_ab_fallback_count: int = 0
     stage3_ab_mode: str = ""
+    stage3_ab_similarity_kind: str = ""
 
 
 def evaluate(
@@ -275,12 +280,20 @@ def evaluate(
     F = max(1, F_seq)
 
     sm = getattr(repo_config, "stage3_plan_a_summary", None) or {}
-    stage3_assignments = int(sm.get("stage3_plan_a_assignments_count", 0))
+    stage3_plan_a_assignments = int(sm.get("stage3_plan_a_assignments_count", 0))
     stage3_fields = ",".join(sm.get("stage3_plan_a_fields", []) or [])
     stage3_dictionary_coverage = float(sm.get("stage3_plan_a_dictionary_coverage_mean", 0.0))
     stage3_expected_gain = float(sm.get("stage3_plan_a_total_expected_gain_sum", 0.0))
     stage3_cost_model = str(sm.get("stage3_plan_a_cost_model", "") or "")
     stage3_plan_a_profile = str(sm.get("stage3_plan_a_profile", "") or "")
+    stage3_vocab_scope = "corpus_once" if backend in {"legacy", "plan_a"} else "request_local_sum"
+    stage3_vocab_scope_detail = (
+        "legacy placeholders used-union / corpus-once"
+        if backend == "legacy"
+        else "plan_a used-codebook-union / corpus-once"
+        if backend == "plan_a"
+        else "hybrid_ab request-local entries summed over files"
+    )
     stage3_assignment_by_field_json = json.dumps(
         sm.get("stage3_plan_a_assignment_by_field", {}), ensure_ascii=False
     )
@@ -329,15 +342,37 @@ def evaluate(
                 used_s += 1
 
     stage3_component_saved = agg.replacement_saved
+    stage3_selected_units = 0
+    stage3_selected_units_exact = 0
+    stage3_selected_units_semantic = 0
+    stage3_used_units_exact = 0
+    stage3_used_units_semantic = 0
     if backend == "hybrid_ab":
         used_v = int(ab_sum.get("stage3_ab_a_used_entries_variable", 0))
         used_a = int(ab_sum.get("stage3_ab_a_used_entries_attribute", 0))
         # string used = A-string + B-used-clusters
         used_s = int(ab_sum.get("stage3_ab_a_used_entries_string", 0) + ab_sum.get("stage3_ab_b_used_clusters", 0))
+        stage3_selected_units_exact = int(ab_sum.get("stage3_ab_a_selected", 0))
+        stage3_selected_units_semantic = int(ab_sum.get("stage3_ab_b_used_clusters", 0))
+        stage3_selected_units = stage3_selected_units_exact + stage3_selected_units_semantic
+        stage3_used_units_exact = int(ab_sum.get("stage3_ab_a_used_entries", 0))
+        stage3_used_units_semantic = int(ab_sum.get("stage3_ab_b_used_clusters", 0))
         stage3_component_saved = int(
             ab_sum.get("stage3_ab_a_sequence_saved", 0)
             + ab_sum.get("stage3_ab_b_sequence_saved", 0)
         )
+    elif backend == "plan_a":
+        stage3_selected_units = stage3_plan_a_assignments
+        stage3_selected_units_exact = stage3_plan_a_assignments
+        stage3_selected_units_semantic = 0
+        stage3_used_units_exact = len(plan_a_used_union)
+        stage3_used_units_semantic = 0
+    else:
+        stage3_selected_units = len(getattr(repo_config, "replacement_map", {}) or {})
+        stage3_selected_units_exact = stage3_selected_units
+        stage3_selected_units_semantic = 0
+        stage3_used_units_exact = len(legacy_stage3_used)
+        stage3_used_units_semantic = 0
 
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
     s2_intro = 0
@@ -355,12 +390,10 @@ def evaluate(
         baseline_tokens     = B,
         syntax_tokens       = agg.after_syntax,
         cleaning_tokens     = agg.after_cleaning,
-        final_tokens        = F_seq,
         syntax_saved        = agg.syntax_saved,
         cleaning_saved      = agg.cleaning_saved,
         replacement_saved   = agg.replacement_saved,
         total_saved         = agg.total_saved,
-        reduction_pct       = seq_red,
         sequence_final_tokens=F_seq,
         sequence_reduction_pct=seq_red,
         stage1_vocab_intro_tokens=s1_intro,
@@ -380,7 +413,11 @@ def evaluate(
         k_star_syntax       = len(repo_config.selected_skeletons),
         n_replacement_words = len(repo_config.replacement_map),
         stage3_backend      = backend,
-        stage3_assignments  = stage3_assignments,
+        stage3_selected_units=stage3_selected_units,
+        stage3_selected_units_exact=stage3_selected_units_exact,
+        stage3_selected_units_semantic=stage3_selected_units_semantic,
+        stage3_used_units_exact=stage3_used_units_exact,
+        stage3_used_units_semantic=stage3_used_units_semantic,
         stage3_fields       = stage3_fields,
         stage3_dictionary_coverage = stage3_dictionary_coverage,
         stage3_expected_gain = stage3_expected_gain,
@@ -398,6 +435,8 @@ def evaluate(
         stage3_cost_model=stage3_cost_model,
         stage3_plan_a_profile=stage3_plan_a_profile,
         stage3_assignment_by_field_json=stage3_assignment_by_field_json,
+        stage3_vocab_scope=stage3_vocab_scope,
+        stage3_vocab_scope_detail=stage3_vocab_scope_detail,
         stage3_ab_a_candidates=int(ab_sum.get("stage3_ab_a_candidates", 0)),
         stage3_ab_a_selected=int(ab_sum.get("stage3_ab_a_selected", 0)),
         stage3_ab_a_used_entries=int(ab_sum.get("stage3_ab_a_used_entries", 0)),
@@ -417,6 +456,11 @@ def evaluate(
         stage3_ab_b_risk_reject_count=int(ab_sum.get("stage3_ab_b_risk_reject_count", 0)),
         stage3_ab_fallback_count=int(ab_sum.get("stage3_ab_b_fallback_count", 0)),
         stage3_ab_mode=str((getattr(repo_config, "stage3_ab_summary", {}) or {}).get("stage3_ab_mode", "")),
+        stage3_ab_similarity_kind=str(
+            (getattr(repo_config, "stage3_ab_summary", {}) or {}).get(
+                "stage3_ab_similarity_kind", ""
+            )
+        ),
     )
 
 
@@ -470,12 +514,18 @@ def save_results(
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     csv_path = RESULTS_DIR / csv_name
-    fields = [f.name for f in EvalResult.__dataclass_fields__.values()]
+    fields = [f.name for f in EvalResult.__dataclass_fields__.values()] + [
+        "final_tokens",
+        "reduction_pct",
+    ]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for r in results:
             row = asdict(r)
+            # CSV compatibility aliases (not part of EvalResult schema).
+            row["final_tokens"] = row["sequence_final_tokens"]
+            row["reduction_pct"] = row["sequence_reduction_pct"]
             for k in (
                 "reduction_pct",
                 "sequence_reduction_pct",
@@ -488,6 +538,7 @@ def save_results(
                 "baseline_entropy",
                 "stage3_dictionary_coverage",
                 "stage3_expected_gain",
+                "stage3_ab_b_avg_similarity",
             ):
                 row[k] = f"{row[k]:.6f}"
             writer.writerow(row)

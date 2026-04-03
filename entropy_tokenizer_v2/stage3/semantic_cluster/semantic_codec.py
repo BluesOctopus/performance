@@ -1,4 +1,4 @@
-"""Lightweight semantic clustering codec for Stage3 hybrid B channel."""
+"""Lightweight lexical clustering codec for Stage3 hybrid B channel."""
 
 from __future__ import annotations
 
@@ -45,6 +45,8 @@ class BCodecResult:
     risk_reject_count: int = 0
     avg_similarity: float = 0.0
     vocab_entries: list[dict[str, Any]] = field(default_factory=list)
+    similarity_kind: str = "lexical_bow_cosine"
+    mode: str = "lexical_free_text_baseline"
 
 
 def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:

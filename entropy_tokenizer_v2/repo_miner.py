@@ -314,11 +314,18 @@ def mine_repo(
         summary = score_summary(scores, top_n=50)
     else:
         stage3_ab_summary = resolve_hybrid_ab_settings(tokenizer_key or "gpt2")
-        stage3_ab_summary["stage3_ab_mode"] = "first_pass_semantic_routing"
+        stage3_ab_summary["stage3_ab_mode"] = stage3_ab_summary.get("mode", "exact_only")
+        stage3_ab_summary["stage3_ab_similarity_kind"] = "lexical_bow_cosine"
+        stage3_ab_summary["stage3_ab_b_mode"] = (
+            "lexical_free_text_baseline"
+            if stage3_ab_summary.get("mode") == "hybrid"
+            else "disabled"
+        )
         if verbose:
             print(
                 "[repo_miner] Stage 3 hybrid_ab - runtime local routing "
-                f"(B={'on' if stage3_ab_summary.get('enable_b', True) else 'off'})"
+                f"(mode={stage3_ab_summary.get('mode', 'exact_only')}, "
+                f"B={'on' if stage3_ab_summary.get('enable_b', False) else 'off'})"
             )
 
     return RepoConfig(
@@ -379,7 +386,10 @@ def mine_from_repo_path(
     if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
     _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
-    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}.json"
+    _ab = ""
+    if backend == "hybrid_ab":
+        _ab = f"_{resolve_hybrid_ab_settings(tokenizer_key).get('mode', 'exact_only')}"
+    cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{Path(repo_path).name}_{backend}{_pa}{_ab}.json"
     if cache and cache_file.exists():
         if verbose:
             print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -428,9 +438,10 @@ def mine_from_sources(
     backend = (stage3_backend or STAGE3_BACKEND).strip().lower()
     if backend not in {"legacy", "plan_a", "hybrid_ab"}:
         backend = "legacy"
+    _ab = f"_{resolve_hybrid_ab_settings(tokenizer_key).get('mode', 'exact_only')}" if backend == "hybrid_ab" else ""
     if cache and cache_name:
         _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}.json"
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}.json"
         if cache_file.exists():
             if verbose:
                 print(f"[repo_miner] Loading cached config: {cache_file}")
@@ -453,7 +464,7 @@ def mine_from_sources(
     if cache and cache_name:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         _pa = f"_{plan_a_profile_name_for_tokenizer(tokenizer_key)}" if backend == "plan_a" else ""
-        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}.json"
+        cache_file = CACHE_DIR / f"repo_config_{tokenizer_key}_{cache_name}_{backend}{_pa}{_ab}.json"
         cache_file.write_text(config.to_json(), encoding="utf-8")
         if verbose:
             print(f"[repo_miner] Config saved to {cache_file}")

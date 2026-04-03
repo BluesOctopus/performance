@@ -30,11 +30,9 @@ def test_evaluate_plan_a_has_extra_columns():
     r = evaluate(sources, rc, "gpt4", tok_cfg)
     assert r.stage3_backend == "plan_a"
     assert hasattr(r, "stage3_vocab_intro_tokens")
-    assert hasattr(r, "stage3_assignments")
+    assert hasattr(r, "stage3_selected_units")
     fields = [f.name for f in EvalResult.__dataclass_fields__.values()]
     assert "stage3_dictionary_coverage" in fields
-    assert r.sequence_final_tokens == r.final_tokens
-    assert r.sequence_reduction_pct == r.reduction_pct
     assert r.effective_total_tokens == r.sequence_final_tokens + r.final_vocab_intro_tokens
     assert r.final_vocab_intro_tokens == (
         r.stage1_vocab_intro_tokens

@@ -32,12 +32,16 @@ def test_hybrid_ab_eval_fields_and_accounting():
     )
     r = evaluate(sources, rc, "gpt4", EVAL_TOKENIZERS["gpt4"])
     assert r.stage3_backend == "hybrid_ab"
+    assert r.stage3_ab_mode == "exact_only"
+    assert r.stage3_ab_similarity_kind == "lexical_bow_cosine"
     assert r.final_vocab_intro_tokens == (
         r.stage1_vocab_intro_tokens + r.stage2_vocab_intro_tokens + r.stage3_vocab_intro_tokens
     )
     assert r.effective_total_tokens == r.sequence_final_tokens + r.final_vocab_intro_tokens
     assert r.stage3_vocab_intro_tokens == r.stage3_ab_a_intro_tokens + r.stage3_ab_b_intro_tokens
     assert r.stage3_component_saved == r.stage3_ab_a_sequence_saved + r.stage3_ab_b_sequence_saved
+    assert r.stage3_selected_units >= r.stage3_selected_units_exact
+    assert r.stage3_used_units_exact >= 0
 
 
 def test_legacy_and_plan_a_still_work():
