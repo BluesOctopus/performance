@@ -101,7 +101,8 @@ def encode_stage3_hybrid_ab(
         "stage3_ab_b_avg_similarity": b_res.avg_similarity,
         "stage3_ab_b_risk_reject_count": b_res.risk_reject_count,
         "stage3_ab_similarity_kind": "lexical_bow_cosine",
-        "stage3_ab_b_mode": "lexical_free_text_baseline" if conf.mode == "hybrid" else "disabled",
+        # B channel is a lexical clustering baseline (not embedding semantic clustering).
+        "stage3_ab_b_mode": "lexical_free_text_baseline",
         "stage3_ab_mode": conf.mode,
         "stage3_ab_vocab_entries": a_res.vocab_entries + b_res.vocab_entries,
     }

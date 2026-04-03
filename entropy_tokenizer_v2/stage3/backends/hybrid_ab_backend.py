@@ -28,7 +28,7 @@ class HybridABStage3Backend:
             meta = {
                 "stage3_ab_mode": "exact_only",
                 "stage3_ab_similarity_kind": "lexical_bow_cosine",
-                "stage3_ab_b_mode": "disabled",
+                "stage3_ab_b_mode": "lexical_free_text_baseline",
                 "stage3_ab_runtime_warning": "missing stage3_ab_summary; stage3 skipped",
                 "stage3_ab_vocab_entries": [],
             }
