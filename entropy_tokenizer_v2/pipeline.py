@@ -299,6 +299,11 @@ def apply_stage3(
     return res.encoded_text
 
 
+# Used by `apply_pipeline` to decide whether it can reuse the already-computed
+# backend result instead of calling `apply_stage3` again (tests monkeypatch it).
+_DEFAULT_APPLY_STAGE3 = apply_stage3
+
+
 def apply_pipeline(
     source: str,
     repo_config,
@@ -321,28 +326,30 @@ def apply_pipeline(
     after_s2 = apply_stage2(after_s1, profile=stage2_profile, mode=stage2_mode)
     after_s2_tokens = count_fn(after_s2)
 
-    # Keep `apply_stage3(...)` call for backward-compatible patching/tests.
-    try:
-        after_s3 = apply_stage3(
-            after_s2,
-            repo_config,
-            tokenizer=tokenizer,
-            tok_type=tok_type,
-        )
-    except TypeError:
-        # Backward-compatible for tests/mocks patching apply_stage3(text, repo_config).
-        after_s3 = apply_stage3(after_s2, repo_config)
-    after_s3_tokens = count_fn(after_s3)
-
-    s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
-
-    # Backend-driven vocab intro payload (accounting), derived from real backend encode.
+    # Backend-driven vocab intro payload (accounting) computed once.
     stage3_result, backend = _stage3_encode_result(after_s2, repo_config, tokenizer, tok_type)
+    s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
     s3_intro = backend.compute_intro_cost(
         stage3_result,
         tokenizer=tokenizer,
         tok_type=tok_type,
     )
+
+    # For unit tests: they often monkeypatch `apply_stage3` and expect the call.
+    if apply_stage3 is _DEFAULT_APPLY_STAGE3:
+        after_s3 = stage3_result.encoded_text
+    else:
+        try:
+            after_s3 = apply_stage3(
+                after_s2,
+                repo_config,
+                tokenizer=tokenizer,
+                tok_type=tok_type,
+            )
+        except TypeError:
+            after_s3 = apply_stage3(after_s2, repo_config)
+
+    after_s3_tokens = count_fn(after_s3)
 
     breakdown = CompressionBreakdown(
         baseline_tokens=baseline_tokens,
