@@ -16,6 +16,7 @@ class ABRoutingConfig:
     free_text_min_chars: int = 24
     free_text_min_words: int = 4
     fallback_unknown: bool = True
+    short_string_policy: str = "exact_candidate"
     # Fully configurable key-like regex patterns; default is empty (no implicit A).
     key_like_patterns: tuple[str, ...] = ()
 
@@ -36,13 +37,6 @@ def route_name_literal(field: str) -> str:
 
 
 def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
-    """
-    Route one STRING token spelling to A/B/fallback.
-
-    - A: exact-like string (path/regex/url/identifier/key-like)
-    - B: free-text natural-language string
-    - fallback: unknown / unsafe
-    """
     inner = _inner_string(token_spelling)
     if inner is None:
         return "fallback"
@@ -64,11 +58,8 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
         except re.error:
             continue
     if len(s) <= 2:
-        # Short literals are allowed to enter exact aliasing (A); the final
-        # gain decision is handled inside alias codec.
-        return "A"
+        return "fallback" if cfg.short_string_policy == "fallback" else "A"
     words = s.split()
-    # free-text signal: enough words + has whitespace + not symbol-heavy
     punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
     if (
         len(s) >= cfg.free_text_min_chars
@@ -81,7 +72,6 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
 
 
 def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tuple[str, str]:
-    """Return (route, reason) for diagnostics/tests."""
     inner = _inner_string(token_spelling)
     if inner is None:
         return "fallback", "bad_literal"
@@ -103,6 +93,8 @@ def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tu
         except re.error:
             continue
     if len(s) <= 2:
+        if cfg.short_string_policy == "fallback":
+            return "fallback", "short_literal"
         return "A", "short_literal"
     words = s.split()
     punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
@@ -114,3 +106,4 @@ def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tu
     ):
         return "B", "free_text"
     return ("fallback", "unknown") if cfg.fallback_unknown else ("A", "fallback_to_exact")
+

@@ -240,7 +240,7 @@ def evaluate(
 
             plan_a_used_union |= extract_used_plan_a_entries(compressed, plan_books, plan_esc)
         elif backend == "hybrid_ab":
-            meta = getattr(fr, "stage3_meta", {}) or {}
+            meta = getattr(fr, "stage3_metrics", {}) or {}
             for k in (
                 "stage3_ab_a_candidates",
                 "stage3_ab_a_selected",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from config import EVAL_TOKENIZERS
 from repo_miner import _load_tokenizer
-from stage3.semantic_cluster.semantic_codec import encode_semantic_strings
+from stage3.lexical.semantic_codec import encode_semantic_strings
 
 
 def test_semantic_codec_clusters_similar_texts():

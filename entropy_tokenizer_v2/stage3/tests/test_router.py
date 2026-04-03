@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from stage3.router import (
+from stage3.routing.router import (
     ABRoutingConfig,
     classify_string_kind,
     classify_string_with_reason,
@@ -26,11 +26,18 @@ def test_router_free_text_goes_to_b():
     assert classify_string_kind(s, cfg) == "B"
 
 
-def test_router_unknown_fallback():
-    cfg = ABRoutingConfig()
+def test_router_short_literal_exact_candidate():
+    cfg = ABRoutingConfig(short_string_policy="exact_candidate")
     assert classify_string_kind("'x'", cfg) == "A"
     route, reason = classify_string_with_reason("'x'", cfg)
     assert route == "A"
+    assert reason == "short_literal"
+
+
+def test_router_short_literal_fallback_policy():
+    cfg = ABRoutingConfig(short_string_policy="fallback")
+    route, reason = classify_string_with_reason("'x'", cfg)
+    assert route == "fallback"
     assert reason == "short_literal"
 
 
@@ -39,3 +46,4 @@ def test_router_key_like_from_config_and_reason():
     route, reason = classify_string_with_reason("'my-custom-key'", cfg)
     assert route == "A"
     assert reason == "key_like"
+

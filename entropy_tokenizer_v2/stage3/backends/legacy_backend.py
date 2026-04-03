@@ -26,13 +26,13 @@ class LegacyStage3Backend:
     ) -> Stage3EncodeResult:
         rmap = getattr(repo_config, "replacement_map", None) or {}
         if not rmap:
-            return Stage3EncodeResult(encoded_text=text, vocab_entries=[], meta={})
+            return Stage3EncodeResult(encoded_text=text, vocab_entries=[], metrics={})
 
         protected_spans = get_syn_line_spans(text)
         encoded = apply_token_replacement_with_protected_spans(text, rmap, protected_spans)
         used = collect_used_stage3_placeholders(encoded, rmap)
         entries = build_stage3_vocab_entries_from_used_placeholders(used)
-        return Stage3EncodeResult(encoded_text=encoded, vocab_entries=entries, meta={})
+        return Stage3EncodeResult(encoded_text=encoded, vocab_entries=entries, metrics={})
 
     def compute_intro_cost(
         self,

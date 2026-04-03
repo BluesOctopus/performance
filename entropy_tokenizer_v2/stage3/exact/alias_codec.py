@@ -2,25 +2,23 @@
 
 from __future__ import annotations
 
+import ast
+import builtins
+import hashlib
 import io
 import json
 import keyword
-import hashlib
 import re
 import tokenize
 from collections import defaultdict
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Optional
-import ast
 
-import builtins
-
+from config import CACHE_DIR, VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from ..router import ABRoutingConfig, classify_string_kind
-from config import CACHE_DIR, VOCAB_COST_MODE
+from ..routing.router import ABRoutingConfig, classify_string_kind
 
 _PROTECTED = set(keyword.kwlist) | set(dir(builtins)) | {"self", "cls", "True", "False", "None"}
 
@@ -63,7 +61,7 @@ def _alias_cache_id(tokenizer: Any, tok_type: str) -> str:
 
 def _load_alias_alphabet_cache(tokenizer: Any, tok_type: str) -> dict[str, Any]:
     cache_id = _alias_cache_id(tokenizer, tok_type)
-    fp = CACHE_DIR / f"alias_alphabet_{cache_id}.json"
+    fp = CACHE_DIR / "alias_alphabets" / f"alias_alphabet_{cache_id}.json"
     if not fp.exists():
         return {}
     try:
@@ -74,12 +72,11 @@ def _load_alias_alphabet_cache(tokenizer: Any, tok_type: str) -> dict[str, Any]:
 
 def _save_alias_alphabet_cache(tokenizer: Any, tok_type: str, payload: dict[str, Any]) -> None:
     cache_id = _alias_cache_id(tokenizer, tok_type)
-    fp = CACHE_DIR / f"alias_alphabet_{cache_id}.json"
+    fp = CACHE_DIR / "alias_alphabets" / f"alias_alphabet_{cache_id}.json"
     try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        fp.parent.mkdir(parents=True, exist_ok=True)
         fp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
-        # Best-effort cache only.
         return
 
 
@@ -91,13 +88,6 @@ def build_alias_alphabet(
     prefix: Optional[str] = None,
     max_n: int = 256,
 ) -> list[str]:
-    """
-    Build tokenizer-aware alias candidates.
-
-    - style="short": candidates are "__ab{n}" and sorted by real token cost.
-    - style="mnemonic": candidates are "_{prefix}{n}" (prefix comes from literal),
-      sorted by real token cost.
-    """
     style = (style or "").strip().lower()
     style = style if style in {"short", "mnemonic"} else "short"
     cache = _load_alias_alphabet_cache(tokenizer, tok_type)
@@ -108,7 +98,6 @@ def build_alias_alphabet(
             cands = cached.get("candidates")
             if isinstance(cands, list) and all(isinstance(x, str) for x in cands):
                 return cands
-
         items: list[tuple[int, int, str]] = []
         for n in range(max_n):
             alias = f"__ab{n}"
@@ -119,7 +108,6 @@ def build_alias_alphabet(
         _save_alias_alphabet_cache(tokenizer, tok_type, cache)
         return out
 
-    # mnemonic
     if not prefix:
         prefix = "x"
     cached_mn = cache.get("mnemonic_prefixes", {})
@@ -129,7 +117,6 @@ def build_alias_alphabet(
             cands = entry.get("candidates")
             if isinstance(cands, list) and all(isinstance(x, str) for x in cands):
                 return cands
-
     items = []
     for n in range(max_n):
         alias = f"_{prefix}{n}"
@@ -153,15 +140,7 @@ def _sanitize_prefix(name: str) -> str:
     return (s[:2] if s else "x").lower()
 
 
-def _build_alias_for_literal(literal: str, idx: int, style: str) -> str:
-    if style == "mnemonic":
-        prefix = _sanitize_prefix(literal)
-        return f"_{prefix}{idx}"
-    return f"__ab{idx}"
-
-
 def _collect_ast_protected_names(text: str) -> set[str]:
-    """Protect readability-sensitive identifiers from aliasing."""
     out: set[str] = set()
     try:
         tree = ast.parse(text)
@@ -170,14 +149,11 @@ def _collect_ast_protected_names(text: str) -> set[str]:
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             name = node.name
-            # Magic dunder methods are always protected.
             if re.match(r"^__.*__$", name):
                 out.add(name)
                 continue
-            # Private helpers (single leading underscore) are allowed to be aliased.
             if name.startswith("_"):
                 continue
-            # Public APIs are protected by default, including test entry points.
             out.add(name)
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -200,7 +176,6 @@ def encode_exact_aliases(
     min_net_gain: int = 1,
     alias_style: str = "short",
 ) -> ACodecResult:
-    """Encode variable/attribute + exact-like string literals using local aliases."""
     try:
         toks = list(tokenize.generate_tokens(io.StringIO(text).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError):
@@ -221,8 +196,7 @@ def encode_exact_aliases(
             occ[(field, tstr)].append((st, ed))
             prev_is_dot = False
         elif ttype == tokenize.STRING:
-            kind = classify_string_kind(tstr, route_cfg)
-            if kind == "A":
+            if classify_string_kind(tstr, route_cfg) == "A":
                 st = _pos_to_offset(line_starts, tok.start)
                 ed = _pos_to_offset(line_starts, tok.end)
                 occ[("string", tstr)].append((st, ed))
@@ -236,18 +210,13 @@ def encode_exact_aliases(
     alias_style = (alias_style or "").strip().lower()
     if alias_style not in {"short", "mnemonic"}:
         alias_style = "short"
-
-    alias_iter_idx = 0  # for short style only
+    alias_iter_idx = 0
     short_alias_alphabet: list[str] = []
     mnemonic_alias_alphabet_by_prefix: dict[str, list[str]] = {}
     mnemonic_cursor_by_prefix: defaultdict[str, int] = defaultdict(int)
     if alias_style == "short":
-        short_alias_alphabet = build_alias_alphabet(
-            tokenizer,
-            tok_type,
-            style="short",
-            max_n=256,
-        )
+        short_alias_alphabet = build_alias_alphabet(tokenizer, tok_type, style="short", max_n=256)
+
     selected: dict[tuple[str, str], str] = {}
     entries: list[AEntry] = []
     for key, spans in sorted(occ.items(), key=lambda kv: len(kv[1]), reverse=True):
@@ -259,11 +228,7 @@ def encode_exact_aliases(
             prefix = _sanitize_prefix(literal)
             if prefix not in mnemonic_alias_alphabet_by_prefix:
                 mnemonic_alias_alphabet_by_prefix[prefix] = build_alias_alphabet(
-                    tokenizer,
-                    tok_type,
-                    style="mnemonic",
-                    prefix=prefix,
-                    max_n=256,
+                    tokenizer, tok_type, style="mnemonic", prefix=prefix, max_n=256
                 )
             cursor = mnemonic_cursor_by_prefix[prefix]
             alias_base = (
@@ -273,47 +238,22 @@ def encode_exact_aliases(
             )
         else:
             cursor = alias_iter_idx
-            alias_base = (
-                short_alias_alphabet[cursor]
-                if cursor < len(short_alias_alphabet)
-                else f"__ab{cursor}"
-            )
+            alias_base = short_alias_alphabet[cursor] if cursor < len(short_alias_alphabet) else f"__ab{cursor}"
+
         alias_surface = alias_base if field != "string" else repr(alias_base)
         raw_cost = _token_len(tokenizer, tok_type, literal)
         alias_cost = _token_len(tokenizer, tok_type, alias_surface)
-        intro_entry = {
-            "token": alias_surface,
-            "kind": "stage3_ab_a_alias",
-            "field": field,
-            "definition": literal,
-        }
-        intro_cost = compute_vocab_intro_cost(
-            [intro_entry],
-            mode=VOCAB_COST_MODE,
-            tokenizer=tokenizer,
-            tok_type=tok_type,
-        )
+        intro_entry = {"token": alias_surface, "kind": "stage3_ab_a_alias", "field": field, "definition": literal}
+        intro_cost = compute_vocab_intro_cost([intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type)
         gain = count * (raw_cost - alias_cost) - intro_cost
         if gain < int(min_net_gain):
             continue
-        # Only advance alias cursors after we accept the alias candidate.
         if alias_style == "mnemonic":
             mnemonic_cursor_by_prefix[prefix] += 1
         else:
             alias_iter_idx += 1
         selected[key] = alias_surface
-        entries.append(
-            AEntry(
-                field=field,
-                literal=literal,
-                alias=alias_surface,
-                count=count,
-                raw_cost=raw_cost,
-                alias_cost=alias_cost,
-                intro_cost=intro_cost,
-                gain=gain,
-            )
-        )
+        entries.append(AEntry(field=field, literal=literal, alias=alias_surface, count=count, raw_cost=raw_cost, alias_cost=alias_cost, intro_cost=intro_cost, gain=gain))
 
     spans_all: list[tuple[int, int, str]] = []
     for key, alias in selected.items():
@@ -321,15 +261,7 @@ def encode_exact_aliases(
             spans_all.append((st, ed, alias))
     encoded = _apply_spans(text, spans_all) if spans_all else text
 
-    vocab_entries = [
-        {
-            "token": e.alias,
-            "kind": "stage3_ab_a_alias",
-            "field": e.field,
-            "definition": e.literal,
-        }
-        for e in entries
-    ]
+    vocab_entries = [{"token": e.alias, "kind": "stage3_ab_a_alias", "field": e.field, "definition": e.literal} for e in entries]
     seq_saved = sum(e.count * max(0, e.raw_cost - e.alias_cost) for e in entries)
     intro = sum(e.intro_cost for e in entries)
     return ACodecResult(
@@ -346,7 +278,6 @@ def encode_exact_aliases(
 
 
 def decode_exact_aliases(text: str, entries: list[AEntry]) -> str:
-    """Exact decode for A channel aliases."""
     if not entries:
         return text
     name_map: dict[str, str] = {}
@@ -373,3 +304,4 @@ def decode_exact_aliases(text: str, entries: list[AEntry]) -> str:
             ed = _pos_to_offset(line_starts, tok.end)
             spans.append((st, ed, rep))
     return _apply_spans(text, spans)
+

@@ -28,17 +28,17 @@ class PlanAStage3Backend:
     ) -> Stage3EncodeResult:
         books = load_plan_a_codebooks(repo_config)
         if not books:
-            return Stage3EncodeResult(encoded_text=text, vocab_entries=[], meta={})
+            return Stage3EncodeResult(encoded_text=text, vocab_entries=[], metrics={})
 
         esc = getattr(repo_config, "stage3_escape_prefix", "__L__")
         encoded = encode_python_source_plan_a(text, books, escape_prefix=esc)
 
         used = extract_used_plan_a_entries(encoded, books, esc)
         entries = build_used_plan_a_vocab_entries(books, used, escape_prefix=esc)
-        meta = {
+        metrics = {
             "stage3_plan_a_used_count": len(used),
         }
-        return Stage3EncodeResult(encoded_text=encoded, vocab_entries=entries, meta=meta)
+        return Stage3EncodeResult(encoded_text=encoded, vocab_entries=entries, metrics=metrics)
 
     def compute_intro_cost(
         self,

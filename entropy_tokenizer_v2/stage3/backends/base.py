@@ -13,8 +13,8 @@ class Stage3EncodeResult:
     # Entries that feed `compute_vocab_intro_cost`.
     # Shape is token/definition compatible with placeholder_accounting.
     vocab_entries: list[dict[str, Any]]
-    # Extra backend-specific meta for diagnostics (not required for accounting).
-    meta: dict[str, Any]
+    # Extra backend-specific metrics for diagnostics (not required for accounting).
+    metrics: dict[str, Any]
 
 
 class Stage3Backend(Protocol):

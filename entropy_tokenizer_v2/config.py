@@ -84,6 +84,17 @@ STAGE3_AB_A_MIN_NET_GAIN = int(os.getenv("ET_STAGE3_AB_A_MIN_NET_GAIN", "1"))
 STAGE3_AB_A_ALIAS_STYLE = os.getenv("ET_STAGE3_AB_A_ALIAS_STYLE", "short").strip().lower()
 if STAGE3_AB_A_ALIAS_STYLE not in {"short", "mnemonic"}:
     STAGE3_AB_A_ALIAS_STYLE = "short"
+STAGE3_AB_SHORT_STRING_POLICY = os.getenv(
+    "ET_STAGE3_AB_SHORT_STRING_POLICY",
+    "exact_candidate",
+).strip().lower()
+if STAGE3_AB_SHORT_STRING_POLICY not in {"fallback", "exact_candidate"}:
+    STAGE3_AB_SHORT_STRING_POLICY = "exact_candidate"
+STAGE3_AB_A_ALIAS_CANDIDATE_STYLE = os.getenv(
+    "ET_STAGE3_AB_A_ALIAS_CANDIDATE_STYLE",
+    "token_cost_sorted",
+).strip().lower()
+STAGE3_AB_A_ALIAS_CACHE_DIR = str(CACHE_DIR / "alias_alphabets")
 STAGE3_AB_KEY_LIKE_PATTERNS = tuple(
     x.strip()
     for x in os.getenv(
@@ -128,7 +139,24 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
             os.getenv("ET_STAGE3_AB_A_MIN_NET_GAIN", str(STAGE3_AB_A_MIN_NET_GAIN))
         ),
         "a_alias_style": os.getenv("ET_STAGE3_AB_A_ALIAS_STYLE", STAGE3_AB_A_ALIAS_STYLE),
+        "short_string_policy": os.getenv(
+            "ET_STAGE3_AB_SHORT_STRING_POLICY",
+            STAGE3_AB_SHORT_STRING_POLICY,
+        ).strip().lower(),
+        "a_alias_candidate_style": os.getenv(
+            "ET_STAGE3_AB_A_ALIAS_CANDIDATE_STYLE",
+            STAGE3_AB_A_ALIAS_CANDIDATE_STYLE,
+        ).strip().lower(),
+        "a_alias_cache_dir": os.getenv(
+            "ET_STAGE3_AB_A_ALIAS_CACHE_DIR",
+            STAGE3_AB_A_ALIAS_CACHE_DIR,
+        ),
         "key_like_patterns": list(STAGE3_AB_KEY_LIKE_PATTERNS),
+        "stage3_ab_mode": mode,
+        "stage3_ab_similarity_kind": "lexical_bow_cosine",
+        "stage3_ab_b_mode": (
+            "lexical_free_text_baseline" if mode == "hybrid" and enable_b else "disabled"
+        ),
     }
 
 

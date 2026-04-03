@@ -11,14 +11,11 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
+from config import VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from .string_classifier import (
-    SemanticClassifierConfig,
-    is_semantic_free_text,
-)
-from config import VOCAB_COST_MODE
+from .string_classifier import SemanticClassifierConfig, is_semantic_free_text
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]+")
 
@@ -177,14 +174,7 @@ def encode_semantic_strings(
             continue
         for m in members:
             replacements[m] = code_surface
-        usable.append(
-            BCluster(
-                code=code_inner,
-                representative=inners[rep],
-                members=list(members),
-                avg_similarity=avg_sim,
-            )
-        )
+        usable.append(BCluster(code=code_inner, representative=inners[rep], members=list(members), avg_similarity=avg_sim))
         vocab_entries.append(intro_entry)
         seq_saved += raw_total - code_total
         intro += intro_cost
@@ -210,3 +200,4 @@ def encode_semantic_strings(
         avg_similarity=(sum(sim_values) / len(sim_values)) if sim_values else 0.0,
         vocab_entries=vocab_entries,
     )
+

@@ -1,7 +1,7 @@
 from config import EVAL_TOKENIZERS
 from repo_miner import _load_tokenizer
-from stage3.aliasing.alias_codec import decode_exact_aliases, encode_exact_aliases
-from stage3.router import ABRoutingConfig
+from stage3.exact.alias_codec import decode_exact_aliases, encode_exact_aliases
+from stage3.routing.router import ABRoutingConfig
 
 
 def test_alias_codec_selects_repeated_and_roundtrip():
