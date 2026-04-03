@@ -20,8 +20,6 @@ from pathlib import Path
 from typing import Any, Iterator
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from config import AST_MIN_FREQ, VOCAB_COST_MODE, VOCAB_COST_SCOPE
 from lossy_cleaner import lossless_clean

@@ -1,19 +1,7 @@
-from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[2]
-_S3 = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-if str(_S3) not in sys.path:
-    sys.path.insert(0, str(_S3))
-
 from config import EVAL_TOKENIZERS
 from repo_miner import _load_tokenizer
-from aliasing.alias_codec import decode_exact_aliases, encode_exact_aliases
-from router import ABRoutingConfig
+from stage3.aliasing.alias_codec import decode_exact_aliases, encode_exact_aliases
+from stage3.router import ABRoutingConfig
 
 
 def test_alias_codec_selects_repeated_and_roundtrip():

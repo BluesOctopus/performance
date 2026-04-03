@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from literal_codec.tokenizer.base import TokenizerAdapter
+from ..tokenizer.base import TokenizerAdapter
 
 
 @dataclass(slots=True)

@@ -1,14 +1,6 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[1]
-_EVAL = _ROOT / "eval"
-if str(_EVAL) not in sys.path:
-    sys.path.insert(0, str(_EVAL))
-
-from v2_eval import EvalResult
+from eval.v2_eval import EvalResult
 
 
 def test_eval_result_no_duplicate_sequence_fields():

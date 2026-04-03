@@ -10,6 +10,9 @@ try:
 except Exception:
     pass
 
+# huggingface_hub / transformers read HF_ENDPOINT; default mirror when unset (override in .env or shell).
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
 # Paths
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR     = Path(os.getenv("ET_DATA_DIR", PROJECT_ROOT / "data"))

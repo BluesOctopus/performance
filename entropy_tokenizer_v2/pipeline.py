@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import ast
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from config import (
@@ -33,13 +31,6 @@ from token_scorer import (
     build_stage3_vocab_entries_from_used_placeholders,
     collect_used_stage3_placeholders,
 )
-
-
-def _ensure_stage3_pkg() -> None:
-    root = Path(__file__).resolve().parent / "stage3"
-    s = str(root)
-    if s not in sys.path:
-        sys.path.insert(0, s)
 
 
 @dataclass
@@ -122,8 +113,9 @@ def _stage3_vocab_intro(repo_config, after_s3_text: str, tokenizer, tok_type: st
 
         from repo_miner import load_plan_a_codebooks
 
-        _ensure_stage3_pkg()
-        from literal_codec.pipeline.source_codec import extract_used_plan_a_entries
+        from stage3.literal_codec.pipeline.source_codec import (
+            extract_used_plan_a_entries,
+        )
 
         codebooks = load_plan_a_codebooks(repo_config)
         if not codebooks:
@@ -336,8 +328,9 @@ def apply_stage2(
 def apply_stage3(text: str, repo_config, tokenizer=None, tok_type: str | None = None) -> str:
     backend = getattr(repo_config, "stage3_backend", "legacy")
     if backend == "plan_a":
-        _ensure_stage3_pkg()
-        from literal_codec.pipeline.source_codec import encode_python_source_plan_a
+        from stage3.literal_codec.pipeline.source_codec import (
+            encode_python_source_plan_a,
+        )
 
         from repo_miner import load_plan_a_codebooks
 
@@ -349,8 +342,11 @@ def apply_stage3(text: str, repo_config, tokenizer=None, tok_type: str | None = 
     if backend == "hybrid_ab":
         if tokenizer is None or not tok_type:
             return text
-        _ensure_stage3_pkg()
-        from hybrid_ab import HybridABConfig, encode_stage3_hybrid_ab, summary_dict
+        from stage3.hybrid_ab import (
+            HybridABConfig,
+            encode_stage3_hybrid_ab,
+            summary_dict,
+        )
 
         cfg_raw = dict(getattr(repo_config, "stage3_ab_summary", {}) or {})
         if not cfg_raw:

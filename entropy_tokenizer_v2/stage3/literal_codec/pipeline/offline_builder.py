@@ -8,19 +8,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from literal_codec.codebook.assigner import GreedyPrefixFreeAssigner
-from literal_codec.codebook.decoder import FieldDecoder
-from literal_codec.codebook.encoder import FieldEncoder
-from literal_codec.codebook.models import codebook_to_dict
-from literal_codec.config import CompressionConfig
-from literal_codec.pipeline.report import field_report, summary_report
-from literal_codec.stats.field_profile import FieldProfiler
-from literal_codec.tokenizer.base import TokenizerAdapter
-from literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
-from literal_codec.tokenizer.optional_tiktoken_adapter import OptionalTiktokenAdapter
-from literal_codec.types import FieldBuildResult, FieldCodebook
-from literal_codec.utils.io import read_csv_records, write_json
-from literal_codec.utils.logging_utils import setup_logging
+from ..codebook.assigner import GreedyPrefixFreeAssigner
+from ..codebook.decoder import FieldDecoder
+from ..codebook.encoder import FieldEncoder
+from ..codebook.models import codebook_to_dict
+from ..config import CompressionConfig
+from .report import field_report, summary_report
+from ..stats.field_profile import FieldProfiler
+from ..tokenizer.base import TokenizerAdapter
+from ..tokenizer.mock_tokenizer import MockTokenizerAdapter
+from ..tokenizer.optional_tiktoken_adapter import OptionalTiktokenAdapter
+from ..types import FieldBuildResult, FieldCodebook
+from ..utils.io import read_csv_records, write_json
+from ..utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 

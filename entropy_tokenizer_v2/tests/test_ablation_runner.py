@@ -17,7 +17,8 @@ def test_ablation_runner_generates_complete_deterministic_table(tmp_path) -> Non
     j3b = tmp_path / "s3v2.json"
     cmd1 = [
         sys.executable,
-        "scripts/run_ablation.py",
+        "-m",
+        "scripts.run_ablation",
         "--summary-output",
         str(summary1),
         "--per-file-output",
@@ -31,7 +32,8 @@ def test_ablation_runner_generates_complete_deterministic_table(tmp_path) -> Non
     ]
     cmd2 = [
         sys.executable,
-        "scripts/run_ablation.py",
+        "-m",
+        "scripts.run_ablation",
         "--summary-output",
         str(summary2),
         "--per-file-output",

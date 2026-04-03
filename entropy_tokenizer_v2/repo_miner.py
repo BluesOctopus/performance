@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, Optional
@@ -96,14 +95,6 @@ class RepoConfig:
         return cls(**{k: v for k, v in d.items() if k in valid})
 
 
-def _ensure_stage3_sys_path() -> Path:
-    root = Path(__file__).resolve().parent / "stage3"
-    s = str(root)
-    if s not in sys.path:
-        sys.path.insert(0, s)
-    return root
-
-
 def load_plan_a_codebooks(repo_config: RepoConfig) -> dict:
     """Deserialize Plan A field codebooks (cached on *repo_config*)."""
     if getattr(repo_config, "stage3_backend", "legacy") != "plan_a":
@@ -114,8 +105,7 @@ def load_plan_a_codebooks(repo_config: RepoConfig) -> dict:
     cached = getattr(repo_config, "_plan_a_codebooks_obj", None)
     if cached is not None:
         return cached
-    _ensure_stage3_sys_path()
-    from literal_codec.codebook.models import codebook_from_dict
+    from stage3.literal_codec.codebook.models import codebook_from_dict
 
     out = {k: codebook_from_dict(v) for k, v in raw.items()}
     setattr(repo_config, "_plan_a_codebooks_obj", out)
@@ -243,8 +233,7 @@ def mine_repo(
     if backend == "plan_a":
         if verbose:
             print("[repo_miner] Stage 3 Plan A - mining literal codebooks ...")
-        _ensure_stage3_sys_path()
-        from literal_codec.pipeline.source_mining import (
+        from stage3.literal_codec.pipeline.source_mining import (
             mine_plan_a_from_sources,
             plan_a_summary_dict,
             serialize_plan_a_codebooks,

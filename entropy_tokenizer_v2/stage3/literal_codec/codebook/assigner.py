@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from literal_codec.codebook.candidate_pool import CandidatePoolGenerator
-from literal_codec.codebook.optimizer import BaseCodeAssigner
-from literal_codec.codebook.prefix_constraints import PrefixConstraintChecker
-from literal_codec.config import AssignmentConfig, CandidateSearchConfig
-from literal_codec.pipeline.surface_cost import encoded_form_token_cost
-from literal_codec.tokenizer.base import TokenizerAdapter
-from literal_codec.types import CodeAssignment, FieldCodebook, FieldProfile
+from .candidate_pool import CandidatePoolGenerator
+from .optimizer import BaseCodeAssigner
+from .prefix_constraints import PrefixConstraintChecker
+from ..config import AssignmentConfig, CandidateSearchConfig
+from ..pipeline.surface_cost import encoded_form_token_cost
+from ..tokenizer.base import TokenizerAdapter
+from ..types import CodeAssignment, FieldCodebook, FieldProfile
 
 
 @dataclass(slots=True)

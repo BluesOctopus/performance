@@ -14,7 +14,7 @@ from typing import Any
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from semantic_cluster.string_classifier import (
+from .string_classifier import (
     SemanticClassifierConfig,
     is_semantic_free_text,
 )

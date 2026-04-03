@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-STAGE3 = ROOT / "stage3"
-if str(STAGE3) not in sys.path:
-    sys.path.insert(0, str(STAGE3))
-
-from literal_codec.pipeline.source_mining import collect_category_literal_streams
-from literal_codec.pipeline.surface_cost import encoded_form_token_cost, surface_text_for_code
-from literal_codec.pipeline.source_codec import (
+from stage3.literal_codec.pipeline.source_mining import (
+    collect_category_literal_streams,
+)
+from stage3.literal_codec.pipeline.surface_cost import (
+    encoded_form_token_cost,
+    surface_text_for_code,
+)
+from stage3.literal_codec.pipeline.source_codec import (
     _encode_string_token,
     extract_used_plan_a_entries,
 )
-from literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
-from literal_codec.types import CodeAssignment, FieldCodebook, FieldProfile, LiteralStat
+from stage3.literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
+from stage3.literal_codec.types import (
+    CodeAssignment,
+    FieldCodebook,
+    FieldProfile,
+    LiteralStat,
+)
 
 from placeholder_accounting import build_plan_a_vocab_entries, build_used_plan_a_vocab_entries
 

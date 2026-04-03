@@ -1,7 +1,7 @@
 """Codebook construction and encoding/decoding."""
 
-from literal_codec.codebook.assigner import GreedyPrefixFreeAssigner
-from literal_codec.codebook.encoder import FieldEncoder
-from literal_codec.codebook.decoder import FieldDecoder
+from .assigner import GreedyPrefixFreeAssigner
+from .encoder import FieldEncoder
+from .decoder import FieldDecoder
 
 __all__ = ["GreedyPrefixFreeAssigner", "FieldEncoder", "FieldDecoder"]

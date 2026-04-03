@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-STAGE3 = ROOT / "stage3"
-if str(STAGE3) not in sys.path:
-    sys.path.insert(0, str(STAGE3))
-
-from literal_codec.types import CodeAssignment, FieldCodebook
-from literal_codec.pipeline.source_codec import (
+from stage3.literal_codec.types import CodeAssignment, FieldCodebook
+from stage3.literal_codec.pipeline.source_codec import (
     decode_python_source_plan_a,
     encode_python_source_plan_a,
     verify_roundtrip_plan_a,

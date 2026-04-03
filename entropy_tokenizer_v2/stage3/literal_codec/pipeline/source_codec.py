@@ -22,8 +22,8 @@ from typing import Optional
 
 import builtins
 
-from literal_codec.pipeline.surface_cost import surface_text_for_code
-from literal_codec.types import FieldCodebook
+from .surface_cost import surface_text_for_code
+from ..types import FieldCodebook
 
 from token_scorer import _has_overlap, _line_start_offsets, _pos_to_offset
 

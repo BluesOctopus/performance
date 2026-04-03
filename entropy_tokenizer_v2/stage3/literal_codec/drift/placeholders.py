@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from literal_codec.drift.base import CodebookSwitchPolicy, DriftDetector, SemanticLossModel
+from .base import CodebookSwitchPolicy, DriftDetector, SemanticLossModel
 
 
 class ZeroSemanticLossModel(SemanticLossModel):

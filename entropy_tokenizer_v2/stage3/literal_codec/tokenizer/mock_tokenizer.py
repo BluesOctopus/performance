@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from literal_codec.tokenizer.base import TokenizerAdapter
+from .base import TokenizerAdapter
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z]+|[0-9]+|_+|[^A-Za-z0-9_\s]")
 

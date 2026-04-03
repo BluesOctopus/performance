@@ -2,14 +2,7 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
-from literal_codec.pipeline.string_filter import (
+from stage3.literal_codec.pipeline.string_filter import (
     StringFilterConfig,
     string_literal_should_drop,
 )

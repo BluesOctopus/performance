@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from literal_codec.types import FieldCodebook
+from ..types import FieldCodebook
 
 
 @dataclass(slots=True)

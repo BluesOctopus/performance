@@ -164,13 +164,9 @@ def build_used_plan_a_vocab_entries(
     for STRING tokens, e.g. ``'\"x\"'``).
     *token* is the real compressed surface form (NAME or STRING token text).
     """
-    import sys
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parent / "stage3"
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
-    from literal_codec.pipeline.surface_cost import surface_text_for_code
+    from stage3.literal_codec.pipeline.surface_cost import (
+        surface_text_for_code,
+    )
 
     entries: list[dict] = []
     seen: set[tuple[str, str]] = set()

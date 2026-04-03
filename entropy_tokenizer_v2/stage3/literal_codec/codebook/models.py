@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from literal_codec.types import CodeAssignment, FieldCodebook
+from ..types import CodeAssignment, FieldCodebook
 
 
 def codebook_to_dict(codebook: FieldCodebook) -> dict:

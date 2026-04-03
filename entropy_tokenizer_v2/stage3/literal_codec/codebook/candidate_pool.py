@@ -5,8 +5,8 @@ from __future__ import annotations
 import heapq
 from dataclasses import dataclass
 
-from literal_codec.config import CandidateSearchConfig
-from literal_codec.tokenizer.base import TokenizerAdapter
+from ..config import CandidateSearchConfig
+from ..tokenizer.base import TokenizerAdapter
 
 
 @dataclass(slots=True, frozen=True)

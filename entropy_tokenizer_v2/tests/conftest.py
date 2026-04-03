@@ -1,7 +1,5 @@
-import sys
-from pathlib import Path
+"""Test configuration.
 
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+We rely on stable import paths (e.g. `eval.v2_eval`, `stage3.*`) and do not
+modify `sys.path` at runtime.
+"""

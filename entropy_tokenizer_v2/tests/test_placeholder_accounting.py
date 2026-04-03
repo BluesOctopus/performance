@@ -139,7 +139,8 @@ def test_stage1_vocab_json_stable(tmp_path) -> None:
     j2 = tmp_path / "v2.json"
     cmd = [
         sys.executable,
-        "scripts/run_ablation.py",
+        "-m",
+        "scripts.run_ablation",
         "--summary-output",
         str(tmp_path / "s.csv"),
         "--per-file-output",

@@ -14,8 +14,6 @@ from io import StringIO
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from config import VOCAB_COST_MODE, VOCAB_COST_SCOPE
 from markers import make_syn_marker

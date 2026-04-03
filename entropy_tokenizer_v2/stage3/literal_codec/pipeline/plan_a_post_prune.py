@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
-from literal_codec.types import CodeAssignment, FieldBuildResult, FieldCodebook
-
-_PKG = Path(__file__).resolve().parents[3]
-if str(_PKG) not in sys.path:
-    sys.path.insert(0, str(_PKG))
+from ..types import CodeAssignment, FieldBuildResult, FieldCodebook
 
 
 def _single_entry_vocab_intro_tokens(
@@ -23,7 +17,7 @@ def _single_entry_vocab_intro_tokens(
 ) -> int:
     from config import VOCAB_COST_MODE
     from placeholder_accounting import compute_vocab_intro_cost
-    from literal_codec.pipeline.surface_cost import surface_text_for_code
+    from .surface_cost import surface_text_for_code
 
     surface = surface_text_for_code(field, code, escape_prefix)
     entries = [

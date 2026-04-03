@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from literal_codec.tokenizer.base import TokenizerAdapter
-from literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
+from .base import TokenizerAdapter
+from .mock_tokenizer import MockTokenizerAdapter
 
 
 @dataclass(slots=True)

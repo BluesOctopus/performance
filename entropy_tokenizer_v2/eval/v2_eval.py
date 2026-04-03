@@ -5,24 +5,15 @@ import json
 import math
 import os
 import re
-import sys
 from collections import Counter
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Optional
 
 from tqdm.auto import tqdm
 
-import bootstrap_v2
+from . import bootstrap_v2
 
 bootstrap_v2.ensure()
-
-
-def _ensure_stage3_pkg() -> None:
-    root = Path(__file__).resolve().parents[1] / "stage3"
-    s = str(root)
-    if s not in sys.path:
-        sys.path.insert(0, s)
 
 from config import (
     CACHE_DIR,
@@ -243,8 +234,9 @@ def evaluate(
                     legacy_seen.add(ph)
                     legacy_stage3_used.append(ph)
         elif backend == "plan_a" and plan_books:
-            _ensure_stage3_pkg()
-            from literal_codec.pipeline.source_codec import extract_used_plan_a_entries
+            from stage3.literal_codec.pipeline.source_codec import (
+                extract_used_plan_a_entries,
+            )
 
             plan_a_used_union |= extract_used_plan_a_entries(compressed, plan_books, plan_esc)
         elif backend == "hybrid_ab":

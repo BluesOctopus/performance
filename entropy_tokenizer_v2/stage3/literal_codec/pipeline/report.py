@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from literal_codec.types import FieldBuildResult
+from ..types import FieldBuildResult
 
 
 def field_report(result: FieldBuildResult) -> dict:

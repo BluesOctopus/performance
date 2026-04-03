@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from literal_codec.codebook.trie import PrefixFreeTrie
+from .trie import PrefixFreeTrie
 
 
 @dataclass(slots=True)

@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
-
-    from literal_codec.config import CompressionConfig
-    from literal_codec.pipeline.offline_builder import OfflineCodebookBuilder
-    from literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
+    from stage3.literal_codec.config import CompressionConfig
+    from stage3.literal_codec.pipeline.offline_builder import OfflineCodebookBuilder
+    from stage3.literal_codec.tokenizer.mock_tokenizer import MockTokenizerAdapter
 
     csv_path = root / "examples" / "sample_literals.csv"
     output_dir = root / "artifacts"

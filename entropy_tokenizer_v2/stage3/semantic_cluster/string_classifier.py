@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from router import ABRoutingConfig, classify_string_kind
+from ..router import ABRoutingConfig, classify_string_kind
 
 
 @dataclass(slots=True)

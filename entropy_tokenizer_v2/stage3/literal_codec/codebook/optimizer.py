@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from literal_codec.types import FieldCodebook, FieldProfile
+from ..types import FieldCodebook, FieldProfile
 
 
 class BaseCodeAssigner(ABC):

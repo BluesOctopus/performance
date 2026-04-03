@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parents[1]
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
-from literal_codec.pipeline.plan_a_post_prune import prune_plan_a_field_results
+from stage3.literal_codec.pipeline.plan_a_post_prune import (
+    prune_plan_a_field_results,
+)
 
 
 def test_prune_disabled_returns_input():

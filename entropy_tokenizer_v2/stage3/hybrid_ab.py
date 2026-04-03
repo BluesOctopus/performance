@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from aliasing.alias_codec import ACodecResult, decode_exact_aliases, encode_exact_aliases
-from router import ABRoutingConfig
-from semantic_cluster.semantic_codec import (
+from .aliasing.alias_codec import ACodecResult, decode_exact_aliases, encode_exact_aliases
+from .router import ABRoutingConfig
+from .semantic_cluster.semantic_codec import (
     BCodecResult,
     SemanticClassifierConfig,
     encode_semantic_strings,

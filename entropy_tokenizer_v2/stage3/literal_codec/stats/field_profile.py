@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from literal_codec.config import SmoothingConfig
-from literal_codec.stats.entropy import entropy_bits, surprisal_bits
-from literal_codec.stats.frequency import count_literals, empirical_distribution, lidstone_distribution
-from literal_codec.tokenizer.base import TokenizerAdapter
-from literal_codec.types import FieldProfile, LiteralStat
+from ..config import SmoothingConfig
+from .entropy import entropy_bits, surprisal_bits
+from .frequency import (
+    count_literals,
+    empirical_distribution,
+    lidstone_distribution,
+)
+from ..tokenizer.base import TokenizerAdapter
+from ..types import FieldProfile, LiteralStat
 
 
 @dataclass(slots=True)

@@ -7,7 +7,7 @@ Real **surface form** token costs for Plan A (must match ``source_codec`` output
 
 from __future__ import annotations
 
-from literal_codec.tokenizer.base import TokenizerAdapter
+from ..tokenizer.base import TokenizerAdapter
 
 FIELD_TAG = {"variable": "V", "attribute": "A", "string": "S"}
 

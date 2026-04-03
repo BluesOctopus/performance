@@ -6,7 +6,7 @@ import ast
 import re
 from dataclasses import dataclass
 
-from rules import RE_IDENTIFIER_LIKE, RE_PATH_LIKE, RE_REGEX_LIKE, RE_URL
+from .rules import RE_IDENTIFIER_LIKE, RE_PATH_LIKE, RE_REGEX_LIKE, RE_URL
 
 
 @dataclass(slots=True)

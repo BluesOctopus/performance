@@ -16,7 +16,7 @@ import builtins
 from placeholder_accounting import compute_vocab_intro_cost
 from token_scorer import _line_start_offsets, _pos_to_offset
 
-from router import ABRoutingConfig, classify_string_kind
+from ..router import ABRoutingConfig, classify_string_kind
 from config import VOCAB_COST_MODE
 
 _PROTECTED = set(keyword.kwlist) | set(dir(builtins)) | {"self", "cls", "True", "False", "None"}

@@ -1,13 +1,6 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_S3 = Path(__file__).resolve().parents[1]
-if str(_S3) not in sys.path:
-    sys.path.insert(0, str(_S3))
-
-from router import (
+from stage3.router import (
     ABRoutingConfig,
     classify_string_kind,
     classify_string_with_reason,

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
-import sys
 
 from config import EVAL_TOKENIZERS
 from marker_count import encode as _encode
@@ -14,10 +13,7 @@ from validate.compare_answers import compare_smoke_payload
 from validate.llm_smoke import run_llm_smoke
 
 _ROOT = Path(__file__).resolve().parents[1]
-_EVAL = _ROOT / "eval"
-if str(_EVAL) not in sys.path:
-    sys.path.insert(0, str(_EVAL))
-from v2_eval import apply_v2_compression
+from eval.v2_eval import apply_v2_compression
 
 
 def run_validate_smoke(

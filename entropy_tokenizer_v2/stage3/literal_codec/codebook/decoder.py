@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from literal_codec.exceptions import DecodeError
-from literal_codec.types import FieldCodebook
+from ..exceptions import DecodeError
+from ..types import FieldCodebook
 
 
 @dataclass(slots=True)

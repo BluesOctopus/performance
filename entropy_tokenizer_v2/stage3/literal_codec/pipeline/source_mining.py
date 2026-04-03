@@ -12,21 +12,26 @@ from typing import Any
 
 import builtins
 
-from literal_codec.codebook.models import codebook_to_dict
-from literal_codec.codebook.assigner import GreedyPrefixFreeAssigner
-from literal_codec.config import AssignmentConfig, CandidateSearchConfig, CompressionConfig, SmoothingConfig
-from literal_codec.stats.field_profile import FieldProfiler
-from literal_codec.tokenizer.base import TokenizerAdapter
-from literal_codec.types import FieldBuildResult, FieldCodebook
+from ..codebook.models import codebook_to_dict
+from ..codebook.assigner import GreedyPrefixFreeAssigner
+from ..config import (
+    AssignmentConfig,
+    CandidateSearchConfig,
+    CompressionConfig,
+    SmoothingConfig,
+)
+from ..stats.field_profile import FieldProfiler
+from ..tokenizer.base import TokenizerAdapter
+from ..types import FieldBuildResult, FieldCodebook
 
-from literal_codec.pipeline.report import field_report, summary_report
-from literal_codec.pipeline.string_filter import (
+from .report import field_report, summary_report
+from .string_filter import (
     StringFilterConfig,
     StringFilterDiagnostics,
     filter_string_occurrences,
 )
-from literal_codec.pipeline.plan_a_post_prune import prune_plan_a_field_results
-from literal_codec.pipeline.v2_token_adapter import V2TokenizerAdapter
+from .plan_a_post_prune import prune_plan_a_field_results
+from .v2_token_adapter import V2TokenizerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -359,7 +364,7 @@ def serialize_plan_a_codebooks(codebooks: dict[str, FieldCodebook]) -> dict[str,
 
 
 def deserialize_plan_a_codebooks(data: dict[str, Any]) -> dict[str, FieldCodebook]:
-    from literal_codec.codebook.models import codebook_from_dict
+    from ..codebook.models import codebook_from_dict
 
     return {k: codebook_from_dict(v) for k, v in data.items()}
 
