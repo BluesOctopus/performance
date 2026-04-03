@@ -16,9 +16,8 @@ class ABRoutingConfig:
     free_text_min_chars: int = 24
     free_text_min_words: int = 4
     fallback_unknown: bool = True
-    key_like_patterns: tuple[str, ...] = (
-        r"(?:^|[_\-.])(key|id|name|type|path|url|config|option|field)(?:$|[_\-.])",
-    )
+    # Fully configurable key-like regex patterns; default is empty (no implicit A).
+    key_like_patterns: tuple[str, ...] = ()
 
 
 def _inner_string(token_spelling: str) -> str | None:
@@ -64,8 +63,6 @@ def classify_string_kind(token_spelling: str, cfg: ABRoutingConfig) -> str:
                 return "A"
         except re.error:
             continue
-    if len(s) <= 2:
-        return "fallback"
     words = s.split()
     # free-text signal: enough words + has whitespace + not symbol-heavy
     punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
@@ -101,6 +98,8 @@ def classify_string_with_reason(token_spelling: str, cfg: ABRoutingConfig) -> tu
                 return "A", "key_like"
         except re.error:
             continue
+    if len(s) <= 2:
+        return "fallback", "short_literal"
     words = s.split()
     punct = sum(1 for ch in s if not ch.isalnum() and not ch.isspace())
     if (

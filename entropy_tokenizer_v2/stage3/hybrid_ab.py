@@ -52,7 +52,7 @@ def encode_stage3_hybrid_ab(
         free_text_min_chars=conf.free_text_min_chars,
         free_text_min_words=conf.free_text_min_words,
         fallback_unknown=True,
-        key_like_patterns=conf.key_like_patterns or ABRoutingConfig().key_like_patterns,
+        key_like_patterns=conf.key_like_patterns,
     )
     a_res = encode_exact_aliases(
         text,
