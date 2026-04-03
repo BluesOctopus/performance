@@ -81,11 +81,16 @@ def _collect_ast_protected_names(text: str) -> set[str]:
         return out
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            out.add(node.name)
-            if node.name.startswith("test_"):
-                out.add(node.name)
-            if re.match(r"^__.*__$", node.name):
-                out.add(node.name)
+            name = node.name
+            # Magic dunder methods are always protected.
+            if re.match(r"^__.*__$", name):
+                out.add(name)
+                continue
+            # Private helpers (single leading underscore) are allowed to be aliased.
+            if name.startswith("_"):
+                continue
+            # Public APIs are protected by default, including test entry points.
+            out.add(name)
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             for target in node.targets:
@@ -94,8 +99,6 @@ def _collect_ast_protected_names(text: str) -> set[str]:
                         for elt in node.value.elts:
                             if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
                                 out.add(elt.value)
-        elif isinstance(node, ast.Name) and node.id in {"main", "cli_main", "run_main"}:
-            out.add(node.id)
     return out
 
 

@@ -57,6 +57,26 @@ def test_alias_codec_protects_top_level_symbols():
     assert "ExportedClass" in res.encoded_text
 
 
+def test_alias_codec_private_helper_can_be_aliased():
+    tok, tt = _load_tokenizer("gpt4", EVAL_TOKENIZERS["gpt4"])
+    text = (
+        "def _private_helper():\n"
+        "    return 1\n"
+        "\n"
+        + "\n".join([f"x{i} = _private_helper()" for i in range(10)])
+        + "\n"
+    )
+    res = encode_exact_aliases(
+        text,
+        tokenizer=tok,
+        tok_type=tt,
+        route_cfg=ABRoutingConfig(),
+        min_net_gain=-10**9,
+    )
+    assert any(e.literal == "_private_helper" for e in res.entries)
+    assert "__ab" in res.encoded_text
+
+
 def test_alias_codec_mnemonic_style_prefix():
     tok, tt = _load_tokenizer("gpt4", EVAL_TOKENIZERS["gpt4"])
     text = (
