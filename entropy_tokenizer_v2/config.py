@@ -115,9 +115,12 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
     sim_default = 0.84 if tok == "gpt4" else STAGE3_AB_B_SIMILARITY_THRESHOLD
     risk_default = 0.74 if tok == "gpt4" else STAGE3_AB_B_RISK_THRESHOLD
     mode_default = "exact_only"
-    mode = (STAGE3_AB_MODE or mode_default).strip().lower()
-    if mode not in {"exact_only", "hybrid"}:
-        mode = mode_default
+    # Read mode from the environment on each call so subprocess-free tests and
+    # validate smoke can switch exact_only vs hybrid without reloading config.
+    mode_env = os.getenv("ET_STAGE3_AB_MODE", "").strip().lower()
+    if not mode_env:
+        mode_env = (STAGE3_AB_MODE or "").strip().lower()
+    mode = mode_env if mode_env in {"exact_only", "hybrid"} else mode_default
     enable_b = os.getenv("ET_STAGE3_AB_ENABLE_B", "1" if STAGE3_AB_ENABLE_B else "0")
     enable_b = enable_b.lower() in ("1", "true", "yes")
     if mode != "hybrid":
