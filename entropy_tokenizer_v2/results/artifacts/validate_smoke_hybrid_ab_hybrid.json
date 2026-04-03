@@ -1,0 +1,337 @@
+{
+  "meta": {
+    "stage3_backend": "hybrid_ab",
+    "stage3_ab_mode": "hybrid",
+    "enable_b": true,
+    "tokenizer_key": "gpt4",
+    "max_samples": 6,
+    "stage2_profile": "stage2_aggressive",
+    "stage2_mode": "linewise"
+  },
+  "payload": {
+    "n_samples": 6,
+    "questions_per_sample": 3,
+    "samples": [
+      {
+        "sample_id": 0,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Paths, tokenizer presets, and hyperparameters for Stages 1–3.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Paths, tokenizer presets, and hyperparameters for Stages 1–3.\"\"\" ",
+            "answer": "code touches: Paths, tokenizer, presets, and, hyperparameters, for"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Paths"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Paths, tokenizer presets, and hyperparameters for Stages 1–3.\"\"\" ",
+            "answer": "code touches: Paths, tokenizer, presets, and, hyperparameters, for"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Paths"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      },
+      {
+        "sample_id": 1,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Stage 2: optional R01–R05 (comments, blanks, ws, docstrings, indent). R04/R05 are lossy.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Stage 2: optional R01–R05 (comments, blanks, ws, docstrings, indent). R04/R05 are lossy.\"\"\" ",
+            "answer": "code touches: Stage, optional, R01, R05, comments, blanks"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Stage"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Stage 2: optional R01–R05 (comments, blanks, ws, docstrings, indent). R04/R05 are lossy.\"\"\" ",
+            "answer": "code touches: Stage, optional, R01, R05, comments, blanks"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Stage"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      },
+      {
+        "sample_id": 2,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Shared marker regexes and detection helpers.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Shared marker regexes and detection helpers.\"\"\" ",
+            "answer": "code touches: Shared, marker, regexes, and, detection, helpers"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Shared"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "index"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Shared marker regexes and detection helpers.\"\"\" ",
+            "answer": "code touches: Shared, marker, regexes, and, detection, helpers"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Shared"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "index"
+          }
+        ]
+      },
+      {
+        "sample_id": 3,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Count tokenizer ids as if each placeholder were one token (unified accounting).\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Count tokenizer ids as if each placeholder were one token (unified accounting).\"\"\" ",
+            "answer": "code touches: Count, tokenizer, ids, each, placeholder, were"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Count"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Count tokenizer ids as if each placeholder were one token (unified accounting).\"\"\" ",
+            "answer": "code touches: Count, tokenizer, ids, each, placeholder, were"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Count"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      },
+      {
+        "sample_id": 4,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Core compression pipeline (Stage1 -> Stage2 -> Stage3).\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Core compression pipeline (Stage1 -> Stage2 -> Stage3).\"\"\" ",
+            "answer": "code touches: Core, compression, pipeline, Stage1, Stage2, Stage3"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Core"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Core compression pipeline (Stage1 -> Stage2 -> Stage3).\"\"\" ",
+            "answer": "code touches: Core, compression, pipeline, Stage1, Stage2, Stage3"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Core"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      },
+      {
+        "sample_id": 5,
+        "questions": [
+          {
+            "qtype": "code_qa",
+            "prompt": "Summarize what this code does in one short sentence: \"\"\"Unified placeholder-aware sequence counting and vocab introduction cost.\"\"\" "
+          },
+          {
+            "qtype": "variable_trace",
+            "prompt": "Name one variable that is assigned and later read."
+          },
+          {
+            "qtype": "bug_hint",
+            "prompt": "Give one potential bug risk keyword only."
+          }
+        ],
+        "raw_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Unified placeholder-aware sequence counting and vocab introduction cost.\"\"\" ",
+            "answer": "code touches: Unified, placeholder, aware, sequence, counting, and"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Unified"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ],
+        "compressed_answers": [
+          {
+            "qtype": "code_qa",
+            "question": "Summarize what this code does in one short sentence: \"\"\"Unified placeholder-aware sequence counting and vocab introduction cost.\"\"\" ",
+            "answer": "code touches: Unified, placeholder, aware, sequence, counting, and"
+          },
+          {
+            "qtype": "variable_trace",
+            "question": "Name one variable that is assigned and later read.",
+            "answer": "Unified"
+          },
+          {
+            "qtype": "bug_hint",
+            "question": "Give one potential bug risk keyword only.",
+            "answer": "none"
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "qa_overlap": 1.0,
+    "trace_f1": 1.0,
+    "bug_keyword_overlap": 1.0,
+    "rollback_recommended": false,
+    "raw_tokens_total": 10920,
+    "compressed_tokens_total": 10462,
+    "token_delta": 458,
+    "token_reduction_pct": 4.1941391941391934
+  },
+  "raw_tokens_total": 10920,
+  "compressed_tokens_total": 10462,
+  "token_delta": 458,
+  "token_reduction_pct": 4.1941391941391934
+}

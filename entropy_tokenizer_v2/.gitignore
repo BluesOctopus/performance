@@ -10,7 +10,11 @@ results/*
 !results/.gitkeep
 # Versioned minimal benchmark summary
 !results/stage3_backend_comparison.csv
+!results/artifacts/
 !results/artifacts/.gitkeep
+results/artifacts/*
+!results/artifacts/validate_smoke_hybrid_ab_exact_only.json
+!results/artifacts/validate_smoke_hybrid_ab_hybrid.json
 # Keep benchmark snapshots local by default
 results/v2_compression_report_*.csv
 results/v2_eval_detail_*.json
