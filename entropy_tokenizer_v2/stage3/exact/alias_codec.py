@@ -16,8 +16,9 @@ from typing import Any, Optional
 
 from config import CACHE_DIR, VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
-from token_scorer import _line_start_offsets, _pos_to_offset
+from token_scorer import _line_start_offsets, _pos_to_offset, sum_context_aware_literal_delta
 
+from ..literal_codec.alias_pool import build_legal_alias_alphabet
 from ..routing.router import ABRoutingConfig, classify_string_with_reason
 
 _PROTECTED = set(keyword.kwlist) | set(dir(builtins)) | {"self", "cls", "True", "False", "None"}
@@ -50,6 +51,8 @@ class ACodecResult:
     protected_name_count: int = 0
     min_occ_reject_count: int = 0
     net_gain_reject_count: int = 0
+    # Span index for incremental guardrail rollback (hybrid_ab file-level check).
+    occ: dict[tuple[str, str], list[tuple[int, int]]] = field(default_factory=dict)
 
 
 def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
@@ -205,6 +208,52 @@ def _collect_ast_protected_names(text: str) -> set[str]:
     return out
 
 
+def _collect_scope_name_conflicts(text: str) -> set[str]:
+    """Names / attributes / imports that must not be reused as A-channel aliases."""
+    names: set[str] = set()
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, MemoryError):
+        return names
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Import):
+            for a in node.names:
+                base = (a.name or "").split(".")[0]
+                names.add(a.asname or base)
+        elif isinstance(node, ast.ImportFrom):
+            for a in node.names:
+                if a.name == "*":
+                    continue
+                names.add(a.asname or a.name)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, ast.NamedExpr):
+            names.add(node.target.id)
+    return names
+
+
+def apply_a_entries(
+    text: str,
+    occ: dict[tuple[str, str], list[tuple[int, int]]],
+    entries: list[AEntry],
+) -> str:
+    """Re-apply a subset of A entries onto Stage2 text (used by file-level guardrail)."""
+    if not entries:
+        return text
+    spans_all: list[tuple[int, int, str]] = []
+    for e in entries:
+        key = (e.field, e.literal)
+        for st, ed in occ.get(key, ()):
+            spans_all.append((st, ed, e.alias))
+    return _apply_spans(text, spans_all) if spans_all else text
+
+
 def encode_exact_aliases(
     text: str,
     *,
@@ -215,13 +264,21 @@ def encode_exact_aliases(
     min_net_gain: int = 1,
     alias_style: str = "short",
     alias_candidate_style: str = "token_cost_sorted",
+    cost_mode: str = "local",
+    min_raw_token_len: int = 1,
+    max_alias_token_len: int = 32,
+    context_window_chars: int = 80,
 ) -> ACodecResult:
+    cost_mode = (cost_mode or "local").strip().lower()
+    if cost_mode not in {"local", "context_aware"}:
+        cost_mode = "local"
     try:
         toks = list(tokenize.generate_tokens(io.StringIO(text).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError):
         return ACodecResult(encoded_text=text)
     line_starts = _line_start_offsets(text)
     ast_protected = _collect_ast_protected_names(text)
+    scope_conflicts = _collect_scope_name_conflicts(text)
     occ: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
     reject_reasons: Counter[str] = Counter()
     protected_name_count = 0
@@ -256,18 +313,32 @@ def encode_exact_aliases(
     alias_style = (alias_style or "").strip().lower()
     if alias_style not in {"short", "mnemonic"}:
         alias_style = "short"
+    alias_candidate_style = (alias_candidate_style or "token_cost_sorted").strip().lower()
     alias_iter_idx = 0
     short_alias_alphabet: list[str] = []
+    legal_alias_idx = 0
     mnemonic_alias_alphabet_by_prefix: dict[str, list[str]] = {}
     mnemonic_cursor_by_prefix: defaultdict[str, int] = defaultdict(int)
+    taken_alias_bases: set[str] = set()
+    static_reserved = set(_PROTECTED) | ast_protected | scope_conflicts
+
     if alias_style == "short":
-        short_alias_alphabet = build_alias_alphabet(
-            tokenizer,
-            tok_type,
-            style="short",
-            max_n=256,
-            candidate_style=alias_candidate_style,
-        )
+        if alias_candidate_style == "legal_identifier_pool":
+            short_alias_alphabet = build_legal_alias_alphabet(
+                tokenizer,
+                tok_type,
+                reserved=static_reserved,
+                max_n=256,
+                max_alias_token_len=int(max_alias_token_len),
+            )
+        else:
+            short_alias_alphabet = build_alias_alphabet(
+                tokenizer,
+                tok_type,
+                style="short",
+                max_n=256,
+                candidate_style=alias_candidate_style,
+            )
 
     selected: dict[tuple[str, str], str] = {}
     entries: list[AEntry] = []
@@ -279,37 +350,119 @@ def encode_exact_aliases(
         if count < int(min_occ):
             min_occ_reject_count += 1
             continue
+
+        alias_base: str | None = None
+        alias_surface: str | None = None
+
         if alias_style == "mnemonic":
             prefix = _sanitize_prefix(literal)
             if prefix not in mnemonic_alias_alphabet_by_prefix:
                 mnemonic_alias_alphabet_by_prefix[prefix] = build_alias_alphabet(
                     tokenizer, tok_type, style="mnemonic", prefix=prefix, max_n=256
                 )
-            cursor = mnemonic_cursor_by_prefix[prefix]
-            alias_base = (
-                mnemonic_alias_alphabet_by_prefix[prefix][cursor]
-                if cursor < len(mnemonic_alias_alphabet_by_prefix[prefix])
-                else f"_{prefix}{cursor}"
-            )
+            picked = False
+            attempts = 0
+            while attempts < 512:
+                cursor = mnemonic_cursor_by_prefix[prefix]
+                if cursor < len(mnemonic_alias_alphabet_by_prefix[prefix]):
+                    ab = mnemonic_alias_alphabet_by_prefix[prefix][cursor]
+                else:
+                    ab = f"_{prefix}{cursor}"
+                mnemonic_cursor_by_prefix[prefix] = cursor + 1
+                attempts += 1
+                surf = ab if field != "string" else repr(ab)
+                if ab in taken_alias_bases or ab in static_reserved:
+                    continue
+                if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
+                    continue
+                alias_base, alias_surface = ab, surf
+                picked = True
+                break
+            if not picked:
+                net_gain_reject_count += 1
+                continue
+        elif alias_candidate_style == "legal_identifier_pool":
+            picked = False
+            while legal_alias_idx < len(short_alias_alphabet):
+                ab = short_alias_alphabet[legal_alias_idx]
+                legal_alias_idx += 1
+                if ab in taken_alias_bases:
+                    continue
+                surf = ab if field != "string" else repr(ab)
+                if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
+                    continue
+                alias_base, alias_surface = ab, surf
+                picked = True
+                break
+            if not picked:
+                net_gain_reject_count += 1
+                continue
         else:
-            cursor = alias_iter_idx
-            alias_base = short_alias_alphabet[cursor] if cursor < len(short_alias_alphabet) else f"__ab{cursor}"
+            alias_base = None
+            alias_surface = None
+            for _attempt in range(512):
+                cursor = alias_iter_idx + _attempt
+                if cursor < len(short_alias_alphabet):
+                    ab = short_alias_alphabet[cursor]
+                else:
+                    ab = f"x{cursor}"
+                surf = ab if field != "string" else repr(ab)
+                if ab in taken_alias_bases:
+                    continue
+                if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
+                    continue
+                alias_base, alias_surface = ab, surf
+                alias_iter_idx = cursor + 1
+                break
+            if alias_base is None:
+                net_gain_reject_count += 1
+                continue
 
-        alias_surface = alias_base if field != "string" else repr(alias_base)
+        assert alias_base is not None and alias_surface is not None
+        taken_alias_bases.add(alias_base)
+
         raw_cost = _token_len(tokenizer, tok_type, literal)
-        alias_cost = _token_len(tokenizer, tok_type, alias_surface)
-        intro_entry = {"token": alias_surface, "kind": "stage3_ab_a_alias", "field": field, "definition": literal}
-        intro_cost = compute_vocab_intro_cost([intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type)
-        gain = count * (raw_cost - alias_cost) - intro_cost
-        if gain < int(min_net_gain):
+        if raw_cost < int(min_raw_token_len):
+            taken_alias_bases.discard(alias_base)
             net_gain_reject_count += 1
             continue
-        if alias_style == "mnemonic":
-            mnemonic_cursor_by_prefix[prefix] += 1
+
+        alias_cost = _token_len(tokenizer, tok_type, alias_surface)
+        intro_entry = {"token": alias_surface, "kind": "stage3_ab_a_alias", "field": field, "definition": literal}
+        intro_cost = compute_vocab_intro_cost(
+            [intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type
+        )
+        if cost_mode == "context_aware":
+            seq_delta = sum_context_aware_literal_delta(
+                text,
+                spans,
+                literal,
+                alias_surface,
+                tokenizer,
+                tok_type,
+                window_chars=int(context_window_chars),
+            )
+            gain = int(seq_delta) - int(intro_cost)
         else:
-            alias_iter_idx += 1
+            gain = count * (raw_cost - alias_cost) - intro_cost
+        if gain < int(min_net_gain):
+            taken_alias_bases.discard(alias_base)
+            net_gain_reject_count += 1
+            continue
+
         selected[key] = alias_surface
-        entries.append(AEntry(field=field, literal=literal, alias=alias_surface, count=count, raw_cost=raw_cost, alias_cost=alias_cost, intro_cost=intro_cost, gain=gain))
+        entries.append(
+            AEntry(
+                field=field,
+                literal=literal,
+                alias=alias_surface,
+                count=count,
+                raw_cost=raw_cost,
+                alias_cost=alias_cost,
+                intro_cost=intro_cost,
+                gain=gain,
+            )
+        )
 
     spans_all: list[tuple[int, int, str]] = []
     for key, alias in selected.items():
@@ -320,6 +473,7 @@ def encode_exact_aliases(
     vocab_entries = [{"token": e.alias, "kind": "stage3_ab_a_alias", "field": e.field, "definition": e.literal} for e in entries]
     seq_saved = sum(e.count * max(0, e.raw_cost - e.alias_cost) for e in entries)
     intro = sum(e.intro_cost for e in entries)
+    occ_snapshot = {k: list(v) for k, v in occ.items()}
     return ACodecResult(
         encoded_text=encoded,
         entries=entries,
@@ -334,6 +488,7 @@ def encode_exact_aliases(
         protected_name_count=protected_name_count,
         min_occ_reject_count=min_occ_reject_count,
         net_gain_reject_count=net_gain_reject_count,
+        occ=occ_snapshot,
     )
 
 

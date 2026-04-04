@@ -126,6 +126,28 @@ STAGE3_AB_KEY_LIKE_PATTERNS = tuple(
     if x.strip()
 )
 
+# hybrid_ab only: GPT-4 / cl100k_base gets selective A + guardrails; GPT-2 keeps legacy path.
+HYBRID_AB_GPT4_PROFILE_STAGE3: dict = {
+    "a_processing_mode": "selective",
+    "a_cost_mode": "context_aware",
+    "enable_global_guardrail": True,
+    "enable_incremental_rollback": True,
+    "min_raw_token_len": 3,
+    "max_alias_token_len": 2,
+    "b_channel_priority": "low",
+    "context_window_chars": 80,
+}
+HYBRID_AB_GPT2_PROFILE_STAGE3: dict = {
+    "a_processing_mode": "full",
+    "a_cost_mode": "local",
+    "enable_global_guardrail": False,
+    "enable_incremental_rollback": False,
+    "min_raw_token_len": 1,
+    "max_alias_token_len": 32,
+    "b_channel_priority": "normal",
+    "context_window_chars": 80,
+}
+
 
 def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
     """
@@ -147,7 +169,24 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
     enable_b = enable_b.lower() in ("1", "true", "yes")
     if mode != "hybrid":
         enable_b = False
-    return {
+
+    raw_a_min = os.getenv("ET_STAGE3_AB_A_MIN_OCC", "").strip()
+    if raw_a_min:
+        a_min_occ = int(raw_a_min)
+    elif tok == "gpt4":
+        a_min_occ = max(STAGE3_AB_A_MIN_OCC, 3)
+    else:
+        a_min_occ = STAGE3_AB_A_MIN_OCC
+
+    ab_prof = HYBRID_AB_GPT4_PROFILE_STAGE3 if tok == "gpt4" else HYBRID_AB_GPT2_PROFILE_STAGE3
+    cand_style_default = (
+        "legal_identifier_pool" if tok == "gpt4" else STAGE3_AB_A_ALIAS_CANDIDATE_STYLE
+    )
+
+    def _truthy_ab(v: str) -> bool:
+        return v.lower() in ("1", "true", "yes", "on")
+
+    out = {
         "mode": mode,
         "free_text_min_chars": STAGE3_AB_FREE_TEXT_MIN_CHARS,
         "free_text_min_words": STAGE3_AB_FREE_TEXT_MIN_WORDS,
@@ -194,7 +233,7 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         "b_char_weight": float(os.getenv("ET_STAGE3_AB_B_CHAR_WEIGHT", str(STAGE3_AB_B_CHAR_WEIGHT))),
         "b_char_ngram_n": int(os.getenv("ET_STAGE3_AB_B_CHAR_NGRAM_N", str(STAGE3_AB_B_CHAR_NGRAM_N))),
         "enable_b": enable_b,
-        "a_min_occ": int(os.getenv("ET_STAGE3_AB_A_MIN_OCC", str(STAGE3_AB_A_MIN_OCC))),
+        "a_min_occ": a_min_occ,
         "a_min_net_gain": int(
             os.getenv("ET_STAGE3_AB_A_MIN_NET_GAIN", str(STAGE3_AB_A_MIN_NET_GAIN))
         ),
@@ -205,7 +244,7 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         ).strip().lower(),
         "a_alias_candidate_style": os.getenv(
             "ET_STAGE3_AB_A_ALIAS_CANDIDATE_STYLE",
-            STAGE3_AB_A_ALIAS_CANDIDATE_STYLE,
+            cand_style_default,
         ).strip().lower(),
         "a_alias_cache_dir": os.getenv(
             "ET_STAGE3_AB_A_ALIAS_CACHE_DIR",
@@ -231,6 +270,39 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
             else "disabled"
         ),
     }
+    out.update(ab_prof)
+    eg = os.getenv("ET_STAGE3_AB_ENABLE_GLOBAL_GUARDRAIL", "").strip()
+    if eg:
+        out["enable_global_guardrail"] = _truthy_ab(eg)
+    er = os.getenv("ET_STAGE3_AB_ENABLE_INCREMENTAL_ROLLBACK", "").strip()
+    if er:
+        out["enable_incremental_rollback"] = _truthy_ab(er)
+    cm = os.getenv("ET_STAGE3_AB_A_COST_MODE", "").strip().lower()
+    if cm in {"local", "context_aware"}:
+        out["a_cost_mode"] = cm
+    mrl = os.getenv("ET_STAGE3_AB_MIN_RAW_TOKEN_LEN", "").strip()
+    if mrl:
+        out["min_raw_token_len"] = int(mrl)
+    mal = os.getenv("ET_STAGE3_AB_MAX_ALIAS_TOKEN_LEN", "").strip()
+    if mal:
+        out["max_alias_token_len"] = int(mal)
+    cw = os.getenv("ET_STAGE3_AB_CONTEXT_WINDOW_CHARS", "").strip()
+    if cw:
+        out["context_window_chars"] = int(cw)
+    apm = os.getenv("ET_STAGE3_AB_A_PROCESSING_MODE", "").strip().lower()
+    if apm in {"full", "selective"}:
+        out["a_processing_mode"] = apm
+    bcp = os.getenv("ET_STAGE3_AB_B_CHANNEL_PRIORITY", "").strip().lower()
+    if bcp in {"low", "normal", "high"}:
+        out["b_channel_priority"] = bcp
+    if (
+        tok == "gpt4"
+        and str(out.get("b_channel_priority", "normal")).strip().lower() == "low"
+    ):
+        out["b_similarity_threshold"] = min(
+            0.94, float(out["b_similarity_threshold"]) + 0.06
+        )
+    return out
 
 
 def plan_a_profile_name_for_tokenizer(tokenizer_key: str) -> str:

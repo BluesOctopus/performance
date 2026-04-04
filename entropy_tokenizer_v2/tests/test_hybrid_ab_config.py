@@ -10,6 +10,7 @@ from config import (
     STAGE2_HYBRID_AB_MODE,
     STAGE2_HYBRID_AB_PROFILE,
     STAGE2_PROFILE_FLAGS,
+    HYBRID_AB_GPT4_PROFILE_STAGE3,
     resolve_hybrid_ab_settings,
 )
 from eval.v2_eval import eval_mining_cache_name
@@ -55,6 +56,26 @@ def test_hybrid_ab_stage1_stage2_profile_constants() -> None:
     assert STAGE2_HYBRID_AB_MODE == "blockwise"
     assert STAGE1_HYBRID_AB_AST_MIN_FREQ <= 20
     assert STAGE1_HYBRID_AB_MIN_TOTAL_NET_SAVING == 0
+
+
+def test_gpt4_hybrid_ab_stage3_profile_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ET_STAGE3_AB_ENABLE_GLOBAL_GUARDRAIL", raising=False)
+    monkeypatch.delenv("ET_STAGE3_AB_A_ALIAS_CANDIDATE_STYLE", raising=False)
+    monkeypatch.delenv("ET_STAGE3_AB_A_MIN_OCC", raising=False)
+    cfg = resolve_hybrid_ab_settings("gpt4")
+    assert cfg["enable_global_guardrail"] == HYBRID_AB_GPT4_PROFILE_STAGE3["enable_global_guardrail"]
+    assert cfg["a_cost_mode"] == "context_aware"
+    assert cfg["a_alias_candidate_style"] == "legal_identifier_pool"
+    assert cfg["a_min_occ"] >= 3
+    assert cfg["min_raw_token_len"] == 3
+    assert cfg["max_alias_token_len"] == 2
+
+
+def test_gpt2_hybrid_ab_stage3_profile_keeps_local_no_guardrail(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ET_STAGE3_AB_ENABLE_GLOBAL_GUARDRAIL", raising=False)
+    cfg = resolve_hybrid_ab_settings("gpt2")
+    assert cfg["enable_global_guardrail"] is False
+    assert cfg["a_cost_mode"] == "local"
 
 
 def test_eval_mining_cache_name_hybrid_auto_distinct() -> None:

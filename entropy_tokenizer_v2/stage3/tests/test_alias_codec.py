@@ -79,7 +79,9 @@ def test_alias_codec_private_helper_can_be_aliased():
         min_net_gain=-10**9,
     )
     assert any(e.literal == "_private_helper" for e in res.entries)
-    assert "__ab" in res.encoded_text
+    # Alias alphabet is tokenizer-sorted (often 1-token names like ``x0``), not ``__ab*``.
+    assert "_private_helper" not in res.encoded_text
+    assert res.encoded_text.startswith("def ")
 
 
 def test_alias_codec_mnemonic_style_prefix():

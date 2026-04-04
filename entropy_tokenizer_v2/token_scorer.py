@@ -424,6 +424,67 @@ def estimate_stage3_effective_gain(
     }
 
 
+def context_aware_window_token_delta(
+    full_text: str,
+    span_start: int,
+    span_end: int,
+    literal_slice: str,
+    replacement_slice: str,
+    tokenizer,
+    tok_type: str,
+    *,
+    window_chars: int = 80,
+) -> int:
+    """
+    Approximate tokenizer delta for one occurrence inside a fixed char window.
+
+    Returns (tokens with literal) - (tokens with replacement); positive means the
+    replacement saves sequence tokens in that window. This captures local merge
+    effects better than per-token raw_cost - alias_cost.
+    """
+    from marker_count import encode as mc_encode
+
+    w0 = max(0, span_start - int(window_chars))
+    w1 = min(len(full_text), span_end + int(window_chars))
+    frag = full_text[w0:w1]
+    ls = span_start - w0
+    le = span_end - w0
+    if frag[ls:le] != literal_slice:
+        # Defensive: window mis-aligned (should not happen for token spans).
+        return 0
+    with_lit = frag
+    with_alias = frag[:ls] + replacement_slice + frag[le:]
+    return len(mc_encode(tokenizer, tok_type, with_lit)) - len(
+        mc_encode(tokenizer, tok_type, with_alias)
+    )
+
+
+def sum_context_aware_literal_delta(
+    full_text: str,
+    spans: list[tuple[int, int]],
+    literal_slice: str,
+    replacement_slice: str,
+    tokenizer,
+    tok_type: str,
+    *,
+    window_chars: int = 80,
+) -> int:
+    """Sum per-occurrence window deltas for the same literal→alias rewrite."""
+    total = 0
+    for st, ed in spans:
+        total += context_aware_window_token_delta(
+            full_text,
+            st,
+            ed,
+            literal_slice,
+            replacement_slice,
+            tokenizer,
+            tok_type,
+            window_chars=window_chars,
+        )
+    return total
+
+
 def score_summary(scores: dict[str, TokenInfo], top_n: int = 20) -> list[dict]:
     """Top-*n* by score as dict rows."""
     top = sorted(scores.values(), key=lambda x: x.score, reverse=True)[:top_n]
