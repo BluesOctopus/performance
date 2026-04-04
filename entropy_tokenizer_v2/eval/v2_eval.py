@@ -212,6 +212,10 @@ class EvalResult:
     b_clusters_rejected_similarity_or_quality_sum: int = 0
     b_clusters_rejected_intro_cost_sum: int = 0
     b_clusters_selected_final_sum: int = 0
+    # Per-file sums; counter matches ``apply_pipeline`` / ``stage3_ab_after_*`` meta.
+    stage3_ab_stage2_input_tokens_sum: int = 0
+    stage3_ab_after_a_tokens_sum: int = 0
+    stage3_ab_after_b_tokens_sum: int = 0
 
 
 def evaluate(
@@ -341,6 +345,9 @@ def evaluate(
                 "b_clusters_rejected_similarity_or_quality",
                 "b_clusters_rejected_intro_cost",
                 "b_clusters_selected_final",
+                "stage3_ab_stage2_input_tokens",
+                "stage3_ab_after_a_tokens",
+                "stage3_ab_after_b_tokens",
             ):
                 try:
                     ab_sum[k] += int(meta.get(k, 0) or 0)
@@ -661,6 +668,15 @@ def evaluate(
         if backend == "hybrid_ab"
         else 0,
         b_clusters_selected_final_sum=int(ab_sum.get("b_clusters_selected_final", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage3_ab_stage2_input_tokens_sum=int(ab_sum.get("stage3_ab_stage2_input_tokens", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage3_ab_after_a_tokens_sum=int(ab_sum.get("stage3_ab_after_a_tokens", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage3_ab_after_b_tokens_sum=int(ab_sum.get("stage3_ab_after_b_tokens", 0))
         if backend == "hybrid_ab"
         else 0,
     )

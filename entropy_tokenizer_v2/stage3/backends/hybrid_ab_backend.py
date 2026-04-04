@@ -5,7 +5,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 from config import VOCAB_COST_MODE
-from marker_count import encode as mc_encode
+from marker_count import count_augmented, encode as mc_encode
+from markers import RE_ALL_MARKERS
 from placeholder_accounting import compute_vocab_intro_cost
 from stage3.backends.base import Stage3EncodeResult
 from stage3.exact.alias_codec import ACodecResult, AEntry, apply_a_entries, encode_exact_aliases
@@ -67,6 +68,11 @@ def _ekey(e: AEntry) -> tuple[str, str]:
 
 def _sequence_token_len(text: str, tokenizer: Any, tok_type: str) -> int:
     return len(mc_encode(tokenizer, tok_type, text))
+
+
+def _pipeline_seq_token_count(text: str, tokenizer: Any, tok_type: str) -> int:
+    """Same sequence accounting as ``pipeline.apply_pipeline`` / ``v2_eval`` (markers as 1)."""
+    return int(count_augmented(text, tokenizer, tok_type, pattern=RE_ALL_MARKERS))
 
 
 def _encode_b_channel(
@@ -424,6 +430,13 @@ def encode_stage3_hybrid_ab(
         "stage3_ab_a_processing_mode": conf.a_processing_mode,
         "stage3_ab_a_cost_mode": conf.a_cost_mode,
         "stage3_ab_b_channel_priority": conf.b_channel_priority,
+        "stage3_ab_stage2_input_tokens": _pipeline_seq_token_count(text, tokenizer, tok_type),
+        "stage3_ab_after_a_tokens": _pipeline_seq_token_count(
+            final.a.encoded_text, tokenizer, tok_type
+        ),
+        "stage3_ab_after_b_tokens": _pipeline_seq_token_count(
+            final.encoded_text, tokenizer, tok_type
+        ),
         **guard_telem,
     }
     return HybridABResult(
@@ -433,6 +446,60 @@ def encode_stage3_hybrid_ab(
         fallback_count=b_res.fallback_count,
         meta=meta,
     )
+
+
+def hybrid_ab_config_from_summary(cfg_raw: dict[str, Any]) -> HybridABConfig | None:
+    """Build ``HybridABConfig`` from mined ``stage3_ab_summary`` (same rules as ``HybridABStage3Backend.encode``)."""
+    if not cfg_raw:
+        return None
+
+    def _truthy(v: Any) -> bool:
+        if isinstance(v, bool):
+            return v
+        return str(v).strip().lower() in {"1", "true", "yes", "on"}
+
+    mode = str(cfg_raw.get("mode", "exact_only")).strip().lower()
+    if mode not in {"exact_only", "hybrid"}:
+        mode = "exact_only"
+    conf = HybridABConfig(
+        mode=mode,
+        free_text_min_chars=int(cfg_raw["free_text_min_chars"]),
+        free_text_min_words=int(cfg_raw["free_text_min_words"]),
+        key_like_patterns=tuple(cfg_raw.get("key_like_patterns", []) or ()),
+        short_string_policy=str(cfg_raw.get("short_string_policy", "exact_candidate")),
+        enable_mid_free_text=_truthy(cfg_raw.get("enable_mid_free_text", False)),
+        free_text_mid_min_chars=int(cfg_raw.get("free_text_mid_min_chars", 14)),
+        free_text_mid_min_words=int(cfg_raw.get("free_text_mid_min_words", 3)),
+        allow_multiline_whitelist=_truthy(cfg_raw.get("allow_multiline_whitelist", False)),
+        multiline_max_lines=int(cfg_raw.get("multiline_max_lines", 3)),
+        multiline_max_chars=int(cfg_raw.get("multiline_max_chars", 220)),
+        a_min_occ=int(cfg_raw["a_min_occ"]),
+        a_min_net_gain=int(cfg_raw["a_min_net_gain"]),
+        a_alias_style=str(cfg_raw["a_alias_style"]),
+        a_alias_candidate_style=str(cfg_raw.get("a_alias_candidate_style", "token_cost_sorted")),
+        b_similarity_threshold=float(cfg_raw["b_similarity_threshold"]),
+        b_risk_threshold=float(cfg_raw["b_risk_threshold"]),
+        b_min_cluster_size=int(cfg_raw["b_min_cluster_size"]),
+        b_similarity_kind=str(cfg_raw.get("b_similarity_kind", "lexical_bow_cosine")),
+        b_lexical_weight=float(cfg_raw.get("b_lexical_weight", 0.7)),
+        b_char_weight=float(cfg_raw.get("b_char_weight", 0.3)),
+        b_char_ngram_n=int(cfg_raw.get("b_char_ngram_n", 3)),
+        a_processing_mode=str(cfg_raw.get("a_processing_mode", "full")).strip().lower(),
+        a_cost_mode=str(cfg_raw.get("a_cost_mode", "local")).strip().lower(),
+        enable_global_guardrail=_truthy(cfg_raw.get("enable_global_guardrail", False)),
+        enable_incremental_rollback=_truthy(cfg_raw.get("enable_incremental_rollback", False)),
+        min_raw_token_len=int(cfg_raw.get("min_raw_token_len", 1)),
+        max_alias_token_len=int(cfg_raw.get("max_alias_token_len", 32)),
+        context_window_chars=int(cfg_raw.get("context_window_chars", 80)),
+        b_channel_priority=str(cfg_raw.get("b_channel_priority", "normal")).strip().lower(),
+        a_alias_rank_pool_cap=int(cfg_raw.get("a_alias_rank_pool_cap", 32)),
+        a_context_gain_margin=int(cfg_raw.get("a_context_gain_margin", 0)),
+        a_enable_local_combo_greedy=_truthy(cfg_raw.get("a_enable_local_combo_greedy", False)),
+        a_combo_max_additions=int(cfg_raw.get("a_combo_max_additions", 24)),
+    )
+    if mode != "hybrid" or not _truthy(cfg_raw.get("enable_b", False)):
+        conf.mode = "exact_only"
+    return conf
 
 
 def summary_dict(result: HybridABResult) -> dict[str, Any]:
@@ -449,7 +516,8 @@ class HybridABStage3Backend:
         if tokenizer is None or not tok_type:
             return Stage3EncodeResult(encoded_text=text, vocab_entries=[], metrics={})
         cfg_raw = dict(getattr(repo_config, "stage3_ab_summary", {}) or {})
-        if not cfg_raw:
+        conf = hybrid_ab_config_from_summary(cfg_raw)
+        if conf is None:
             meta = {
                 "stage3_ab_mode": "exact_only",
                 "stage3_ab_similarity_kind": "lexical_bow_cosine",
@@ -458,53 +526,6 @@ class HybridABStage3Backend:
                 "stage3_ab_vocab_entries": [],
             }
             return Stage3EncodeResult(encoded_text=text, vocab_entries=[], metrics=meta)
-        mode = str(cfg_raw.get("mode", "exact_only")).strip().lower()
-        if mode not in {"exact_only", "hybrid"}:
-            mode = "exact_only"
-
-        def _truthy(v: Any) -> bool:
-            if isinstance(v, bool):
-                return v
-            return str(v).strip().lower() in {"1", "true", "yes", "on"}
-
-        conf = HybridABConfig(
-            mode=mode,
-            free_text_min_chars=int(cfg_raw["free_text_min_chars"]),
-            free_text_min_words=int(cfg_raw["free_text_min_words"]),
-            key_like_patterns=tuple(cfg_raw.get("key_like_patterns", []) or ()),
-            short_string_policy=str(cfg_raw.get("short_string_policy", "exact_candidate")),
-            enable_mid_free_text=_truthy(cfg_raw.get("enable_mid_free_text", False)),
-            free_text_mid_min_chars=int(cfg_raw.get("free_text_mid_min_chars", 14)),
-            free_text_mid_min_words=int(cfg_raw.get("free_text_mid_min_words", 3)),
-            allow_multiline_whitelist=_truthy(cfg_raw.get("allow_multiline_whitelist", False)),
-            multiline_max_lines=int(cfg_raw.get("multiline_max_lines", 3)),
-            multiline_max_chars=int(cfg_raw.get("multiline_max_chars", 220)),
-            a_min_occ=int(cfg_raw["a_min_occ"]),
-            a_min_net_gain=int(cfg_raw["a_min_net_gain"]),
-            a_alias_style=str(cfg_raw["a_alias_style"]),
-            a_alias_candidate_style=str(cfg_raw.get("a_alias_candidate_style", "token_cost_sorted")),
-            b_similarity_threshold=float(cfg_raw["b_similarity_threshold"]),
-            b_risk_threshold=float(cfg_raw["b_risk_threshold"]),
-            b_min_cluster_size=int(cfg_raw["b_min_cluster_size"]),
-            b_similarity_kind=str(cfg_raw.get("b_similarity_kind", "lexical_bow_cosine")),
-            b_lexical_weight=float(cfg_raw.get("b_lexical_weight", 0.7)),
-            b_char_weight=float(cfg_raw.get("b_char_weight", 0.3)),
-            b_char_ngram_n=int(cfg_raw.get("b_char_ngram_n", 3)),
-            a_processing_mode=str(cfg_raw.get("a_processing_mode", "full")).strip().lower(),
-            a_cost_mode=str(cfg_raw.get("a_cost_mode", "local")).strip().lower(),
-            enable_global_guardrail=_truthy(cfg_raw.get("enable_global_guardrail", False)),
-            enable_incremental_rollback=_truthy(cfg_raw.get("enable_incremental_rollback", False)),
-            min_raw_token_len=int(cfg_raw.get("min_raw_token_len", 1)),
-            max_alias_token_len=int(cfg_raw.get("max_alias_token_len", 32)),
-            context_window_chars=int(cfg_raw.get("context_window_chars", 80)),
-            b_channel_priority=str(cfg_raw.get("b_channel_priority", "normal")).strip().lower(),
-            a_alias_rank_pool_cap=int(cfg_raw.get("a_alias_rank_pool_cap", 32)),
-            a_context_gain_margin=int(cfg_raw.get("a_context_gain_margin", 0)),
-            a_enable_local_combo_greedy=_truthy(cfg_raw.get("a_enable_local_combo_greedy", False)),
-            a_combo_max_additions=int(cfg_raw.get("a_combo_max_additions", 24)),
-        )
-        if mode != "hybrid" or not _truthy(cfg_raw.get("enable_b", False)):
-            conf.mode = "exact_only"
         res = encode_stage3_hybrid_ab(text, tokenizer=tokenizer, tok_type=tok_type, cfg=conf)
         meta = summary_dict(res)
         vocab_entries = meta.get("stage3_ab_vocab_entries", []) or []

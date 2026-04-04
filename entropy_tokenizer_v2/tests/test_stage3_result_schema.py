@@ -30,3 +30,4 @@ def test_eval_result_has_unified_stage3_unit_fields():
     assert "stage3_ab_telemetry_guardrail_triggered_nfiles" in fields
     assert "stage2_removed_comment_count_sum" in fields
     assert "b_free_text_candidates_visible_after_stage2_sum" in fields
+    assert "stage3_ab_after_a_tokens_sum" in fields

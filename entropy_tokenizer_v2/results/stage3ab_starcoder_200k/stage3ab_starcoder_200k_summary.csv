@@ -1,0 +1,2 @@
+dataset_name,tokenizer_key,token_budget,n_sources,sum_baseline_tokens,sum_after_syntax_tokens,sum_after_stage2_tokens,sum_after_stage3_tokens,sum_effective_total_tokens,syntax_saved,cleaning_saved,replacement_saved,stage1_vocab_intro_tokens,stage3_vocab_intro_tokens,sequence_reduction_pct,effective_total_reduction_pct,syntax_pct,cleaning_pct,replacement_pct
+zhensuuu/starcoderdata_100star_py,gpt4,200000,132,200000,198187,171495,169735,170757,1813,26692,1760,428,594,15.132500,14.621500,0.906500,13.346000,0.880000

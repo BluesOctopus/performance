@@ -11,6 +11,8 @@ results/*
 # Versioned minimal benchmark summary
 !results/stage3_backend_comparison.csv
 !results/stage3_hybrid_ab_s12_ablation.csv
+!results/stage3ab_starcoder_200k/
+!results/stage3ab_starcoder_200k/**
 !results/artifacts/
 !results/artifacts/.gitkeep
 results/artifacts/*
