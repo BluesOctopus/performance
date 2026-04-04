@@ -6,6 +6,8 @@ __pycache__/
 verification_report.json
 cache/*
 !cache/.gitkeep
+cache_fast_try/
+results_fast_try/
 results/*
 !results/.gitkeep
 # Versioned minimal benchmark summary
