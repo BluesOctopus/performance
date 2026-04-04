@@ -187,6 +187,12 @@ class EvalResult:
     hybrid_ab_stage1_override_used: bool = False
     hybrid_ab_stage2_override_used: bool = False
     stage2_resolution_source: str = ""
+    # hybrid_ab: per-file Stage3 metrics summed over the corpus (same tokenizer count as pipeline).
+    stage3_ab_telemetry_sum_stage2_seq: int = 0
+    stage3_ab_telemetry_sum_stage3_seq: int = 0
+    stage3_ab_telemetry_sum_realized_delta: int = 0
+    stage3_ab_telemetry_guardrail_triggered_nfiles: int = 0
+    stage3_ab_telemetry_sum_aliases_rolled_back: int = 0
 
 
 def evaluate(
@@ -293,8 +299,15 @@ def evaluate(
                 "stage3_ab_b_fallback_count",
                 "stage3_ab_b_risk_reject_count",
                 "stage3_ab_b_intro_not_worth_count",
+                # File-level guardrail telemetry (hybrid_ab_backend meta).
+                "stage2_tokens",
+                "stage3_tokens",
+                "stage3_realized_delta",
+                "num_aliases_rolled_back",
             ):
-                ab_sum[k] += int(meta.get(k, 0))
+                ab_sum[k] += int(meta.get(k, 0) or 0)
+            if bool(meta.get("stage3_guardrail_triggered")):
+                ab_sum["stage3_guardrail_triggered_nfiles"] += 1
             for rk, rv in (meta.get("stage3_ab_a_reject_reason_counts", {}) or {}).items():
                 ab_a_reject_reasons[str(rk)] += int(rv)
             for rk, rv in (meta.get("stage3_ab_b_reject_reason_counts", {}) or {}).items():
@@ -521,6 +534,23 @@ def evaluate(
         hybrid_ab_stage1_override_used=hybrid_ab_s1,
         hybrid_ab_stage2_override_used=hybrid_ab_s2,
         stage2_resolution_source=s2_src,
+        stage3_ab_telemetry_sum_stage2_seq=(
+            int(ab_sum.get("stage2_tokens", 0)) if backend == "hybrid_ab" else 0
+        ),
+        stage3_ab_telemetry_sum_stage3_seq=(
+            int(ab_sum.get("stage3_tokens", 0)) if backend == "hybrid_ab" else 0
+        ),
+        stage3_ab_telemetry_sum_realized_delta=(
+            int(ab_sum.get("stage3_realized_delta", 0)) if backend == "hybrid_ab" else 0
+        ),
+        stage3_ab_telemetry_guardrail_triggered_nfiles=(
+            int(ab_sum.get("stage3_guardrail_triggered_nfiles", 0))
+            if backend == "hybrid_ab"
+            else 0
+        ),
+        stage3_ab_telemetry_sum_aliases_rolled_back=(
+            int(ab_sum.get("num_aliases_rolled_back", 0)) if backend == "hybrid_ab" else 0
+        ),
     )
 
 

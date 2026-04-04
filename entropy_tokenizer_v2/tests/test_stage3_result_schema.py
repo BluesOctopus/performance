@@ -25,3 +25,6 @@ def test_eval_result_has_unified_stage3_unit_fields():
     assert "hybrid_ab_stage1_override_used" in fields
     assert "hybrid_ab_stage2_override_used" in fields
     assert "stage2_resolution_source" in fields
+    assert "stage3_ab_telemetry_sum_stage2_seq" in fields
+    assert "stage3_ab_telemetry_sum_stage3_seq" in fields
+    assert "stage3_ab_telemetry_guardrail_triggered_nfiles" in fields
