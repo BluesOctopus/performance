@@ -16,6 +16,7 @@ from typing import Any, Optional
 
 from config import CACHE_DIR, VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
+from telemetry_summary import int_summary
 from token_scorer import _line_start_offsets, _pos_to_offset, sum_context_aware_literal_delta
 
 from ..literal_codec.alias_pool import build_legal_alias_alphabet
@@ -51,6 +52,13 @@ class ACodecResult:
     protected_name_count: int = 0
     min_occ_reject_count: int = 0
     net_gain_reject_count: int = 0
+    rejected_raw_too_short: int = 0
+    rejected_alias_conflict: int = 0
+    rejected_gain_non_positive: int = 0
+    rejected_context_rescore_negative: int = 0
+    a_raw_token_len_summary: dict[str, float | int] = field(default_factory=dict)
+    a_alias_token_len_summary: dict[str, float | int] = field(default_factory=dict)
+    a_context_delta_summary: dict[str, float | int] = field(default_factory=dict)
     # Span index for incremental guardrail rollback (hybrid_ab file-level check).
     occ: dict[tuple[str, str], list[tuple[int, int]]] = field(default_factory=dict)
 
@@ -268,6 +276,8 @@ def encode_exact_aliases(
     min_raw_token_len: int = 1,
     max_alias_token_len: int = 32,
     context_window_chars: int = 80,
+    a_alias_rank_pool_cap: int = 32,
+    a_context_gain_margin: int = 0,
 ) -> ACodecResult:
     cost_mode = (cost_mode or "local").strip().lower()
     if cost_mode not in {"local", "context_aware"}:
@@ -344,6 +354,17 @@ def encode_exact_aliases(
     entries: list[AEntry] = []
     min_occ_reject_count = 0
     net_gain_reject_count = 0
+    rejected_raw_too_short = 0
+    rejected_alias_conflict = 0
+    rejected_gain_non_positive = 0
+    rejected_context_rescore_negative = 0
+    sel_raw_lens: list[int] = []
+    sel_alias_lens: list[int] = []
+    sel_ctx_deltas: list[int] = []
+    rank_cap = max(1, int(a_alias_rank_pool_cap))
+    gain_margin = int(a_context_gain_margin)
+    min_ng = int(min_net_gain)
+
     for key, spans in sorted(occ.items(), key=lambda kv: len(kv[1]), reverse=True):
         field, literal = key
         count = len(spans)
@@ -351,8 +372,7 @@ def encode_exact_aliases(
             min_occ_reject_count += 1
             continue
 
-        alias_base: str | None = None
-        alias_surface: str | None = None
+        pool: list[tuple[str, str]] = []
 
         if alias_style == "mnemonic":
             prefix = _sanitize_prefix(literal)
@@ -360,97 +380,119 @@ def encode_exact_aliases(
                 mnemonic_alias_alphabet_by_prefix[prefix] = build_alias_alphabet(
                     tokenizer, tok_type, style="mnemonic", prefix=prefix, max_n=256
                 )
-            picked = False
+            c = mnemonic_cursor_by_prefix[prefix]
             attempts = 0
-            while attempts < 512:
-                cursor = mnemonic_cursor_by_prefix[prefix]
-                if cursor < len(mnemonic_alias_alphabet_by_prefix[prefix]):
-                    ab = mnemonic_alias_alphabet_by_prefix[prefix][cursor]
+            while len(pool) < rank_cap and attempts < 512:
+                if c < len(mnemonic_alias_alphabet_by_prefix[prefix]):
+                    ab = mnemonic_alias_alphabet_by_prefix[prefix][c]
                 else:
-                    ab = f"_{prefix}{cursor}"
-                mnemonic_cursor_by_prefix[prefix] = cursor + 1
+                    ab = f"_{prefix}{c}"
+                c += 1
                 attempts += 1
                 surf = ab if field != "string" else repr(ab)
                 if ab in taken_alias_bases or ab in static_reserved:
                     continue
                 if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
                     continue
-                alias_base, alias_surface = ab, surf
-                picked = True
-                break
-            if not picked:
-                net_gain_reject_count += 1
-                continue
+                pool.append((ab, surf))
+            mnemonic_cursor_by_prefix[prefix] = c
         elif alias_candidate_style == "legal_identifier_pool":
-            picked = False
-            while legal_alias_idx < len(short_alias_alphabet):
-                ab = short_alias_alphabet[legal_alias_idx]
-                legal_alias_idx += 1
-                if ab in taken_alias_bases:
+            i = legal_alias_idx
+            while len(pool) < rank_cap and i < len(short_alias_alphabet):
+                ab = short_alias_alphabet[i]
+                i += 1
+                if ab in taken_alias_bases or ab in static_reserved:
                     continue
                 surf = ab if field != "string" else repr(ab)
                 if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
                     continue
-                alias_base, alias_surface = ab, surf
-                picked = True
-                break
-            if not picked:
-                net_gain_reject_count += 1
-                continue
+                pool.append((ab, surf))
+            legal_alias_idx = i
         else:
-            alias_base = None
-            alias_surface = None
-            for _attempt in range(512):
-                cursor = alias_iter_idx + _attempt
+            attempt = 0
+            start_iter = alias_iter_idx
+            while len(pool) < rank_cap and attempt < 512:
+                cursor = start_iter + attempt
                 if cursor < len(short_alias_alphabet):
                     ab = short_alias_alphabet[cursor]
                 else:
                     ab = f"x{cursor}"
+                attempt += 1
                 surf = ab if field != "string" else repr(ab)
-                if ab in taken_alias_bases:
+                if ab in taken_alias_bases or ab in static_reserved:
                     continue
                 if _token_len(tokenizer, tok_type, surf) > int(max_alias_token_len):
                     continue
-                alias_base, alias_surface = ab, surf
-                alias_iter_idx = cursor + 1
-                break
-            if alias_base is None:
-                net_gain_reject_count += 1
-                continue
+                pool.append((ab, surf))
+            alias_iter_idx = start_iter + attempt
 
-        assert alias_base is not None and alias_surface is not None
-        taken_alias_bases.add(alias_base)
+        if not pool:
+            rejected_alias_conflict += 1
+            net_gain_reject_count += 1
+            continue
 
         raw_cost = _token_len(tokenizer, tok_type, literal)
         if raw_cost < int(min_raw_token_len):
-            taken_alias_bases.discard(alias_base)
+            rejected_raw_too_short += 1
             net_gain_reject_count += 1
             continue
 
-        alias_cost = _token_len(tokenizer, tok_type, alias_surface)
-        intro_entry = {"token": alias_surface, "kind": "stage3_ab_a_alias", "field": field, "definition": literal}
-        intro_cost = compute_vocab_intro_cost(
-            [intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type
-        )
-        if cost_mode == "context_aware":
-            seq_delta = sum_context_aware_literal_delta(
-                text,
-                spans,
-                literal,
-                alias_surface,
-                tokenizer,
-                tok_type,
-                window_chars=int(context_window_chars),
+        scored: list[tuple[str, str, int, int, int, int]] = []
+        for ab, surf in pool:
+            alias_cost = _token_len(tokenizer, tok_type, surf)
+            intro_entry = {"token": surf, "kind": "stage3_ab_a_alias", "field": field, "definition": literal}
+            intro_cost = int(
+                compute_vocab_intro_cost(
+                    [intro_entry], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type
+                )
             )
-            gain = int(seq_delta) - int(intro_cost)
-        else:
-            gain = count * (raw_cost - alias_cost) - intro_cost
-        if gain < int(min_net_gain):
-            taken_alias_bases.discard(alias_base)
+            local_gain = count * (raw_cost - alias_cost) - intro_cost
+            seq_delta = 0
+            if cost_mode == "context_aware":
+                seq_delta = int(
+                    sum_context_aware_literal_delta(
+                        text,
+                        spans,
+                        literal,
+                        surf,
+                        tokenizer,
+                        tok_type,
+                        window_chars=int(context_window_chars),
+                    )
+                )
+            scored.append((ab, surf, intro_cost, alias_cost, local_gain, seq_delta))
+
+        qualified = [t for t in scored if t[4] >= min_ng]
+        if not qualified:
+            rejected_gain_non_positive += 1
             net_gain_reject_count += 1
             continue
+
+        def _accept_net(t: tuple[str, str, int, int, int, int]) -> int:
+            if cost_mode == "context_aware":
+                return int(t[5]) - int(t[2])
+            return int(t[4])
+
+        best = max(qualified, key=_accept_net)
+        accept_net = _accept_net(best)
+        if accept_net < min_ng + gain_margin:
+            if cost_mode == "context_aware":
+                rejected_context_rescore_negative += 1
+            else:
+                rejected_gain_non_positive += 1
+            net_gain_reject_count += 1
+            continue
+
+        alias_base, alias_surface = best[0], best[1]
+        intro_cost, alias_cost = best[2], best[3]
+        gain = accept_net
+        taken_alias_bases.add(alias_base)
 
         selected[key] = alias_surface
+        seq_d = int(best[5]) if cost_mode == "context_aware" else count * (raw_cost - alias_cost)
+        sel_raw_lens.append(raw_cost)
+        sel_alias_lens.append(alias_cost)
+        sel_ctx_deltas.append(seq_d)
         entries.append(
             AEntry(
                 field=field,
@@ -474,6 +516,7 @@ def encode_exact_aliases(
     seq_saved = sum(e.count * max(0, e.raw_cost - e.alias_cost) for e in entries)
     intro = sum(e.intro_cost for e in entries)
     occ_snapshot = {k: list(v) for k, v in occ.items()}
+    ctx_sum = int_summary(sel_ctx_deltas, with_min=True)
     return ACodecResult(
         encoded_text=encoded,
         entries=entries,
@@ -488,6 +531,13 @@ def encode_exact_aliases(
         protected_name_count=protected_name_count,
         min_occ_reject_count=min_occ_reject_count,
         net_gain_reject_count=net_gain_reject_count,
+        rejected_raw_too_short=rejected_raw_too_short,
+        rejected_alias_conflict=rejected_alias_conflict,
+        rejected_gain_non_positive=rejected_gain_non_positive,
+        rejected_context_rescore_negative=rejected_context_rescore_negative,
+        a_raw_token_len_summary=int_summary(sel_raw_lens),
+        a_alias_token_len_summary=int_summary(sel_alias_lens),
+        a_context_delta_summary=ctx_sum,
         occ=occ_snapshot,
     )
 

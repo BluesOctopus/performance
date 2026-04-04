@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
+import os
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from config import (
@@ -15,10 +16,12 @@ from marker_count import count_augmented
 from markers import RE_ALL_MARKERS, make_syn_marker
 from placeholder_accounting import compute_vocab_intro_cost
 from stage3.backends import get_stage3_backend
+from stage3.backends.base import Stage3EncodeResult
+from lossy_cleaner import CleaningStats
 from stage2.cleaning import (
     run_stage2_post_surface,
     run_stage2_pre_safe,
-    stage2_clean_skip_syn,
+    stage2_clean_skip_syn_and_stats,
 )
 from stage2.config import (
     STAGE2_LAYOUT_EXPERIMENTAL_ORDER_LABEL,
@@ -115,6 +118,27 @@ class CompressionBreakdown:
 
 def _count_with_ops(text: str, tokenizer, tok_type: str) -> int:
     return count_augmented(text, tokenizer, tok_type, pattern=RE_ALL_MARKERS)
+
+
+def stage2_funnel_metrics(stats: CleaningStats) -> dict[str, Any]:
+    """Aggregate Stage2→B funnel counters (hybrid_ab telemetry).
+
+    * ``stage2_removed_free_text_estimated_tokens`` — sum of ``ceil(inner_chars/4)``
+      over **removed** low-risk docstrings that classify as B-route candidates under
+      default ``SemanticClassifierConfig`` (same heuristic as Stage3 B visibility).
+    * Comment token estimates use ``tokenize.COMMENT`` length / 4 (see ``lossy_cleaner``).
+    """
+    return {
+        "stage2_removed_comment_count": int(stats.stage2_removed_comment_count),
+        "stage2_removed_comment_tokens": int(stats.stage2_removed_comment_tokens_est),
+        "stage2_removed_docstring_count": int(stats.stage2_removed_docstring_count),
+        "stage2_removed_docstring_tokens": int(stats.stage2_removed_docstring_tokens_est),
+        "stage2_removed_free_text_estimated_tokens": int(
+            stats.stage2_removed_free_text_estimated_tokens
+        ),
+        "stage2_retained_for_b_probe_count": int(stats.stage2_retained_for_b_probe_count),
+        "stage2_retained_for_b_probe_tokens": int(stats.stage2_retained_for_b_probe_tokens_est),
+    }
 
 
 def _stage1_vocab_intro(repo_config, tokenizer, tok_type: str) -> int:
@@ -308,12 +332,13 @@ def apply_stage2(
     mode: str = STAGE2_DEFAULT_MODE,
 ) -> str:
     stage2_cfg = build_stage2_config(profile=profile, mode=mode)
-    return stage2_clean_skip_syn(
+    cleaned, _ = stage2_clean_skip_syn_and_stats(
         text,
         stage2_cfg.cleaning,
         mode=stage2_cfg.mode,
         drop_empty_cleaned_lines=False,
     )
+    return cleaned
 
 
 def apply_stage3(
@@ -355,11 +380,43 @@ def apply_pipeline(
     after_s1 = apply_stage1_with_stats(source, repo_config, tokenizer, tok_type)[0]
     after_s1_tokens = count_fn(after_s1)
 
-    after_s2 = apply_stage2(after_s1, profile=s2_profile, mode=s2_mode)
+    s2_cfg = build_stage2_config(profile=s2_profile, mode=s2_mode)
+    cleaning = s2_cfg.cleaning
+    if getattr(repo_config, "stage3_backend", "") == "hybrid_ab":
+        if os.getenv("ET_STAGE2_B_STARVATION_PROBE", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }:
+            cleaning = replace(
+                cleaning,
+                b_starvation_probe=True,
+                b_probe_min_inner_chars=int(
+                    os.getenv("ET_STAGE2_B_PROBE_MIN_INNER_CHARS", "64")
+                ),
+                b_probe_min_space_ratio=float(
+                    os.getenv("ET_STAGE2_B_PROBE_MIN_SPACE_RATIO", "0.12")
+                ),
+            )
+    after_s2, s2_stats = stage2_clean_skip_syn_and_stats(
+        after_s1,
+        cleaning,
+        mode=s2_cfg.mode,
+        drop_empty_cleaned_lines=False,
+    )
     after_s2_tokens = count_fn(after_s2)
 
     # Backend-driven vocab intro payload (accounting) computed once.
     stage3_result, backend = _stage3_encode_result(after_s2, repo_config, tokenizer, tok_type)
+    if getattr(repo_config, "stage3_backend", "") == "hybrid_ab":
+        merged = dict(stage3_result.metrics)
+        merged.update(stage2_funnel_metrics(s2_stats))
+        stage3_result = Stage3EncodeResult(
+            encoded_text=stage3_result.encoded_text,
+            vocab_entries=stage3_result.vocab_entries,
+            metrics=merged,
+        )
     s1_intro = _stage1_vocab_intro(repo_config, tokenizer, tok_type)
     s3_intro = backend.compute_intro_cost(
         stage3_result,

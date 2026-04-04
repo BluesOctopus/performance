@@ -193,6 +193,25 @@ class EvalResult:
     stage3_ab_telemetry_sum_realized_delta: int = 0
     stage3_ab_telemetry_guardrail_triggered_nfiles: int = 0
     stage3_ab_telemetry_sum_aliases_rolled_back: int = 0
+    # hybrid_ab Stage2→B funnel + A/B extended telemetry (summed over files).
+    stage2_removed_comment_count_sum: int = 0
+    stage2_removed_comment_tokens_sum: int = 0
+    stage2_removed_docstring_count_sum: int = 0
+    stage2_removed_docstring_tokens_sum: int = 0
+    stage2_removed_free_text_estimated_tokens_sum: int = 0
+    stage2_retained_for_b_probe_count_sum: int = 0
+    stage2_retained_for_b_probe_tokens_sum: int = 0
+    a_candidates_rejected_raw_too_short_sum: int = 0
+    a_candidates_rejected_alias_conflict_sum: int = 0
+    a_candidates_rejected_gain_non_positive_sum: int = 0
+    a_candidates_rejected_context_rescore_negative_sum: int = 0
+    b_free_text_candidates_total_sum: int = 0
+    b_free_text_candidates_visible_after_stage2_sum: int = 0
+    b_clusters_formed_sum: int = 0
+    b_clusters_rejected_too_small_sum: int = 0
+    b_clusters_rejected_similarity_or_quality_sum: int = 0
+    b_clusters_rejected_intro_cost_sum: int = 0
+    b_clusters_selected_final_sum: int = 0
 
 
 def evaluate(
@@ -304,8 +323,29 @@ def evaluate(
                 "stage3_tokens",
                 "stage3_realized_delta",
                 "num_aliases_rolled_back",
+                "stage2_removed_comment_count",
+                "stage2_removed_comment_tokens",
+                "stage2_removed_docstring_count",
+                "stage2_removed_docstring_tokens",
+                "stage2_removed_free_text_estimated_tokens",
+                "stage2_retained_for_b_probe_count",
+                "stage2_retained_for_b_probe_tokens",
+                "a_candidates_rejected_raw_too_short",
+                "a_candidates_rejected_alias_conflict",
+                "a_candidates_rejected_gain_non_positive",
+                "a_candidates_rejected_context_rescore_negative",
+                "b_free_text_candidates_total",
+                "b_free_text_candidates_visible_after_stage2",
+                "b_clusters_formed",
+                "b_clusters_rejected_too_small",
+                "b_clusters_rejected_similarity_or_quality",
+                "b_clusters_rejected_intro_cost",
+                "b_clusters_selected_final",
             ):
-                ab_sum[k] += int(meta.get(k, 0) or 0)
+                try:
+                    ab_sum[k] += int(meta.get(k, 0) or 0)
+                except (TypeError, ValueError):
+                    pass
             if bool(meta.get("stage3_guardrail_triggered")):
                 ab_sum["stage3_guardrail_triggered_nfiles"] += 1
             for rk, rv in (meta.get("stage3_ab_a_reject_reason_counts", {}) or {}).items():
@@ -551,6 +591,78 @@ def evaluate(
         stage3_ab_telemetry_sum_aliases_rolled_back=(
             int(ab_sum.get("num_aliases_rolled_back", 0)) if backend == "hybrid_ab" else 0
         ),
+        stage2_removed_comment_count_sum=int(ab_sum.get("stage2_removed_comment_count", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_removed_comment_tokens_sum=int(ab_sum.get("stage2_removed_comment_tokens", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_removed_docstring_count_sum=int(ab_sum.get("stage2_removed_docstring_count", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_removed_docstring_tokens_sum=int(ab_sum.get("stage2_removed_docstring_tokens", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_removed_free_text_estimated_tokens_sum=int(
+            ab_sum.get("stage2_removed_free_text_estimated_tokens", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_retained_for_b_probe_count_sum=int(
+            ab_sum.get("stage2_retained_for_b_probe_count", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        stage2_retained_for_b_probe_tokens_sum=int(
+            ab_sum.get("stage2_retained_for_b_probe_tokens", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        a_candidates_rejected_raw_too_short_sum=int(
+            ab_sum.get("a_candidates_rejected_raw_too_short", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        a_candidates_rejected_alias_conflict_sum=int(
+            ab_sum.get("a_candidates_rejected_alias_conflict", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        a_candidates_rejected_gain_non_positive_sum=int(
+            ab_sum.get("a_candidates_rejected_gain_non_positive", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        a_candidates_rejected_context_rescore_negative_sum=int(
+            ab_sum.get("a_candidates_rejected_context_rescore_negative", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        b_free_text_candidates_total_sum=int(ab_sum.get("b_free_text_candidates_total", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        b_free_text_candidates_visible_after_stage2_sum=int(
+            ab_sum.get("b_free_text_candidates_visible_after_stage2", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        b_clusters_formed_sum=int(ab_sum.get("b_clusters_formed", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        b_clusters_rejected_too_small_sum=int(ab_sum.get("b_clusters_rejected_too_small", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        b_clusters_rejected_similarity_or_quality_sum=int(
+            ab_sum.get("b_clusters_rejected_similarity_or_quality", 0)
+        )
+        if backend == "hybrid_ab"
+        else 0,
+        b_clusters_rejected_intro_cost_sum=int(ab_sum.get("b_clusters_rejected_intro_cost", 0))
+        if backend == "hybrid_ab"
+        else 0,
+        b_clusters_selected_final_sum=int(ab_sum.get("b_clusters_selected_final", 0))
+        if backend == "hybrid_ab"
+        else 0,
     )
 
 

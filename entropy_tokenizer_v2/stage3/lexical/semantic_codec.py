@@ -13,6 +13,7 @@ from typing import Any
 
 from config import VOCAB_COST_MODE
 from placeholder_accounting import compute_vocab_intro_cost
+from telemetry_summary import int_summary
 from token_scorer import _line_start_offsets, _pos_to_offset
 
 from .string_classifier import SemanticClassifierConfig, classify_semantic_free_text
@@ -46,6 +47,17 @@ class BCodecResult:
     mode: str = "lexical_free_text_baseline"
     reject_reason_counts: dict[str, int] = field(default_factory=dict)
     intro_not_worth_count: int = 0
+    # Funnel / cluster-level telemetry (Phase 0 hybrid_ab).
+    b_free_text_candidates_total: int = 0
+    b_free_text_candidates_visible_after_stage2: int = 0
+    b_clusters_formed: int = 0
+    b_clusters_rejected_too_small: int = 0
+    b_clusters_rejected_similarity_or_quality: int = 0
+    b_clusters_rejected_intro_cost: int = 0
+    b_clusters_selected_final: int = 0
+    b_raw_total_summary: dict[str, float | int] = field(default_factory=dict)
+    b_code_total_summary: dict[str, float | int] = field(default_factory=dict)
+    b_intro_cost_summary: dict[str, float | int] = field(default_factory=dict)
 
 
 def _token_len(tokenizer: Any, tok_type: str, text: str) -> int:
@@ -120,9 +132,11 @@ def encode_semantic_strings(
     occurrences: dict[str, list[tuple[int, int]]] = {}
     inners: dict[str, str] = {}
     route_rejects: Counter[str] = Counter()
+    string_literal_candidates_total = 0
     for tok in toks:
         if tok.type != tokenize.STRING:
             continue
+        string_literal_candidates_total += 1
         sp = tok.string
         route, reason = classify_semantic_free_text(sp, cfg)
         if route != "B":
@@ -141,7 +155,11 @@ def encode_semantic_strings(
 
     cands = len(occurrences)
     if cands == 0:
-        return BCodecResult(encoded_text=text)
+        return BCodecResult(
+            encoded_text=text,
+            b_free_text_candidates_total=string_literal_candidates_total,
+            b_free_text_candidates_visible_after_stage2=0,
+        )
 
     vecs = {sp: _vec(inner) for sp, inner in inners.items()}
     grams = {sp: _char_ngrams(inner, n=max(2, int(ngram_n))) for sp, inner in inners.items()}
@@ -179,9 +197,16 @@ def encode_semantic_strings(
     seq_saved = 0
     intro = 0
     sim_values: list[float] = []
+    clusters_too_small = 0
+    clusters_sim_reject = 0
+    clusters_intro_reject = 0
+    raw_totals_seen: list[int] = []
+    code_totals_seen: list[int] = []
+    intro_costs_seen: list[int] = []
 
     for idx, members in enumerate(clusters):
         if len(members) < min_cluster_size:
+            clusters_too_small += 1
             fallback_count += len(members)
             continue
         rep = min(
@@ -198,6 +223,7 @@ def encode_semantic_strings(
         sims = [_sim(m, rep) for m in members if m != rep]
         avg_sim = sum(sims) / len(sims) if sims else 1.0
         if avg_sim < risk_threshold:
+            clusters_sim_reject += 1
             risk_reject_count += len(members)
             continue
         code_inner = f"{code_prefix}{idx}"
@@ -220,7 +246,11 @@ def encode_semantic_strings(
             cnt = len(occurrences[m])
             raw_total += cnt * _token_len(tokenizer, tok_type, m)
             code_total += cnt * _token_len(tokenizer, tok_type, code_surface)
+        raw_totals_seen.append(raw_total)
+        code_totals_seen.append(code_total)
+        intro_costs_seen.append(int(intro_cost))
         if raw_total - code_total <= intro_cost:
+            clusters_intro_reject += 1
             intro_not_worth_count += 1
             fallback_count += len(members)
             continue
@@ -237,6 +267,28 @@ def encode_semantic_strings(
         for st, ed in occurrences.get(lit, []):
             spans.append((st, ed, rep))
     encoded = _apply_spans(text, spans) if spans else text
+
+    sel_raw: list[int] = []
+    sel_code: list[int] = []
+    sel_intro: list[int] = []
+    for cl in usable:
+        code_surface = repr(cl.code)
+        rt = sum(len(occurrences[m]) * _token_len(tokenizer, tok_type, m) for m in cl.members)
+        ct = sum(len(occurrences[m]) * _token_len(tokenizer, tok_type, code_surface) for m in cl.members)
+        ie = {
+            "token": code_surface,
+            "kind": "stage3_ab_b_cluster",
+            "definition": cl.representative,
+            "cluster_size": len(cl.members),
+        }
+        ic = int(
+            compute_vocab_intro_cost(
+                [ie], mode=VOCAB_COST_MODE, tokenizer=tokenizer, tok_type=tok_type
+            )
+        )
+        sel_raw.append(rt)
+        sel_code.append(ct)
+        sel_intro.append(ic)
 
     return BCodecResult(
         encoded_text=encoded,
@@ -255,5 +307,15 @@ def encode_semantic_strings(
         mode="lexical_free_text_mixed" if use_mixed else "lexical_free_text_baseline",
         reject_reason_counts=dict(route_rejects),
         intro_not_worth_count=intro_not_worth_count,
+        b_free_text_candidates_total=string_literal_candidates_total,
+        b_free_text_candidates_visible_after_stage2=cands,
+        b_clusters_formed=len(clusters),
+        b_clusters_rejected_too_small=clusters_too_small,
+        b_clusters_rejected_similarity_or_quality=clusters_sim_reject,
+        b_clusters_rejected_intro_cost=clusters_intro_reject,
+        b_clusters_selected_final=len(usable),
+        b_raw_total_summary=int_summary(sel_raw if sel_raw else raw_totals_seen),
+        b_code_total_summary=int_summary(sel_code if sel_code else code_totals_seen),
+        b_intro_cost_summary=int_summary(sel_intro if sel_intro else intro_costs_seen, with_min=True),
     )
 

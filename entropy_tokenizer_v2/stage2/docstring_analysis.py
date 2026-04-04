@@ -6,7 +6,7 @@ import ast
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable, Optional
 
 
 def normalize_path_for_docstring_policy(path: str | None) -> str:
@@ -471,7 +471,12 @@ def _path_context_report(path: str | None) -> dict[str, Any]:
     }
 
 
-def remove_safe_docstrings(source: str, path: str | None = None) -> tuple[str, dict[str, Any]]:
+def remove_safe_docstrings(
+    source: str,
+    path: str | None = None,
+    *,
+    retain_if: Optional[Callable[["DocstringInfo"], bool]] = None,
+) -> tuple[str, dict[str, Any]]:
     path_context = classify_docstring_path_context(path)
     path_report = _path_context_report(path)
 
@@ -485,9 +490,31 @@ def remove_safe_docstrings(source: str, path: str | None = None) -> tuple[str, d
             "kept": [],
             "parse_failed": True,
             "path_context": path_report,
+            "b_probe_retained_count": 0,
+            "b_probe_retained_chars": 0,
         }
 
-    to_remove = [i for i in infos if i.remove_candidate]
+    try:
+        from stage3.lexical.string_classifier import SemanticClassifierConfig, classify_semantic_free_text
+
+        _b_cfg = SemanticClassifierConfig()
+    except Exception:
+        classify_semantic_free_text = None  # type: ignore[assignment]
+        _b_cfg = None
+
+    probe_retained_chars = 0
+    probe_retained_count = 0
+    if retain_if is not None:
+        for info in infos:
+            if info.remove_candidate and retain_if(info):
+                probe_retained_count += 1
+                probe_retained_chars += len(info.text)
+
+    to_remove = [
+        i
+        for i in infos
+        if i.remove_candidate and not (retain_if is not None and retain_if(i))
+    ]
 
     spans: list[tuple[int, int, DocstringInfo]] = []
     for info in to_remove:
@@ -510,6 +537,13 @@ def remove_safe_docstrings(source: str, path: str | None = None) -> tuple[str, d
     for a, b, info in spans:
         if a < 0 or b > len(new_src) or a >= b:
             continue
+        inner_chars = len(info.text)
+        routes_b = False
+        if classify_semantic_free_text is not None and _b_cfg is not None:
+            try:
+                routes_b = classify_semantic_free_text(repr(info.text), _b_cfg)[0] == "B"
+            except Exception:
+                routes_b = False
         removed_report.append(
             {
                 "qualname": info.qualname,
@@ -517,6 +551,8 @@ def remove_safe_docstrings(source: str, path: str | None = None) -> tuple[str, d
                 "lineno": info.lineno,
                 "end_lineno": info.end_lineno,
                 "risk_reasons": list(info.risk_reasons),
+                "inner_chars": inner_chars,
+                "routes_b_candidate": routes_b,
             }
         )
         new_src = new_src[:a] + new_src[b:]
@@ -540,4 +576,6 @@ def remove_safe_docstrings(source: str, path: str | None = None) -> tuple[str, d
         "kept": kept_report,
         "parse_failed": False,
         "path_context": path_report,
+        "b_probe_retained_count": probe_retained_count,
+        "b_probe_retained_chars": probe_retained_chars,
     }

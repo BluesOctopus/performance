@@ -17,6 +17,10 @@ class CleaningConfig:
     docstring_removal_mode:     str = "safe_only"
     """``off`` | ``safe_only``. ``remove_docstrings=True`` implies ``safe_only`` (conservative)."""
     remove_indentation:         bool = True
+    b_starvation_probe:       bool = False
+    """Opt-in: retain a thin slice of long, space-rich docstrings for Stage3 B funnel experiments."""
+    b_probe_min_inner_chars:    int = 64
+    b_probe_min_space_ratio:  float = 0.12
 
 
 def _merge_docstring_reports(
@@ -33,6 +37,10 @@ def _merge_docstring_reports(
         "removed": list(a.get("removed", [])) + list(b.get("removed", [])),
         "kept": list(a.get("kept", [])) + list(b.get("kept", [])),
         "parse_failed": bool(a.get("parse_failed")) or bool(b.get("parse_failed")),
+        "b_probe_retained_count": int(a.get("b_probe_retained_count", 0))
+        + int(b.get("b_probe_retained_count", 0)),
+        "b_probe_retained_chars": int(a.get("b_probe_retained_chars", 0))
+        + int(b.get("b_probe_retained_chars", 0)),
     }
     pa, pb = a.get("path_context"), b.get("path_context")
     out["path_context"] = pa if pa else pb
@@ -47,6 +55,13 @@ class CleaningStats:
     removed_docstring_chars:    int = 0
     removed_indent_chars:       int = 0
     docstring_removal_report:   dict[str, Any] | None = None
+    stage2_removed_comment_count: int = 0
+    stage2_removed_comment_tokens_est: int = 0
+    stage2_removed_docstring_count: int = 0
+    stage2_removed_docstring_tokens_est: int = 0
+    stage2_removed_free_text_estimated_tokens: int = 0
+    stage2_retained_for_b_probe_count: int = 0
+    stage2_retained_for_b_probe_tokens_est: int = 0
 
     @property
     def char_reduction_pct(self) -> float:
@@ -65,6 +80,20 @@ class CleaningStats:
                 self.docstring_removal_report,
                 other.docstring_removal_report,
             ),
+            stage2_removed_comment_count=self.stage2_removed_comment_count
+            + other.stage2_removed_comment_count,
+            stage2_removed_comment_tokens_est=self.stage2_removed_comment_tokens_est
+            + other.stage2_removed_comment_tokens_est,
+            stage2_removed_docstring_count=self.stage2_removed_docstring_count
+            + other.stage2_removed_docstring_count,
+            stage2_removed_docstring_tokens_est=self.stage2_removed_docstring_tokens_est
+            + other.stage2_removed_docstring_tokens_est,
+            stage2_removed_free_text_estimated_tokens=self.stage2_removed_free_text_estimated_tokens
+            + other.stage2_removed_free_text_estimated_tokens,
+            stage2_retained_for_b_probe_count=self.stage2_retained_for_b_probe_count
+            + other.stage2_retained_for_b_probe_count,
+            stage2_retained_for_b_probe_tokens_est=self.stage2_retained_for_b_probe_tokens_est
+            + other.stage2_retained_for_b_probe_tokens_est,
         )
 
 
@@ -127,14 +156,25 @@ def find_multiline_string_line_spans(source: str) -> set[int]:
     return protected
 
 
-def _remove_comments(source: str, *, preserve_directives: bool = True) -> str:
-    """Remove ``#`` comments via ``tokenize`` (strings safe); regex fallback."""
+def _remove_comments(
+    source: str, *, preserve_directives: bool = True
+) -> tuple[str, int, int]:
+    """Remove ``#`` comments; returns (text, removed_line_count, est_tokens).
+
+    Token estimate: ``max(1, len(comment_token)//4)`` per removed COMMENT token
+    (``tokenize``), or for regex fallback ``max(1, len(match)//4)`` per line.
+    """
     lines = source.splitlines(keepends=True)
     if not preserve_directives:
         try:
             toks = list(tokenize.generate_tokens(io.StringIO(source).readline))
         except (tokenize.TokenError, IndentationError, SyntaxError):
-            return re.sub(r'(?m)#[^\n]*', '', source)
+            out = re.sub(r"(?m)#[^\n]*", "", source)
+            n_lines = len(re.findall(r"(?m)#", source))
+            est = 0
+            for m in re.finditer(r"(?m)#([^\n]*)", source):
+                est += max(1, len(m.group(0)) // 4)
+            return out, n_lines, est
 
         comment_cols: dict[int, int] = {}
         for tok in toks:
@@ -142,24 +182,33 @@ def _remove_comments(source: str, *, preserve_directives: bool = True) -> str:
                 comment_cols[tok.start[0]] = tok.start[1]
 
         if not comment_cols:
-            return source
+            return source, 0, 0
 
         result = []
+        rm_lines = 0
+        est_tok = 0
         for i, line in enumerate(lines, start=1):
             if i in comment_cols:
+                rm_lines += 1
                 col = comment_cols[i]
                 stripped = line[:col].rstrip()
+                est_tok += max(1, (len(line) - col) // 4)
                 result.append(stripped + "\n" if stripped else "\n")
             else:
                 result.append(line)
-        return "".join(result)
+        return "".join(result), rm_lines, est_tok
 
     try:
         toks = list(tokenize.generate_tokens(io.StringIO(source).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError):
-        return re.sub(r'(?m)#[^\n]*', '', source)
+        out = re.sub(r"(?m)#[^\n]*", "", source)
+        est = 0
+        for m in re.finditer(r"(?m)#([^\n]*)", source):
+            est += max(1, len(m.group(0)) // 4)
+        return out, len(re.findall(r"(?m)#", source)), est
 
     comment_cols: dict[int, int] = {}
+    comment_tok_len: dict[int, int] = {}
     for tok in toks:
         if tok.type != tokenize.COMMENT:
             continue
@@ -171,19 +220,24 @@ def _remove_comments(source: str, *, preserve_directives: bool = True) -> str:
         ):
             continue
         comment_cols[row] = col
+        comment_tok_len[row] = max(1, len(tok.string) // 4)
 
     if not comment_cols:
-        return source
+        return source, 0, 0
 
     result = []
+    rm_lines = 0
+    est_tok = 0
     for i, line in enumerate(lines, start=1):
         if i in comment_cols:
+            rm_lines += 1
             col = comment_cols[i]
             stripped = line[:col].rstrip()
+            est_tok += int(comment_tok_len.get(i, max(1, (len(line) - col) // 4)))
             result.append(stripped + "\n" if stripped else "\n")
         else:
             result.append(line)
-    return "".join(result)
+    return "".join(result), rm_lines, est_tok
 
 
 def clean_code(
@@ -203,17 +257,41 @@ def clean_code(
         if mode == "off":
             pass
         elif mode == "safe_only":
-            from stage2.docstring_analysis import remove_safe_docstrings
+            from stage2.docstring_analysis import DocstringInfo, remove_safe_docstrings
 
             before = len(source)
-            source, report = remove_safe_docstrings(source, path=path)
+
+            def _retain_doc_for_b_probe(info: DocstringInfo) -> bool:
+                inner = info.text.strip()
+                if len(inner) < int(config.b_probe_min_inner_chars):
+                    return False
+                sp = inner.count(" ") + inner.count("\n") + inner.count("\t")
+                ratio = sp / max(len(inner), 1)
+                return ratio >= float(config.b_probe_min_space_ratio)
+
+            source, report = remove_safe_docstrings(
+                source,
+                path=path,
+                retain_if=_retain_doc_for_b_probe if config.b_starvation_probe else None,
+            )
             stats.removed_docstring_chars = before - len(source)
             stats.docstring_removal_report = report
+            stats.stage2_removed_docstring_count = int(report.get("removed_count", 0))
+            for row in report.get("removed", []) or []:
+                ic = int(row.get("inner_chars", 0))
+                stats.stage2_removed_docstring_tokens_est += max(1, ic // 4)
+                if row.get("routes_b_candidate"):
+                    stats.stage2_removed_free_text_estimated_tokens += max(1, ic // 4)
+            prc = int(report.get("b_probe_retained_chars", 0))
+            stats.stage2_retained_for_b_probe_count = int(report.get("b_probe_retained_count", 0))
+            stats.stage2_retained_for_b_probe_tokens_est = max(1, prc // 4) if prc else 0
         else:
             raise ValueError(f"unknown docstring_removal_mode: {mode!r}")
 
     if config.remove_comments:
-        source = _remove_comments(source, preserve_directives=True)
+        source, cc, ctk = _remove_comments(source, preserve_directives=True)
+        stats.stage2_removed_comment_count += cc
+        stats.stage2_removed_comment_tokens_est += ctk
 
     protected: set[int] = set()
     if (

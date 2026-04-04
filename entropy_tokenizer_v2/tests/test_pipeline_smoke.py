@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pipeline
+from lossy_cleaner import CleaningStats
 from tests.fixtures import SimpleOfflineTokenizer
 
 
@@ -12,18 +13,17 @@ def test_pipeline_stage_order_and_output(monkeypatch) -> None:
         assert source == "x = 1"
         return "<SYN_0> x\nx = 1", {}
 
-    def fake_stage2(text, *, profile, mode):
+    def fake_stage2_clean_stats(text, cfg, *, mode="linewise", drop_empty_cleaned_lines=False, path=None):
         calls.append("stage2")
-        assert profile == "stage2_parseable"
         assert mode == "linewise"
-        return text + "\n#cleaned"
+        return text + "\n#cleaned", CleaningStats()
 
     def fake_stage3(text, repo_config):
         calls.append("stage3")
         return text.replace("x", "<VAR>")
 
     monkeypatch.setattr(pipeline, "apply_stage1_with_stats", fake_stage1_with_stats)
-    monkeypatch.setattr(pipeline, "apply_stage2", fake_stage2)
+    monkeypatch.setattr(pipeline, "stage2_clean_skip_syn_and_stats", fake_stage2_clean_stats)
     monkeypatch.setattr(pipeline, "apply_stage3", fake_stage3)
 
     repo_config = SimpleNamespace(

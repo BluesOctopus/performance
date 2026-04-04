@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
@@ -45,6 +46,10 @@ class HybridABConfig:
     max_alias_token_len: int = 32
     context_window_chars: int = 80
     b_channel_priority: str = "normal"
+    a_alias_rank_pool_cap: int = 32
+    a_context_gain_margin: int = 0
+    a_enable_local_combo_greedy: bool = False
+    a_combo_max_additions: int = 24
 
 
 @dataclass(slots=True)
@@ -97,6 +102,32 @@ def _encode_b_channel(
     )
 
 
+def _greedy_a_combo(
+    text: str,
+    occ: dict[tuple[str, str], list[tuple[int, int]]],
+    entries: list[AEntry],
+    *,
+    tokenizer: Any,
+    tok_type: str,
+    max_add: int,
+) -> list[AEntry]:
+    """Incremental greedy subset using full-file sequence length (non-overlapping spans)."""
+    if not entries:
+        return []
+    cap = max(1, int(max_add))
+    sorted_e = sorted(entries, key=lambda e: -e.gain)[:cap]
+    chosen: list[AEntry] = []
+    for cand in sorted_e:
+        trial = chosen + [cand]
+        cur_text = apply_a_entries(text, occ, chosen)
+        next_text = apply_a_entries(text, occ, trial)
+        if _sequence_token_len(next_text, tokenizer, tok_type) < _sequence_token_len(
+            cur_text, tokenizer, tok_type
+        ):
+            chosen.append(cand)
+    return chosen
+
+
 def _build_a_codec_subset(
     text_after_a: str,
     occ: dict[tuple[str, str], list[tuple[int, int]]],
@@ -123,6 +154,13 @@ def _build_a_codec_subset(
         protected_name_count=orig_a.protected_name_count,
         min_occ_reject_count=orig_a.min_occ_reject_count,
         net_gain_reject_count=orig_a.net_gain_reject_count,
+        rejected_raw_too_short=orig_a.rejected_raw_too_short,
+        rejected_alias_conflict=orig_a.rejected_alias_conflict,
+        rejected_gain_non_positive=orig_a.rejected_gain_non_positive,
+        rejected_context_rescore_negative=orig_a.rejected_context_rescore_negative,
+        a_raw_token_len_summary=dict(orig_a.a_raw_token_len_summary),
+        a_alias_token_len_summary=dict(orig_a.a_alias_token_len_summary),
+        a_context_delta_summary=dict(orig_a.a_context_delta_summary),
         occ=dict(occ),
     )
 
@@ -291,7 +329,22 @@ def encode_stage3_hybrid_ab(
         min_raw_token_len=conf.min_raw_token_len,
         max_alias_token_len=conf.max_alias_token_len,
         context_window_chars=conf.context_window_chars,
+        a_alias_rank_pool_cap=conf.a_alias_rank_pool_cap,
+        a_context_gain_margin=conf.a_context_gain_margin,
     )
+    if conf.a_enable_local_combo_greedy and a_res.entries:
+        orig_a = a_res
+        combo = _greedy_a_combo(
+            text,
+            a_res.occ,
+            list(a_res.entries),
+            tokenizer=tokenizer,
+            tok_type=tok_type,
+            max_add=conf.a_combo_max_additions,
+        )
+        if len(combo) != len(a_res.entries):
+            text_a = apply_a_entries(text, a_res.occ, combo)
+            a_res = _build_a_codec_subset(text_a, a_res.occ, combo, orig_a)
     b_res = _encode_b_channel(a_res.encoded_text, conf=conf, tokenizer=tokenizer, tok_type=tok_type)
     raw = HybridABResult(
         encoded_text=b_res.encoded_text,
@@ -321,6 +374,38 @@ def encode_stage3_hybrid_ab(
         "stage3_ab_a_min_occ_reject_count": a_res.min_occ_reject_count,
         "stage3_ab_a_net_gain_reject_count": a_res.net_gain_reject_count,
         "stage3_ab_a_reject_reason_counts": dict(a_res.reject_reason_counts),
+        "a_candidates_total": a_res.candidates,
+        "a_candidates_rejected_min_occ": a_res.min_occ_reject_count,
+        "a_candidates_rejected_raw_too_short": a_res.rejected_raw_too_short,
+        "a_candidates_rejected_alias_conflict": a_res.rejected_alias_conflict,
+        "a_candidates_rejected_gain_non_positive": a_res.rejected_gain_non_positive,
+        "a_candidates_rejected_context_rescore_negative": a_res.rejected_context_rescore_negative,
+        "a_candidates_selected_final": a_res.selected,
+        "stage3_ab_a_raw_token_len_summary_json": json.dumps(
+            a_res.a_raw_token_len_summary, ensure_ascii=False
+        ),
+        "stage3_ab_a_alias_token_len_summary_json": json.dumps(
+            a_res.a_alias_token_len_summary, ensure_ascii=False
+        ),
+        "stage3_ab_a_context_delta_summary_json": json.dumps(
+            a_res.a_context_delta_summary, ensure_ascii=False
+        ),
+        "b_free_text_candidates_total": b_res.b_free_text_candidates_total,
+        "b_free_text_candidates_visible_after_stage2": b_res.b_free_text_candidates_visible_after_stage2,
+        "b_clusters_formed": b_res.b_clusters_formed,
+        "b_clusters_rejected_too_small": b_res.b_clusters_rejected_too_small,
+        "b_clusters_rejected_similarity_or_quality": b_res.b_clusters_rejected_similarity_or_quality,
+        "b_clusters_rejected_intro_cost": b_res.b_clusters_rejected_intro_cost,
+        "b_clusters_selected_final": b_res.b_clusters_selected_final,
+        "stage3_ab_b_raw_total_summary_json": json.dumps(
+            b_res.b_raw_total_summary, ensure_ascii=False
+        ),
+        "stage3_ab_b_code_total_summary_json": json.dumps(
+            b_res.b_code_total_summary, ensure_ascii=False
+        ),
+        "stage3_ab_b_intro_cost_summary_json": json.dumps(
+            b_res.b_intro_cost_summary, ensure_ascii=False
+        ),
         "stage3_ab_b_candidates": b_res.candidates,
         "stage3_ab_b_cluster_count": b_res.cluster_count,
         "stage3_ab_b_used_clusters": b_res.used_clusters,
@@ -413,6 +498,10 @@ class HybridABStage3Backend:
             max_alias_token_len=int(cfg_raw.get("max_alias_token_len", 32)),
             context_window_chars=int(cfg_raw.get("context_window_chars", 80)),
             b_channel_priority=str(cfg_raw.get("b_channel_priority", "normal")).strip().lower(),
+            a_alias_rank_pool_cap=int(cfg_raw.get("a_alias_rank_pool_cap", 32)),
+            a_context_gain_margin=int(cfg_raw.get("a_context_gain_margin", 0)),
+            a_enable_local_combo_greedy=_truthy(cfg_raw.get("a_enable_local_combo_greedy", False)),
+            a_combo_max_additions=int(cfg_raw.get("a_combo_max_additions", 24)),
         )
         if mode != "hybrid" or not _truthy(cfg_raw.get("enable_b", False)):
             conf.mode = "exact_only"

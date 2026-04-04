@@ -136,6 +136,10 @@ HYBRID_AB_GPT4_PROFILE_STAGE3: dict = {
     "max_alias_token_len": 2,
     "b_channel_priority": "low",
     "context_window_chars": 80,
+    "a_alias_rank_pool_cap": 32,
+    "a_context_gain_margin": 0,
+    "a_enable_local_combo_greedy": False,
+    "a_combo_max_additions": 24,
 }
 HYBRID_AB_GPT2_PROFILE_STAGE3: dict = {
     "a_processing_mode": "full",
@@ -146,6 +150,10 @@ HYBRID_AB_GPT2_PROFILE_STAGE3: dict = {
     "max_alias_token_len": 32,
     "b_channel_priority": "normal",
     "context_window_chars": 80,
+    "a_alias_rank_pool_cap": 32,
+    "a_context_gain_margin": 0,
+    "a_enable_local_combo_greedy": False,
+    "a_combo_max_additions": 24,
 }
 
 
@@ -302,6 +310,18 @@ def resolve_hybrid_ab_settings(tokenizer_key: str) -> dict:
         out["b_similarity_threshold"] = min(
             0.94, float(out["b_similarity_threshold"]) + 0.06
         )
+    arp = os.getenv("ET_STAGE3_AB_A_ALIAS_RANK_POOL_CAP", "").strip()
+    if arp:
+        out["a_alias_rank_pool_cap"] = int(arp)
+    cgm = os.getenv("ET_STAGE3_AB_A_CONTEXT_GAIN_MARGIN", "").strip()
+    if cgm:
+        out["a_context_gain_margin"] = int(cgm)
+    combo_env = os.getenv("ET_STAGE3_AB_A_COMBO_GREEDY", "").strip().lower()
+    if combo_env:
+        out["a_enable_local_combo_greedy"] = combo_env in ("1", "true", "yes", "on")
+    acm = os.getenv("ET_STAGE3_AB_A_COMBO_MAX", "").strip()
+    if acm:
+        out["a_combo_max_additions"] = int(acm)
     return out
 
 
