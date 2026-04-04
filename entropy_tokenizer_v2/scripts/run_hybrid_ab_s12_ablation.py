@@ -1,4 +1,11 @@
-"""Minimal hybrid_ab Stage1/Stage2 ablation (80 HF samples). Writes results/stage3_hybrid_ab_s12_ablation.csv."""
+"""Minimal hybrid_ab Stage1/Stage2 ablation (80 HF samples). Writes results/stage3_hybrid_ab_s12_ablation.csv.
+
+Token columns:
+- sum_* / stage1_vocab_intro_tokens / sum_effective_total_tokens: same counters as v2_eval /
+  apply_pipeline (placeholder-aware sequence counting).
+- telemetry_*: summed from hybrid_ab per-file meta (guardrail uses raw tokenizer encode length);
+  may differ slightly from sum_after_stage2/3 when Stage1 syntax markers are present.
+"""
 
 from __future__ import annotations
 
