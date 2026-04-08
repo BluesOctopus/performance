@@ -1,0 +1,1679 @@
+--- SYSTEM INSTRUCTIONS ---
+You are an expert Python developer and code decompressor.
+The following code is compressed using the 'Entropy Tokenizer v2' protocol.
+Please follow these rules to decompress and understand the code:
+
+### Rule 1: Syntax Operators (<SYN_N>)
+High-frequency code structures (skeletons) are replaced by <SYN_N> markers followed by slot values.
+The mapping is as follows:
+- <SYN_0>: `from [SLOT_0] import [SLOT_1]`
+- <SYN_1>: `[SLOT_0].node.extend([[SLOT_1]])`
+- <SYN_2>: `assert [SLOT_0].get([SLOT_1]) == [SLOT_2]`
+- <SYN_3>: `[SLOT_0].set_code([SLOT_1].StatusCode.UNIMPLEMENTED)`
+- <SYN_4>: `assert [SLOT_0][[SLOT_1]] == [SLOT_2]`
+- <SYN_5>: `[SLOT_0].set_attr_dtype([SLOT_1], [SLOT_2], [SLOT_3].float32)`
+- <SYN_6>: `[SLOT_0].Conv([SLOT_1], [SLOT_2], [SLOT_3], [SLOT_4], [SLOT_5], pad=1, stride=1)`
+- <SYN_7>: `return [SLOT_0]`
+- <SYN_8>: `from .[SLOT_0] import [SLOT_1]`
+- <SYN_9>: `[SLOT_0] = [SLOT_1]([SLOT_2].keys())`
+- <SYN_10>: `[SLOT_0] = [SLOT_1]([SLOT_2], [SLOT_3])`
+- <SYN_11>: `[SLOT_0] = [SLOT_1]()`
+- <SYN_12>: `[SLOT_0].Product = [SLOT_1].get([SLOT_2])`
+- <SYN_13>: `[SLOT_0] = [SLOT_1]([SLOT_2])`
+- <SYN_14>: `[SLOT_0].RequestId = [SLOT_1].get([SLOT_2])`
+- <SYN_15>: `[SLOT_0].remove([SLOT_1])`
+- <SYN_16>: `[SLOT_0] = [SLOT_1][[SLOT_2]]`
+- <SYN_17>: `[SLOT_0] = [SLOT_1].get_nodeattr([SLOT_2])`
+- <SYN_18>: `[SLOT_0] = []`
+- <SYN_19>: `[SLOT_0]([SLOT_1], [SLOT_2], [SLOT_3])`
+- <SYN_20>: `[SLOT_0].RequestId = None`
+- <SYN_21>: `[SLOT_0] = [SLOT_1].KnowledgeBase()`
+- <SYN_22>: `[SLOT_0]([SLOT_1], [SLOT_2])`
+- <SYN_23>: `[SLOT_0]([SLOT_1], [SLOT_2]).__init__(**[SLOT_3])`
+- <SYN_24>: `import [SLOT_0] as [SLOT_1]`
+- <SYN_25>: `[SLOT_0].InstanceId = [SLOT_1].get([SLOT_2])`
+- <SYN_26>: `[SLOT_0] = [SLOT_1].GraphDef()`
+- <SYN_27>: `[SLOT_0].append([SLOT_1])`
+- <SYN_28>: `[SLOT_0].Product = None`
+- <SYN_29>: `[SLOT_0].assertTrue([SLOT_1].applicableTo([SLOT_2], [SLOT_3].parameters()))`
+- <SYN_30>: `[SLOT_0] = [SLOT_1].Parameterised([SLOT_2])`
+- <SYN_31>: `continue`
+- <SYN_32>: `[SLOT_0]([SLOT_1].log_probability([SLOT_2]([SLOT_3])), -[SLOT_4])`
+- <SYN_33>: `[SLOT_0].Relu([SLOT_1], [SLOT_2])`
+- <SYN_34>: `[SLOT_0].InstanceId = None`
+- <SYN_35>: `from [SLOT_0] import [SLOT_1], [SLOT_2]`
+- <SYN_36>: `[SLOT_0].StartTime = [SLOT_1].get([SLOT_2])`
+- <SYN_37>: `[SLOT_0].assertIsNotNone([SLOT_1])`
+- <SYN_38>: `assert [SLOT_0].get_string([SLOT_1]) == [SLOT_2]`
+- <SYN_39>: `[SLOT_0][[SLOT_1]] = [SLOT_2]`
+- <SYN_40>: `[SLOT_0]._deserialize([SLOT_1])`
+- <SYN_41>: `[SLOT_0] = [SLOT_1].upsample([SLOT_2], size=([SLOT_3], [SLOT_4]), mode=[SLOT_5])`
+- <SYN_42>: `[SLOT_0] = ([SLOT_1], [SLOT_2])`
+- <SYN_43>: `[SLOT_0] = [SLOT_1].RbacAuthorizationV1Api()`
+- <SYN_44>: `[SLOT_0] = [SLOT_1].path.join([SLOT_2], [SLOT_3])`
+- <SYN_45>: `[SLOT_0].EndTime = [SLOT_1].get([SLOT_2])`
+- <SYN_46>: `[SLOT_0].Limit = [SLOT_1].get([SLOT_2])`
+- <SYN_47>: `import [SLOT_0]`
+- <SYN_48>: `[SLOT_0].assertEqual([SLOT_1], [SLOT_2])`
+- <SYN_49>: `[SLOT_0]([SLOT_1], [SLOT_2]).__init__()`
+- <SYN_50>: `[SLOT_0] = False`
+- <SYN_51>: `[SLOT_0] = [[SLOT_1], [SLOT_2], [SLOT_3]]`
+- <SYN_52>: `[SLOT_0].assertEqual(1, [SLOT_1].count([SLOT_2]))`
+- <SYN_53>: `[SLOT_0].assertFalse([SLOT_1].applicableTo([SLOT_2], [SLOT_3].parameters()))`
+- <SYN_54>: `[SLOT_0].assertEqual([SLOT_1].parameters()[[SLOT_2]].getTypedValue(), True)`
+- <SYN_55>: `[SLOT_0].assertEqual(0, [SLOT_1].count([SLOT_2]) + [SLOT_3].count([SLOT_4]))`
+- <SYN_56>: `assert [SLOT_0].get([SLOT_1]) == {[SLOT_2]: [SLOT_4], [SLOT_3]: [SLOT_5]}`
+- <SYN_57>: `[SLOT_0] = [SLOT_1].get([SLOT_2])`
+- <SYN_58>: `[SLOT_0].TotalCount = [SLOT_1].get([SLOT_2])`
+- <SYN_59>: `[SLOT_0]._event_handlers_timer.reset()`
+- <SYN_60>: `[SLOT_0].set_attr_dtype([SLOT_1], [SLOT_2], [SLOT_3].uint8)`
+- <SYN_61>: `from [SLOT_0] import [SLOT_1], [SLOT_2], [SLOT_3]`
+- <SYN_62>: `return [SLOT_0].ceil([SLOT_1] / [SLOT_2]) * [SLOT_3].ceil([SLOT_4] / [SLOT_5])`
+- <SYN_63>: `[SLOT_0] = [SLOT_1]._event_handlers_timer.value()`
+- <SYN_64>: `[SLOT_0] = [[SLOT_1].op for [SLOT_2] in [SLOT_3].node]`
+- <SYN_65>: `[SLOT_0].StartTime = None`
+- <SYN_66>: `[SLOT_0].EndTime = None`
+- <SYN_67>: `[SLOT_0]([SLOT_1], {}, [[SLOT_2]])`
+- <SYN_68>: `[SLOT_0] = [[SLOT_1], [SLOT_2]]`
+- <SYN_69>: `return [SLOT_0].zamg_data.get_data([SLOT_1])`
+- <SYN_70>: `[SLOT_0] = [SLOT_1]([[SLOT_2]])[0]`
+- <SYN_71>: `[SLOT_0].tools.assert_in(([SLOT_1], [SLOT_2]), [SLOT_3])`
+- <SYN_72>: `[SLOT_0] = await [SLOT_1].queue_declare(auto_delete=True)`
+- <SYN_73>: `[SLOT_0]._cri.RunCmdOnDevice([[SLOT_1], [SLOT_2]])`
+- <SYN_74>: `assert [SLOT_0].get([SLOT_1]) == [[SLOT_2], [SLOT_3]]`
+- <SYN_75>: `[SLOT_0].addObjectHandler([SLOT_1](), namespace=[SLOT_2])`
+- <SYN_76>: `await [SLOT_0].basic_publish([SLOT_1], routing_key=[SLOT_2].queue)`
+- <SYN_77>: `[SLOT_0].local_storage.delete_element([SLOT_1], [SLOT_2])`
+- <SYN_78>: `[SLOT_0] = [SLOT_1].AppsV1Api()`
+- <SYN_79>: `assert [SLOT_0].get_int([SLOT_1]) == [SLOT_2]`
+- <SYN_80>: `assert [SLOT_0][[SLOT_1]] == [[SLOT_2], [SLOT_3]]`
+- <SYN_81>: `[SLOT_0] = [SLOT_1].with_fallback([SLOT_2])`
+- <SYN_82>: `[SLOT_0] = {}`
+- <SYN_83>: `[SLOT_0].Limit = None`
+- <SYN_84>: `[SLOT_0] = [SLOT_1].placeholder(ndim=[SLOT_2])`
+- <SYN_85>: `[SLOT_0]([SLOT_1], [SLOT_2], rtol=[SLOT_3])`
+- <SYN_86>: `[SLOT_0] = [SLOT_1]([SLOT_2], [SLOT_3], [SLOT_4])`
+- <SYN_87>: `[SLOT_0] = [[SLOT_1][[SLOT_2]] for [SLOT_3] in [SLOT_4]]`
+- <SYN_88>: `return ([SLOT_0], [SLOT_1])`
+- <SYN_89>: `[SLOT_0] = await [SLOT_1].get()`
+- <SYN_90>: `[SLOT_0].set_attr_bool([SLOT_1], [SLOT_2], False)`
+- <SYN_91>: `assert [SLOT_0][[SLOT_1]] == {[SLOT_2]: [SLOT_4], [SLOT_3]: [SLOT_5]}`
+- <SYN_92>: `from [SLOT_0] import [SLOT_1] as [SLOT_2]`
+- <SYN_93>: `[SLOT_0] = 0`
+- <SYN_94>: `[SLOT_0] = [SLOT_1] + [SLOT_2]`
+- <SYN_95>: `[SLOT_0].local_storage.update([SLOT_1], [SLOT_2])`
+- <SYN_96>: `[SLOT_0] = [SLOT_1][0]`
+- <SYN_97>: `[SLOT_0].AsyncRequestId = [SLOT_1].get([SLOT_2])`
+- <SYN_98>: `[SLOT_0].TotalCount = None`
+- <SYN_99>: `[SLOT_0].reset_default_graph()`
+- <SYN_100>: `[SLOT_0] = [SLOT_1].CoreV1Api()`
+- <SYN_101>: `[SLOT_0] = [SLOT_1].reshape([SLOT_2])`
+- <SYN_102>: `[SLOT_0] = [SLOT_1].Int.from_node([SLOT_2], value=[SLOT_3])`
+- <SYN_103>: `[SLOT_0] = [SLOT_1].state.iteration - 1`
+- <SYN_104>: `assert [SLOT_0] == [SLOT_1][[SLOT_2]]`
+- <SYN_105>: `[SLOT_0] = [SLOT_1].storage.get_default_tracer()`
+- <SYN_106>: `[SLOT_0] = True`
+- <SYN_107>: `[SLOT_0].SetDrawColor([SLOT_1], [SLOT_2], [SLOT_3])`
+- <SYN_108>: `[SLOT_0].AddUserAccount([SLOT_1])`
+- <SYN_109>: `[SLOT_0]([SLOT_1], [SLOT_2].parameters())`
+- <SYN_110>: `[SLOT_0] = [SLOT_1].replace([SLOT_2], [SLOT_3])`
+- <SYN_111>: `[SLOT_0] = [SLOT_1].random.randn([SLOT_2])`
+- <SYN_112>: `[SLOT_0].Metric = [SLOT_1].get([SLOT_2])`
+- <SYN_113>: `[SLOT_0].SortBy = [SLOT_1].get([SLOT_2])`
+- <SYN_114>: `[SLOT_0].add_task([SLOT_1], [SLOT_2])`
+- <SYN_115>: `from ..[SLOT_0] import [SLOT_1]`
+- <SYN_116>: `[SLOT_0]([SLOT_1]([SLOT_2].distributions[0], [SLOT_3]))`
+- <SYN_117>: `[SLOT_0]([SLOT_1]([SLOT_2].distributions[1], [SLOT_3]))`
+- <SYN_118>: `[SLOT_0] = [SLOT_1].get_instream_width()`
+- <SYN_119>: `assert [SLOT_0][[SLOT_1]][[SLOT_2]] == [SLOT_3]`
+- <SYN_120>: `[SLOT_0], [SLOT_1], [SLOT_2] = [SLOT_3].shape`
+- <SYN_121>: `[SLOT_0] = [SLOT_1].predict_log_proba([SLOT_2])`
+- <SYN_122>: `[SLOT_0].Offset = [SLOT_1].get([SLOT_2])`
+- <SYN_123>: `[SLOT_0].Timestamp = [SLOT_1].get([SLOT_2])`
+- <SYN_124>: `return [SLOT_0].cluster.get([SLOT_1])`
+- <SYN_125>: `[SLOT_0] = [SLOT_1].time()`
+- <SYN_126>: `[SLOT_0].AsyncRequestId = None`
+- <SYN_127>: `[SLOT_0] = None`
+- <SYN_128>: `[SLOT_0] = [SLOT_1].GetValue([SLOT_2])`
+- <SYN_129>: `[SLOT_0].assertIsNone([SLOT_1])`
+- <SYN_130>: `assert [SLOT_0].body == [SLOT_1]`
+- <SYN_131>: `return ([SLOT_0], [SLOT_1], [SLOT_2])`
+- <SYN_132>: `[SLOT_0] = [SLOT_1].predict_proba([SLOT_2])`
+- <SYN_133>: `[SLOT_0] = [SLOT_1].log_probability([SLOT_2])`
+- <SYN_134>: `[SLOT_0] = [SLOT_1].create_node([SLOT_2], [SLOT_3], [[SLOT_4]])`
+- <SYN_135>: `[SLOT_0].out_channels = [SLOT_1]`
+- <SYN_136>: `[SLOT_0] = {[SLOT_1]: [SLOT_4], [SLOT_2]: [SLOT_5], [SLOT_3]: [SLOT_6]}`
+- <SYN_137>: `[SLOT_0] = [SLOT_1][1]`
+- <SYN_138>: `[SLOT_0].Metric = None`
+- <SYN_139>: `[SLOT_0].SortBy = None`
+- <SYN_140>: `[SLOT_0].AddEnvironmentVariable([SLOT_1])`
+- <SYN_141>: `[SLOT_0].FillBox([SLOT_1], [SLOT_2], 0, [SLOT_3])`
+- <SYN_142>: `[SLOT_0].FillBox([SLOT_1], [SLOT_2], [SLOT_3], [SLOT_4])`
+- <SYN_143>: `[SLOT_0].update([[SLOT_1], [SLOT_2]])`
+- <SYN_144>: `assert [SLOT_0] == [SLOT_1]`
+- <SYN_145>: `[SLOT_0].main()`
+- <SYN_146>: `[SLOT_0] = [SLOT_1].transform([SLOT_2])`
+- <SYN_147>: `[SLOT_0]([SLOT_1].weights, [SLOT_2].weights)`
+- <SYN_148>: `from . import [SLOT_0] as [SLOT_1]`
+- <SYN_149>: `[SLOT_0] += 1`
+- <SYN_150>: `[SLOT_0] = [SLOT_1].predict([SLOT_2])`
+- <SYN_151>: `return None`
+- <SYN_152>: `[SLOT_0].add_task([SLOT_1])`
+- <SYN_153>: `from .[SLOT_0] import [SLOT_1], [SLOT_2]`
+- <SYN_154>: `[SLOT_0].Offset = None`
+- <SYN_155>: `[SLOT_0].Timestamp = None`
+- <SYN_156>: `return False`
+- <SYN_157>: `[SLOT_0] = [SLOT_1].read()`
+- <SYN_158>: `del [SLOT_0][[SLOT_1]]`
+- <SYN_159>: `[SLOT_0].push([SLOT_1])`
+- <SYN_160>: `[SLOT_0], [SLOT_1] = [SLOT_2]([SLOT_3])`
+- <SYN_161>: `[SLOT_0] = [SLOT_1] // [SLOT_2]`
+- <SYN_162>: `[SLOT_0].load([SLOT_1])`
+- <SYN_163>: `return True`
+- <SYN_164>: `raise [SLOT_0]`
+- <SYN_165>: `[SLOT_0], [SLOT_1] = [SLOT_2]`
+- <SYN_166>: `[SLOT_0].SetTimeZone([SLOT_1])`
+- <SYN_167>: `[SLOT_0] = [SLOT_1].getLogger([SLOT_2])`
+- <SYN_168>: `return [SLOT_0]()`
+- <SYN_169>: `[SLOT_0].backward()`
+- <SYN_170>: `[SLOT_0] = [SLOT_1] - [SLOT_2]`
+- <SYN_171>: `[SLOT_0].flush()`
+- <SYN_172>: `[SLOT_0]()`
+- <SYN_173>: `[SLOT_0].add([SLOT_1])`
+- <SYN_174>: `[SLOT_0].start()`
+- <SYN_175>: `[SLOT_0] += [SLOT_1]`
+- <SYN_176>: `[SLOT_0] = [SLOT_1] / [SLOT_2]`
+- <SYN_177>: `[SLOT_0]([SLOT_1]([SLOT_2], [SLOT_3]))`
+- <SYN_178>: `return [SLOT_0]([SLOT_1])`
+- <SYN_179>: `yield [SLOT_0]`
+- <SYN_180>: `[SLOT_0] = [SLOT_1].create_node([SLOT_2], [SLOT_3], [[SLOT_4].name, [SLOT_5].name])`
+
+### Rule 2: Minimalist Indentation (<I>, <D>)
+- Indentation is largely implicit: a line ending with a colon (:) implies the next line is indented.
+- <I>: Explicit Indent (move 4 spaces right).
+- <D>: Explicit Dedent (move 4 spaces left).
+- Multiple <D><D> means multiple dedent levels.
+
+### Rule 3: Token Replacements
+- <VAR_N>, <STR_N>, <NUM_N>, etc., are placeholders for frequent global tokens.
+- <V_N> refers to local identifiers defined in the local registry.
+
+### Global Token Registry:
+#### STR:
+  - <STR_0> -> `"""
+{
+  "console": {
+    "bot": "bot",
+    "prompt": ">>>",
+    "scheduler": {
+      "name": "Scheduler1",
+      "debug_level": 50,
+      "add_listeners": false,
+      "remove_all_jobs": false
+    },
+    "storage": {
+      "entities": {
+        "users": "sql",
+        "linked_accounts": "sql",
+        "links": "sql",
+        "properties": "file",
+        "conversations": "file",
+        "categories": "file",
+        "maps": "file",
+        "sets": "file",
+        "rdf": "file",
+        "denormal": "file",
+        "normal": "file",
+        "gender": "file",
+        "person": "file",
+        "person2": "file",
+        "spelling_corpus": "file",
+        "license_keys": "file",
+        "nodes": "file",
+        "binaries": "file",
+        "braintree": "file",
+        "preprocessors": "file",
+        "postprocessors": "file",
+        "regex_templates": "file",
+        "usergroups": "file",
+        "learnf": "file"
+      },
+      "stores": {
+        "sql": {
+          "type": "sql",
+          "config": {
+            "url": "sqlite:///:memory",
+            "echo": false,
+            "encoding": "utf-8",
+            "create_db": true,
+            "drop_all_first": true
+          }
+        },
+        "mongo": {
+          "type": "mongo",
+          "config": {
+            "url": "mongodb://localhost:27017/",
+            "database": "programy",
+            "drop_all_first": true
+          }
+        },
+        "redis": {
+          "type": "redis",
+          "config": {
+            "host": "localhost",
+            "port": 6379,
+            "password": <PASSWORD>,
+            "db": 0,
+            "prefix": "programy",
+            "drop_all_first": true
+          }
+        },
+        "file": {
+          "type": "file",
+          "config": {
+            "category_storage": {
+              "files": "./storage/categories"
+            },
+            "conversations_storage": {
+              "files": "./storage/conversations"
+            },
+            "sets_storage": {
+              "files": "./storage/sets",
+              "extension": ".txt",
+              "directories": false
+            },
+            "maps_storage": {
+              "files": "./storage/maps",
+              "extension": ".txt",
+              "directories": false
+            },
+            "regex_templates": {
+              "files": "./storage/regex"
+            },
+            "lookups_storage": {
+              "files": "./storage/lookups",
+              "extension": ".txt",
+              "directories": false
+            },
+            "properties_storage": {
+              "file": "./storage/properties.txt"
+            },
+            "defaults_storage": {
+              "file": "./storage/defaults.txt"
+            },
+            "rdf_storage": {
+              "files": "./storage/rdfs",
+              "extension": ".txt",
+              "directories": true
+            },
+            "spelling_corpus": {
+              "file": "./storage/spelling/corpus.txt"
+            },
+            "license_keys": {
+              "file": "./storage/license.keys"
+            },
+            "nodes": {
+              "files": "./storage/nodes"
+            },
+            "binaries": {
+              "files": "./storage/binaries"
+            },
+            "braintree": {
+              "file": "./storage/braintree/braintree.xml",
+              "format": "xml"
+            },
+            "preprocessors": {
+              "file": "./storage/processing/preprocessors.txt"
+            },
+            "postprocessors": {
+              "file": "./storage/processing/postprocessing.txt"
+            },
+            "usergroups": {
+              "files": "./storage/security/usergroups.txt"
+            },
+            "learnf": {
+              "files": "./storage/categories/learnf"
+            }
+          }
+        }
+      }
+    },
+    "logger": {
+      "type": "logger",
+      "config": {
+        "conversation_logger": "conversation"
+      }
+    }
+  },
+  "voice": {
+    "license_keys": "$BOT_ROOT/config/license.keys",
+    "tts": "osx",
+    "stt": "azhang",
+    "osx": {
+      "classname": "talky.clients.voice.tts.osxsay.OSXSayTextToSpeach"
+    },
+    "pytts": {
+      "classname": "talky.clients.voice.tts.pyttssay.PyTTSSayTextToSpeach",
+      "rate_adjust": 10
+    },
+    "azhang": {
+      "classname": "talky.clients.voice.stt.azhang.AnthonyZhangSpeechToText",
+      "ambient_adjust": 3,
+      "service": "ibm"
+    }
+  },
+  "rest": {
+    "host": "0.0.0.0",
+    "port": 8989,
+    "debug": false,
+    "workers": 4,
+    "license_keys": "$BOT_ROOT/config/license.keys"
+  },
+  "webchat": {
+    "host": "0.0.0.0",
+    "port": 8090,
+    "debug": false,
+    "license_keys": "$BOT_ROOT/config/license.keys",
+    "api": "/api/web/v1.0/ask"
+  },
+  "twitter": {
+    "polling": true,
+    "polling_interval": 49,
+    "streaming": false,
+    "use_status": true,
+    "use_direct_message": true,
+    "auto_follow": true,
+    "storage": "file",
+    "welcome_message": "Thanks for following me, send me a message and I'll try and help",
+    "license_keys": "file"
+  },
+  "xmpp": {
+    "server": "talk.google.com",
+    "port": 5222,
+    "xep_0030": true,
+    "xep_0004": true,
+    "xep_0060": true,
+    "xep_0199": true,
+    "license_keys": "file"
+  },
+  "socket": {
+    "host": "127.0.0.1",
+    "port": 9999,
+    "queue": 5,
+    "debug": true,
+    "license_keys": "file"
+  },
+  "telegram": {
+    "unknown_command": "Sorry, that is not a command I have been taught yet!",
+    "license_keys": "file"
+  },
+  "facebook": {
+    "host": "127.0.0.1",
+    "port": 5000,
+    "debug": false,
+    "license_keys": "file"
+  },
+  "twilio": {
+    "host": "127.0.0.1",
+    "port": 5000,
+    "debug": false,
+    "license_keys": "file"
+  },
+  "slack": {
+    "polling_interval": 1,
+    "license_keys": "file"
+  },
+  "viber": {
+    "name": "Servusai",
+    "avatar": "http://viber.com/avatar.jpg",
+    "license_keys": "file"
+  },
+  "line": {
+    "host": "127.0.0.1",
+    "port": 8084,
+    "debug": false,
+    "license_keys": "file"
+  },
+  "kik": {
+    "bot_name": "servusai",
+    "webhook": "https://93638f7a.ngrok.io/api/kik/v1.0/ask",
+    "host": "127.0.0.1",
+    "port": 8082,
+    "debug": false,
+    "license_keys": "file"
+  },
+  "bot": {
+    "brain": "brain",
+    "initial_question": "Hi, how can I help you today?",
+    "initial_question_srai": "YINITIALQUESTION",
+    "default_response": "Sorry, I don't have an answer for that!",
+    "default_response_srai": "YEMPTY",
+    "empty_string": "YEMPTY",
+    "exit_response": "So long, and thanks for the fish!",
+    "exit_response_srai": "YEXITRESPONSE",
+    "override_properties": true,
+    "max_question_recursion": 1000,
+    "max_question_timeout": 60,
+    "max_search_depth": 100,
+    "max_search_timeout": 60,
+    "spelling": {
+      "load": true,
+      "classname": "programy.spelling.norvig.NorvigSpellingChecker",
+      "check_before": true,
+      "check_and_retry": true
+    },
+    "conversations": {
+      "max_histories": 100,
+      "restore_last_topic": false,
+      "initial_topic": "TOPIC1",
+      "empty_on_start": false
+    }
+  },
+  "brain": {
+    "overrides": {
+      "allow_system_aiml": true,
+      "allow_learn_aiml": true,
+      "allow_learnf_aiml": true
+    },
+    "defaults": {
+      "default-get": "unknown",
+      "default-property": "unknown",
+      "default-map": "unknown",
+      "learnf-path": "file"
+    },
+    "binaries": {
+      "save_binary": true,
+      "load_binary": true,
+      "load_aiml_on_binary_fail": true
+    },
+    "braintree": {
+      "create": true
+    },
+    "services": {
+      "REST": {
+        "classname": "programy.services.rest.GenericRESTService",
+        "method": "GET",
+        "host": "0.0.0.0",
+        "port": 8080
+      },
+      "Pannous": {
+        "classname": "programy.services.pannous.PannousService",
+        "url": "http://weannie.pannous.com/api"
+      }
+    },
+    "security": {
+      "authentication": {
+        "classname": "programy.security.authenticate.passthrough.BasicPassThroughAuthenticationService",
+        "denied_srai": "AUTHENTICATION_FAILED"
+      },
+      "authorisation": {
+        "classname": "programy.security.authorise.usergroupsauthorisor.BasicUserGroupAuthorisationService",
+        "denied_srai": "AUTHORISATION_FAILED",
+        "usergroups": {
+          "storage": "file"
+        }
+      }
+    },
+    "oob": {
+      "default": {
+        "classname": "programy.oob.defaults.default.DefaultOutOfBandProcessor"
+      },
+      "alarm": {
+        "classname": "programy.oob.defaults.alarm.AlarmOutOfBandProcessor"
+      },
+      "camera": {
+        "classname": "programy.oob.defaults.camera.CameraOutOfBandProcessor"
+      },
+      "clear": {
+        "classname": "programy.oob.defaults.clear.ClearOutOfBandProcessor"
+      },
+      "dial": {
+        "classname": "programy.oob.defaults.dial.DialOutOfBandProcessor"
+      },
+      "dialog": {
+        "classname": "programy.oob.defaults.dialog.DialogOutOfBandProcessor"
+      },
+      "email": {
+        "classname": "programy.oob.defaults.email.EmailOutOfBandProcessor"
+      },
+      "geomap": {
+        "classname": "programy.oob.defaults.map.MapOutOfBandProcessor"
+      },
+      "schedule": {
+        "classname": "programy.oob.defaults.schedule.ScheduleOutOfBandProcessor"
+      },
+      "search": {
+        "classname": "programy.oob.defaults.search.SearchOutOfBandProcessor"
+      },
+      "sms": {
+        "classname": "programy.oob.defaults.sms.SMSOutOfBandProcessor"
+      },
+      "url": {
+        "classname": "programy.oob.defaults.url.URLOutOfBandProcessor"
+      },
+      "wifi": {
+        "classname": "programy.oob.defaults.wifi.WifiOutOfBandProcessor"
+      }
+    },
+    "dynamic": {
+      "variables": {
+        "gettime": "programy.dynamic.variables.datetime.GetTime"
+      },
+      "sets": {
+        "numeric": "programy.dynamic.sets.numeric.IsNumeric",
+        "roman": "programy.dynamic.sets.roman.IsRomanNumeral"
+      },
+      "maps": {
+        "romantodec": "programy.dynamic.maps.roman.MapRomanToDecimal",
+        "dectoroman": "programy.dynamic.maps.roman.MapDecimalToRoman"
+      }
+    }
+  }
+}
+            """`
+  - <STR_1> -> `'doc'`
+  - <STR_2> -> `"""A function decorator that will cache the return
+        value of the function using a key derived from the
+        function itself and its arguments.
+        The decorator internally makes use of the
+        :meth:`.CacheRegion.get_or_create` method to access the
+        cache and conditionally call the function.  See that
+        method for additional behavioral details.
+        E.g.::
+            @someregion.cache_on_arguments()
+            def generate_something(x, y):
+                return somedatabase.query(x, y)
+        The decorated function can then be called normally, where
+        data will be pulled from the cache region unless a new
+        value is needed::
+            result = generate_something(5, 6)
+        The function is also given an attribute ``invalidate()``, which
+        provides for invalidation of the value.  Pass to ``invalidate()``
+        the same arguments you'd pass to the function itself to represent
+        a particular value::
+            generate_something.invalidate(5, 6)
+        Another attribute ``set()`` is added to provide extra caching
+        possibilities relative to the function.   This is a convenience
+        method for :meth:`.CacheRegion.set` which will store a given
+        value directly without calling the decorated function.
+        The value to be cached is passed as the first argument, and the
+        arguments which would normally be passed to the function
+        should follow::
+            generate_something.set(3, 5, 6)
+        The above example is equivalent to calling
+        ``generate_something(5, 6)``, if the function were to produce
+        the value ``3`` as the value to be cached.
+        .. versionadded:: 0.4.1 Added ``set()`` method to decorated function.
+        Similar to ``set()`` is ``refresh()``.   This attribute will
+        invoke the decorated function and populate a new value into
+        the cache with the new value, as well as returning that value::
+            newvalue = generate_something.refresh(5, 6)
+        .. versionadded:: 0.5.0 Added ``refresh()`` method to decorated
+           function.
+        Lastly, the ``get()`` method returns either the value cached
+        for the given key, or the token ``NO_VALUE`` if no such key
+        exists::
+            value = generate_something.get(5, 6)
+        .. versionadded:: 0.5.3 Added ``get()`` method to decorated
+           function.
+        The default key generation will use the name
+        of the function, the module name for the function,
+        the arguments passed, as well as an optional "namespace"
+        parameter in order to generate a cache key.
+        Given a function ``one`` inside the module
+        ``myapp.tools``::
+            @region.cache_on_arguments(namespace="foo")
+            def one(a, b):
+                return a + b
+        Above, calling ``one(3, 4)`` will produce a
+        cache key as follows::
+            myapp.tools:one|foo|3 4
+        The key generator will ignore an initial argument
+        of ``self`` or ``cls``, making the decorator suitable
+        (with caveats) for use with instance or class methods.
+        Given the example::
+            class MyClass(object):
+                @region.cache_on_arguments(namespace="foo")
+                def one(self, a, b):
+                    return a + b
+        The cache key above for ``MyClass().one(3, 4)`` will
+        again produce the same cache key of ``myapp.tools:one|foo|3 4`` -
+        the name ``self`` is skipped.
+        The ``namespace`` parameter is optional, and is used
+        normally to disambiguate two functions of the same
+        name within the same module, as can occur when decorating
+        instance or class methods as below::
+            class MyClass(object):
+                @region.cache_on_arguments(namespace='MC')
+                def somemethod(self, x, y):
+                    ""
+            class MyOtherClass(object):
+                @region.cache_on_arguments(namespace='MOC')
+                def somemethod(self, x, y):
+                    ""
+        Above, the ``namespace`` parameter disambiguates
+        between ``somemethod`` on ``MyClass`` and ``MyOtherClass``.
+        Python class declaration mechanics otherwise prevent
+        the decorator from having awareness of the ``MyClass``
+        and ``MyOtherClass`` names, as the function is received
+        by the decorator before it becomes an instance method.
+        The function key generation can be entirely replaced
+        on a per-region basis using the ``function_key_generator``
+        argument present on :func:`.make_region` and
+        :class:`.CacheRegion`. If defaults to
+        :func:`.function_key_generator`.
+        :param namespace: optional string argument which will be
+         established as part of the cache key.   This may be needed
+         to disambiguate functions of the same name within the same
+         source file, such as those
+         associated with classes - note that the decorator itself
+         can't see the parent class on a function as the class is
+         being declared.
+        :param expiration_time: if not None, will override the normal
+         expiration time.
+         May be specified as a callable, taking no arguments, that
+         returns a value to be used as the ``expiration_time``. This callable
+         will be called whenever the decorated function itself is called, in
+         caching or retrieving. Thus, this can be used to
+         determine a *dynamic* expiration time for the cached function
+         result.  Example use cases include "cache the result until the
+         end of the day, week or time period" and "cache until a certain date
+         or time passes".
+         .. versionchanged:: 0.5.0
+            ``expiration_time`` may be passed as a callable to
+            :meth:`.CacheRegion.cache_on_arguments`.
+        :param should_cache_fn: passed to :meth:`.CacheRegion.get_or_create`.
+         .. versionadded:: 0.4.3
+        :param to_str: callable, will be called on each function argument
+         in order to convert to a string.  Defaults to ``str()``.  If the
+         function accepts non-ascii unicode arguments on Python 2.x, the
+         ``unicode()`` builtin can be substituted, but note this will
+         produce unicode cache keys which may require key mangling before
+         reaching the cache.
+         .. versionadded:: 0.5.0
+        :param function_key_generator: a function that will produce a
+         "cache key". This function will supersede the one configured on the
+         :class:`.CacheRegion` itself.
+         .. versionadded:: 0.5.5
+        .. seealso::
+            :meth:`.CacheRegion.cache_multi_on_arguments`
+            :meth:`.CacheRegion.get_or_create`
+        """`
+  - <STR_3> -> `r"""Training and evaluating quantum kernels
+===========================================
+.. meta::
+    :property="og:description": Kernels and alignment training with Pennylane.
+    :property="og:image": https://pennylane.ai/qml/_images/QEK_thumbnail.png
+.. related::
+    tutorial_kernel_based_training Kernel-based training with scikit-learn
+    tutorial_data_reuploading_classifier Classification with data reuploading
+*Authors: <NAME>, <NAME>, <NAME>, <NAME>, <NAME> and <NAME>. Posted: 24 June 2021*
+Kernel methods are one of the cornerstones of classical machine learning.
+Here we are concerned with kernels that can be evaluated on quantum computers,
+*quantum kernels* for short.
+In this tutorial you will learn how to evaluate kernels, use them for classification
+and train them with gradient-based optimization, and all that using the
+functionality of PennyLane's
+`kernels module <https://pennylane.readthedocs.io/en/latest/code/qml_kernels.html>`__.
+The demo is based on Ref. [#Training_QEKs]_, a project from Xanadu's own
+`QHack <https://qhack.ai/>`__ hackathon.
+What are kernel methods?
+------------------------
+To understand what a kernel method does, let's first revisit
+one of the simplest methods to assign binary labels to datapoints:
+linear classification.
+Imagine we want to discern two different classes of points that lie in
+different corners of the plane. A linear classifier corresponds to
+drawing a line and assigning different labels to the regions on opposing
+sides of the line:
+.. figure:: ../demonstrations/kernels_module/linear_classification.png
+   :align: center
+   :width: 30%
+We can mathematically formalize this by assigning the label :math:`y`
+via
+.. math::
+   y(\boldsymbol{x}) = \operatorname{sgn}(\langle \boldsymbol{w}, \boldsymbol{x}\rangle + b).
+The vector :math:`\boldsymbol{w}` points perpendicular to the line and
+thus determine its slope. The independent term :math:`b` specifies the
+position on the plane. In this form, linear classification can also be
+extended to higher dimensional vectors :math:`\boldsymbol{x}`, where a
+line does not divide the entire space into two regions anymore. Instead
+one needs a *hyperplane*. It is immediately clear that this method is
+not very powerful, as datasets that are not separable by a hyperplane
+can't be classified without error.
+We can actually sneak around this limitation by performing a neat trick:
+if we define some map :math:`\phi(\boldsymbol{x})` that *embeds* our
+datapoints into a larger *feature space* and then perform linear
+classification there, we could actually realise non-linear
+classification in our original space!
+.. figure:: ../demonstrations/kernels_module/embedding_nonlinear_classification.png
+   :align: center
+   :width: 65%
+If we go back to the expression for our prediction and include the
+embedding, we get
+.. math::
+   y(\boldsymbol{x}) = \operatorname{sgn}(\langle \boldsymbol{w}, \phi(\boldsymbol{x})\rangle + b).
+We will forgo one tiny step, but it can be shown that for the purpose
+of optimal classification, we can choose the vector defining the
+decision boundary as a linear combination of the embedded datapoints
+:math:`\boldsymbol{w} = \sum_i \alpha_i \phi(\boldsymbol{x}_i)`. Putting
+this into the formula yields
+.. math::
+   y(\boldsymbol{x}) = \operatorname{sgn}\left(\sum_i \alpha_i \langle \phi(\boldsymbol{x}_i), \phi(\boldsymbol{x})\rangle + b\right).
+This rewriting might not seem useful at first, but notice the above
+formula only contains inner products between vectors in the embedding
+space:
+.. math::
+   k(\boldsymbol{x}_i, \boldsymbol{x}_j) = \langle \phi(\boldsymbol{x}_i), \phi(\boldsymbol{x}_j)\rangle.
+We call this function the *kernel*. It provides the advantage that we can often
+find an explicit formula for the kernel :math:`k` that makes it
+superfluous to actually perform the (potentially expensive) embedding
+:math:`\phi`. Consider for example the following embedding and the
+associated kernel:
+.. math::
+   \phi((x_1, x_2)) &= (x_1^2, \sqrt{2} x_1 x_2, x_2^2) \\
+   k(\boldsymbol{x}, \boldsymbol{y}) &= x_1^2 y_1^2 + 2 x_1 x_2 y_1 y_2 + x_2^2 y_2^2 = \langle \boldsymbol{x}, \boldsymbol{y} \rangle^2.
+This means by just replacing the regular scalar product in our linear
+classification with the map :math:`k`, we can actually express much more
+intricate decision boundaries!
+This is very important, because in many interesting cases the embedding :math:`\phi`
+will be much costlier to compute than the kernel :math:`k`.
+In this demo, we will explore one particular kind of kernel
+that can be realized on near-term quantum computers, namely *Quantum
+Embedding Kernels (QEKs)*. These are kernels that arise from embedding
+data into the space of quantum states. We formalize this by considering
+a parameterised quantum circuit :math:`U(\boldsymbol{x})` that maps
+a datapoint :math:`\boldsymbol{x}` to the state
+.. math::
+   |\psi(\boldsymbol{x})\rangle = U(\boldsymbol{x}) |0 \rangle.
+The kernel value is then given by the *overlap* of the associated
+embedded quantum states
+.. math::
+   k(\boldsymbol{x}_i, \boldsymbol{x}_j) = | \langle\psi(\boldsymbol{x}_i)|\psi(\boldsymbol{x}_j)\rangle|^2.
+"""`
+  - <STR_4> -> `"""A front end to a particular cache backend.
+    :param name: Optional, a string name for the region.
+     This isn't used internally
+     but can be accessed via the ``.name`` parameter, helpful
+     for configuring a region from a config file.
+    :param function_key_generator:  Optional.  A
+     function that will produce a "cache key" given
+     a data creation function and arguments, when using
+     the :meth:`.CacheRegion.cache_on_arguments` method.
+     The structure of this function
+     should be two levels: given the data creation function,
+     return a new function that generates the key based on
+     the given arguments.  Such as::
+        def my_key_generator(namespace, fn, **kw):
+            fname = fn.__name__
+            def generate_key(*arg):
+                return namespace + "_" + fname + "_".join(str(s) for s in arg)
+            return generate_key
+        region = make_region(
+            function_key_generator = my_key_generator
+        ).configure(
+            "dogpile.cache.dbm",
+            expiration_time=300,
+            arguments={
+                "filename":"file.dbm"
+            }
+        )
+     The ``namespace`` is that passed to
+     :meth:`.CacheRegion.cache_on_arguments`.  It's not consulted
+     outside this function, so in fact can be of any form.
+     For example, it can be passed as a tuple, used to specify
+     arguments to pluck from \**kw::
+        def my_key_generator(namespace, fn):
+            def generate_key(*arg, **kw):
+                return ":".join(
+                        [kw[k] for k in namespace] +
+                        [str(x) for x in arg]
+                    )
+            return generate_key
+     Where the decorator might be used as::
+        @my_region.cache_on_arguments(namespace=('x', 'y'))
+        def my_function(a, b, **kw):
+            return my_data()
+     .. seealso::
+        :func:`.function_key_generator` - default key generator
+        :func:`.kwarg_function_key_generator` - optional gen that also
+        uses keyword arguments
+    :param function_multi_key_generator: Optional.
+     Similar to ``function_key_generator`` parameter, but it's used in
+     :meth:`.CacheRegion.cache_multi_on_arguments`. Generated function
+     should return list of keys. For example::
+        def my_multi_key_generator(namespace, fn, **kw):
+            namespace = fn.__name__ + (namespace or '')
+            def generate_keys(*args):
+                return [namespace + ':' + str(a) for a in args]
+            return generate_keys
+    :param key_mangler: Function which will be used on all incoming
+     keys before passing to the backend.  Defaults to ``None``,
+     in which case the key mangling function recommended by
+     the cache backend will be used.    A typical mangler
+     is the SHA1 mangler found at :func:`.sha1_mangle_key`
+     which coerces keys into a SHA1
+     hash, so that the string length is fixed.  To
+     disable all key mangling, set to ``False``.   Another typical
+     mangler is the built-in Python function ``str``, which can be used
+     to convert non-string or Unicode keys to bytestrings, which is
+     needed when using a backend such as bsddb or dbm under Python 2.x
+     in conjunction with Unicode keys.
+    :param async_creation_runner:  A callable that, when specified,
+     will be passed to and called by dogpile.lock when
+     there is a stale value present in the cache.  It will be passed the
+     mutex and is responsible releasing that mutex when finished.
+     This can be used to defer the computation of expensive creator
+     functions to later points in the future by way of, for example, a
+     background thread, a long-running queue, or a task manager system
+     like Celery.
+     For a specific example using async_creation_runner, new values can
+     be created in a background thread like so::
+        import threading
+        def async_creation_runner(cache, somekey, creator, mutex):
+            ''' Used by dogpile.core:Lock when appropriate  '''
+            def runner():
+                try:
+                    value = creator()
+                    cache.set(somekey, value)
+                finally:
+                    mutex.release()
+            thread = threading.Thread(target=runner)
+            thread.start()
+        region = make_region(
+            async_creation_runner=async_creation_runner,
+        ).configure(
+            'dogpile.cache.memcached',
+            expiration_time=5,
+            arguments={
+                'url': '127.0.0.1:11211',
+                'distributed_lock': True,
+            }
+        )
+     Remember that the first request for a key with no associated
+     value will always block; async_creator will not be invoked.
+     However, subsequent requests for cached-but-expired values will
+     still return promptly.  They will be refreshed by whatever
+     asynchronous means the provided async_creation_runner callable
+     implements.
+     By default the async_creation_runner is disabled and is set
+     to ``None``.
+     .. versionadded:: 0.4.2 added the async_creation_runner
+        feature.
+    """`
+  - <STR_5> -> `"""A function decorator that will cache multiple return
+        values from the function using a sequence of keys derived from the
+        function itself and the arguments passed to it.
+        This method is the "multiple key" analogue to the
+        :meth:`.CacheRegion.cache_on_arguments` method.
+        Example::
+            @someregion.cache_multi_on_arguments()
+            def generate_something(*keys):
+                return [
+                    somedatabase.query(key)
+                    for key in keys
+                ]
+        The decorated function can be called normally.  The decorator
+        will produce a list of cache keys using a mechanism similar to
+        that of :meth:`.CacheRegion.cache_on_arguments`, combining the
+        name of the function with the optional namespace and with the
+        string form of each key.  It will then consult the cache using
+        the same mechanism as that of :meth:`.CacheRegion.get_multi`
+        to retrieve all current values; the originally passed keys
+        corresponding to those values which aren't generated or need
+        regeneration will be assembled into a new argument list, and
+        the decorated function is then called with that subset of
+        arguments.
+        The returned result is a list::
+            result = generate_something("key1", "key2", "key3")
+        The decorator internally makes use of the
+        :meth:`.CacheRegion.get_or_create_multi` method to access the
+        cache and conditionally call the function.  See that
+        method for additional behavioral details.
+        Unlike the :meth:`.CacheRegion.cache_on_arguments` method,
+        :meth:`.CacheRegion.cache_multi_on_arguments` works only with
+        a single function signature, one which takes a simple list of
+        keys as arguments.
+        Like :meth:`.CacheRegion.cache_on_arguments`, the decorated function
+        is also provided with a ``set()`` method, which here accepts a
+        mapping of keys and values to set in the cache::
+            generate_something.set({"k1": "value1",
+                                    "k2": "value2", "k3": "value3"})
+        ...an ``invalidate()`` method, which has the effect of deleting
+        the given sequence of keys using the same mechanism as that of
+        :meth:`.CacheRegion.delete_multi`::
+            generate_something.invalidate("k1", "k2", "k3")
+        ...a ``refresh()`` method, which will call the creation
+        function, cache the new values, and return them::
+            values = generate_something.refresh("k1", "k2", "k3")
+        ...and a ``get()`` method, which will return values
+        based on the given arguments::
+            values = generate_something.get("k1", "k2", "k3")
+        .. versionadded:: 0.5.3 Added ``get()`` method to decorated
+           function.
+        Parameters passed to :meth:`.CacheRegion.cache_multi_on_arguments`
+        have the same meaning as those passed to
+        :meth:`.CacheRegion.cache_on_arguments`.
+        :param namespace: optional string argument which will be
+         established as part of each cache key.
+        :param expiration_time: if not None, will override the normal
+         expiration time.  May be passed as an integer or a
+         callable.
+        :param should_cache_fn: passed to
+         :meth:`.CacheRegion.get_or_create_multi`. This function is given a
+         value as returned by the creator, and only if it returns True will
+         that value be placed in the cache.
+        :param asdict: if ``True``, the decorated function should return
+         its result as a dictionary of keys->values, and the final result
+         of calling the decorated function will also be a dictionary.
+         If left at its default value of ``False``, the decorated function
+         should return its result as a list of values, and the final
+         result of calling the decorated function will also be a list.
+         When ``asdict==True`` if the dictionary returned by the decorated
+         function is missing keys, those keys will not be cached.
+        :param to_str: callable, will be called on each function argument
+         in order to convert to a string.  Defaults to ``str()``.  If the
+         function accepts non-ascii unicode arguments on Python 2.x, the
+         ``unicode()`` builtin can be substituted, but note this will
+         produce unicode cache keys which may require key mangling before
+         reaching the cache.
+        .. versionadded:: 0.5.0
+        :param function_multi_key_generator: a function that will produce a
+         list of keys. This function will supersede the one configured on the
+         :class:`.CacheRegion` itself.
+         .. versionadded:: 0.5.5
+        .. seealso::
+            :meth:`.CacheRegion.cache_on_arguments`
+            :meth:`.CacheRegion.get_or_create_multi`
+        """`
+  - <STR_6> -> `'''// This file is autogenerated by gn_to_bp.py.
+cc_library_static {
+    name: "libskia",
+    cflags: [
+        $cflags
+    ],
+    cppflags:[
+        $cflags_cc
+    ],
+    export_include_dirs: [
+        $export_includes
+    ],
+    local_include_dirs: [
+        $local_includes
+    ],
+    srcs: [
+        $srcs
+    ],
+    arch: {
+        arm: {
+            srcs: [
+                $arm_srcs
+            ],
+            neon: {
+                srcs: [
+                    $arm_neon_srcs
+                ],
+            },
+        },
+        arm64: {
+            srcs: [
+                $arm64_srcs
+            ],
+        },
+        mips: {
+            srcs: [
+                $none_srcs
+            ],
+        },
+        mips64: {
+            srcs: [
+                $none_srcs
+            ],
+        },
+        x86: {
+            srcs: [
+                $x86_srcs
+            ],
+            cflags: [
+                // Clang seems to think new/malloc will only be 4-byte aligned
+                // on x86 Android. We're pretty sure it's actually 8-byte
+                // alignment. tests/OverAlignedTest.cpp has more information,
+                // and should fail if we're wrong.
+                "-Wno-over-aligned"
+            ],
+        },
+        x86_64: {
+            srcs: [
+                $x86_srcs
+            ],
+        },
+    },
+    defaults: ["skia_deps",
+               "skia_pgo",
+    ],
+}
+// Build libskia with PGO by default.
+// Location of PGO profile data is defined in build/soong/cc/pgo.go
+// and is separate from skia.
+// To turn it off, set ANDROID_PGO_NO_PROFILE_USE environment variable
+// or set enable_profile_use property to false.
+cc_defaults {
+    name: "skia_pgo",
+    pgo: {
+        instrumentation: true,
+        profile_file: "hwui/hwui.profdata",
+        benchmarks: ["hwui", "skia"],
+        enable_profile_use: true,
+    },
+}
+// "defaults" property to disable profile use for Skia tools and benchmarks.
+cc_defaults {
+    name: "skia_pgo_no_profile_use",
+    defaults: [
+        "skia_pgo",
+    ],
+    pgo: {
+        enable_profile_use: false,
+    },
+}
+cc_defaults {
+    name: "skia_deps",
+    shared_libs: [
+        "libEGL",
+        "libGLESv2",
+        "libdng_sdk",
+        "libexpat",
+        "libft2",
+        "libheif",
+        "libicui18n",
+        "libicuuc",
+        "libjpeg",
+        "liblog",
+        "libpiex",
+        "libpng",
+        "libvulkan",
+        "libz",
+        "libcutils",
+        "libnativewindow",
+    ],
+    static_libs: [
+        "libarect",
+        "libsfntly",
+        "libwebp-decode",
+        "libwebp-encode",
+    ],
+    group_static_libs: true,
+}
+cc_defaults {
+    name: "skia_tool_deps",
+    defaults: [
+        "skia_deps",
+        "skia_pgo_no_profile_use"
+    ],
+    static_libs: [
+        "libjsoncpp",
+        "libskia",
+    ],
+    cflags: [
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+    ],
+}
+cc_test {
+    name: "skia_dm",
+    defaults: [
+        "skia_tool_deps"
+    ],
+    local_include_dirs: [
+        $dm_includes
+    ],
+    srcs: [
+        $dm_srcs
+    ],
+    shared_libs: [
+        "libbinder",
+        "libutils",
+    ],
+}
+cc_test {
+    name: "skia_nanobench",
+    defaults: [
+        "skia_tool_deps"
+    ],
+    local_include_dirs: [
+        $nanobench_includes
+    ],
+    srcs: [
+        $nanobench_srcs
+    ],
+    data: [
+        "resources/*",
+    ],
+}'''`
+  - <STR_7> -> `"""Gets the scene specific properties of the specified source item.
+Coordinates are relative to the item's parent (the scene or group it belongs to).
+    :Arguments:
+       *scene_name*
+            type: String (optional)
+            Name of the scene the scene item belongs to. Defaults to the current scene.
+       *item*
+            type: String | Object
+            Scene Item name (if this field is a string) or specification (if it is an object).
+       *item.name*
+            type: String (optional)
+            Scene Item name (if the `item` field is an object)
+       *item.id*
+            type: int (optional)
+            Scene Item ID (if the `item` field is an object)
+    :Returns:
+       *name*
+            type: String
+            Scene Item name.
+       *itemId*
+            type: int
+            Scene Item ID.
+       *position.x*
+            type: double
+            The x position of the source from the left.
+       *position.y*
+            type: double
+            The y position of the source from the top.
+       *position.alignment*
+            type: int
+            The point on the source that the item is manipulated from. The sum of 1=Left or 2=Right, and 4=Top or 8=Bottom, or omit to center on that axis.
+       *rotation*
+            type: double
+            The clockwise rotation of the item in degrees around the point of alignment.
+       *scale.x*
+            type: double
+            The x-scale factor of the source.
+       *scale.y*
+            type: double
+            The y-scale factor of the source.
+       *crop.top*
+            type: int
+            The number of pixels cropped off the top of the source before scaling.
+       *crop.right*
+            type: int
+            The number of pixels cropped off the right of the source before scaling.
+       *crop.bottom*
+            type: int
+            The number of pixels cropped off the bottom of the source before scaling.
+       *crop.left*
+            type: int
+            The number of pixels cropped off the left of the source before scaling.
+       *visible*
+            type: bool
+            If the source is visible.
+       *muted*
+            type: bool
+            If the source is muted.
+       *locked*
+            type: bool
+            If the source's transform is locked.
+       *bounds.type*
+            type: String
+            Type of bounding box. Can be "OBS_BOUNDS_STRETCH", "OBS_BOUNDS_SCALE_INNER", "OBS_BOUNDS_SCALE_OUTER", "OBS_BOUNDS_SCALE_TO_WIDTH", "OBS_BOUNDS_SCALE_TO_HEIGHT", "OBS_BOUNDS_MAX_ONLY" or "OBS_BOUNDS_NONE".
+       *bounds.alignment*
+            type: int
+            Alignment of the bounding box.
+       *bounds.x*
+            type: double
+            Width of the bounding box.
+       *bounds.y*
+            type: double
+            Height of the bounding box.
+       *sourceWidth*
+            type: int
+            Base width (without scaling) of the source
+       *sourceHeight*
+            type: int
+            Base source (without scaling) of the source
+       *width*
+            type: double
+            Scene item width (base source width multiplied by the horizontal scaling factor)
+       *height*
+            type: double
+            Scene item height (base source height multiplied by the vertical scaling factor)
+       *parentGroupName*
+            type: String (optional)
+            Name of the item's parent (if this item belongs to a group)
+       *groupChildren*
+            type: Array<SceneItemTransform> (optional)
+            List of children (if this item is a group)
+    """`
+  - <STR_8> -> `r"""
+        :param InstanceId: 实例ID。
+        :type InstanceId: str
+        :param InstanceName: 实例名称。
+        :type InstanceName: str
+        :param Region: 实例所属地域。
+        :type Region: str
+        :param HealthScore: 健康得分。
+        :type HealthScore: int
+        :param Product: 所属产品。
+        :type Product: str
+        :param EventCount: 异常事件数量。
+        :type EventCount: int
+        :param InstanceType: 实例类型：1:MASTER；2:DR，3：RO，4:SDR。
+        :type InstanceType: int
+        :param Cpu: 核心数。
+        :type Cpu: int
+        :param Memory: 内存，单位MB。
+        :type Memory: int
+        :param Volume: 硬盘存储，单位GB。
+        :type Volume: int
+        :param EngineVersion: 数据库版本。
+        :type EngineVersion: str
+        :param Vip: 内网地址。
+        :type Vip: str
+        :param Vport: 内网端口。
+        :type Vport: int
+        :param Source: 接入来源。
+        :type Source: str
+        :param GroupId: 分组ID。
+        :type GroupId: str
+        :param GroupName: 分组组名。
+        :type GroupName: str
+        :param Status: 实例状态：0：发货中；1：运行正常；4：销毁中；5：隔离中。
+        :type Status: int
+        :param UniqSubnetId: 子网统一ID。
+        :type UniqSubnetId: str
+        :param DeployMode: cdb类型。
+        :type DeployMode: str
+        :param InitFlag: cdb实例初始化标志：0：未初始化；1：已初始化。
+        :type InitFlag: int
+        :param TaskStatus: 任务状态。
+        :type TaskStatus: int
+        :param UniqVpcId: 私有网络统一ID。
+        :type UniqVpcId: str
+        :param InstanceConf: 实例巡检/概览的状态。
+        :type InstanceConf: :class:`tencentcloud.dbbrain.v20210527.models.InstanceConfs`
+        :param DeadlineTime: 资源到期时间。
+        :type DeadlineTime: str
+        :param IsSupported: 是否是DBbrain支持的实例。
+        :type IsSupported: bool
+        :param SecAuditStatus: 实例安全审计日志开启状态：ON： 安全审计开启；OFF： 未开启安全审计。
+        :type SecAuditStatus: str
+        :param AuditPolicyStatus: 实例审计日志开启状态，ALL_AUDIT： 开启全审计；RULE_AUDIT： 开启规则审计；UNBOUND： 未开启审计。
+        :type AuditPolicyStatus: str
+        :param AuditRunningStatus: 实例审计日志运行状态：normal： 运行中； paused： 欠费暂停。
+        :type AuditRunningStatus: str
+        """`
+  - <STR_9> -> `"""
+        Apply the calibration matrices to results.
+        Args:
+            raw_data (dict or Result): The data to be corrected. Can be in one of two forms:
+                * A counts dictionary from results.get_counts
+                * A Qiskit Result
+            method (str): fitting method. The following methods are supported:
+                * 'pseudo_inverse': direct inversion of the cal matrices.
+                    Mitigated counts can contain negative values
+                    and the sum of counts would not equal to the shots.
+                    Mitigation is conducted qubit wise:
+                    For each qubit, mitigate the whole counts using the calibration matrices
+                    which affect the corresponding qubit.
+                    For example, assume we are mitigating the 3rd bit of the 4-bit counts
+                    using '2\times 2' calibration matrix `A_3`.
+                    When mitigating the count of '0110' in this step,
+                    the following formula is applied:
+                    `count['0110'] = A_3^{-1}[1, 0]*count['0100'] + A_3^{-1}[1, 1]*count['0110']`.
+                    The total time complexity of this method is `O(m2^{n + t})`,
+                    where `n` is the size of calibrated qubits,
+                    `m` is the number of sets in `mit_pattern`,
+                    and `t` is the size of largest set of mit_pattern.
+                    If the `mit_pattern` is shaped like `[[0], [1], [2], ..., [n-1]]`,
+                    which corresponds to the tensor product noise model without cross-talk,
+                    then the time complexity would be `O(n2^n)`.
+                    If the `mit_pattern` is shaped like `[[0, 1, 2, ..., n-1]]`,
+                    which exactly corresponds to the complete error mitigation,
+                    then the time complexity would be `O(2^(n+n)) = O(4^n)`.
+                * 'least_squares': constrained to have physical probabilities.
+                    Instead of directly applying inverse calibration matrices,
+                    this method solve a constrained optimization problem to find
+                    the closest probability vector to the result from 'pseudo_inverse' method.
+                    Sequential least square quadratic programming (SLSQP) is used
+                    in the internal process.
+                    Every updating step in SLSQP takes `O(m2^{n+t})` time.
+                    Since this method is using the SLSQP optimization over
+                    the vector with lenght `2^n`, the mitigation for 8 bit counts
+                    with the `mit_pattern = [[0], [1], [2], ..., [n-1]]` would
+                    take 10 seconds or more.
+                * If `None`, 'least_squares' is used.
+            meas_layout (list of int): the mapping from classical registers to qubits
+                * If you measure qubit `2` to clbit `0`, `0` to `1`, and `1` to `2`,
+                    the list becomes `[2, 0, 1]`
+                * If `None`, flatten(mit_pattern) is used.
+        Returns:
+            dict or Result: The corrected data in the same form as raw_data
+        Raises:
+            QiskitError: if raw_data is not in a one of the defined forms.
+        """`
+  - ... and 3633 more.
+#### VAR:
+  - <VAR_0> -> `memeber_set`
+  - <VAR_1> -> `Baserequests`
+  - <VAR_2> -> `fibcapis__pb2`
+  - <VAR_3> -> `quantize_graph`
+  - <VAR_4> -> `pulumi`
+  - <VAR_5> -> `ConfigFactory`
+  - <VAR_6> -> `knowledge_base_object`
+  - <VAR_7> -> `float_graph_def`
+  - <VAR_8> -> `gh_stars`
+  - <VAR_9> -> `consul_port`
+  - ... and 1604 more.
+#### ATTR:
+  - <ATTR_0> -> `datain`
+  - <ATTR_1> -> `dataout`
+  - <ATTR_2> -> `parse_string`
+  - <ATTR_3> -> `assertEqual`
+  - <ATTR_4> -> `_deserialize`
+  - <ATTR_5> -> `float32`
+  - <ATTR_6> -> `create_constant_node`
+  - <ATTR_7> -> `builtin_policies`
+  - <ATTR_8> -> `unary_unary_rpc_method_handler`
+  - <ATTR_9> -> `batch_size`
+  - ... and 721 more.
+#### NUM:
+  - <NUM_0> -> `0.5`
+  - <NUM_1> -> `1.0`
+  - <NUM_2> -> `0.0`
+  - <NUM_3> -> `1000`
+  - <NUM_4> -> `1000.0`
+  - <NUM_5> -> `0.2`
+  - <NUM_6> -> `0.1`
+  - <NUM_7> -> `0.`
+  - <NUM_8> -> `1024`
+  - <NUM_9> -> `3.68423990e-03`
+  - ... and 138 more.
+
+--- FILE CONTEXT ---
+### Local Identifier Registry for this file:
+- <V0>: `testObj2`
+- <V1>: `testObj`
+- <V2>: `IECore`
+- <V3>: `basicPresetTest`
+- <V4>: `BasicPreset`
+- <V5>: `testParameterised1`
+- <V6>: `savePath`
+- <V7>: `IECORE_OP_PATHS`
+- <V8>: `addParameters`
+- <V9>: `setTypedValue`
+- <V10>: `BoolParameter`
+- <V11>: `assertEqual`
+- <V12>: `getTypedValue`
+- <V13>: `basicPresetTest2`
+- <V14>: `basicPresetTestClassLoader`
+- <V15>: `classes1`
+- <V16>: `classes2`
+- <V17>: `FloatParameter`
+- <V18>: `testParameterised2`
+- <V19>: `__file__`
+- <V20>: `basicPreset`
+- <V21>: `applicableTo`
+- <V22>: `messageHandler`
+- <V23>: `basicPresetLoadTest`
+- <V24>: `assertNotEqual`
+- <V25>: `CONTRIBUTORS`
+- <V26>: `abspath`
+- <V27>: `CapturingMessageHandler`
+- <V28>: `isfile`
+- <V29>: `getClasses`
+
+--- COMPRESSED CODE ---
+```python
+##########################################################################
+#
+#  Copyright (c) 2010-2012, Image Engine Design Inc. All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions are
+#  met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#     * Neither the name of Image Engine Design nor the names of any
+#       other contributors to this software may be used to endorse or
+#       promote products derived from this software without specific prior
+#       written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND <V25> "AS
+#  IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+#  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+#  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+#  <V25> BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+#  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+#  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+#  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+##########################################################################
+<SYN_0> __future__ with_statement
+<SYN_47> os
+<SYN_47> sys
+<SYN_47> shutil
+<SYN_47> unittest
+<SYN_47> <V2>
+class TestBasicPreset( unittest.TestCase ) :
+def testCopy( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.<V17>( "b", "", 1.0 ),
+<D>]
+<D>)
+<D><D><SYN_30> <V0> <V2> <V18>
+<I><I><V0>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", False ),
+<V2>.<V17>( "c", "", 0.0	),
+<D>]
+<D>)
+p = <V2>.<V4>( <V1>, <V1>.parameters() )
+<D><D><SYN_29> self p <V1> <V1>
+<SYN_53> self p <V0> <V0>
+<I><I><V1>.parameters()["a"].<V9>( False )
+<V1>.parameters()["b"].<V9>( 0.0 )
+<D><D><SYN_109> p <V1> <V1>
+<SYN_54> self <V1> a
+<I><I>self.<V11>( <V1>.parameters()["b"].<V12>(), 1.0 )
+p2 = <V2>.<V4>( <V1>, <V1>.parameters(), parameters=( <V1>.parameters()["a"], ) )
+<D><D><SYN_29> self p2 <V1> <V1>
+<SYN_29> self p2 <V0> <V1>
+<SYN_109> p2 <V0> <V0>
+<SYN_54> self <V0> a
+<I><I>self.<V11>( <V0>.parameters()["c"].<V12>(), 0.0 )
+<D>def testLoad( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.<V17>( "b", "", 1.0 ),
+<D>]
+<D>)
+<D><D><SYN_30> <V0> <V2> <V5>
+<I><I><V0>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", False ),
+<V2>.<V17>( "c", "", 0.0	),
+<D>]
+<D>)
+<V6> = os.path.<V26>( os.path.join( os.path.dirname( <V19> ), "data", "<V20>" ) )
+<V22> = <V2>.<V27>()
+with <V22> :
+p = <V2>.<V4>( os.path.join( <V6>, "<V23>", "<V23>-1.cob" ) )
+<D>self.<V11>( len( <V22>.messages ), 0 )
+<D><D><SYN_29> self p <V1> <V1>
+<SYN_53> self p <V0> <V0>
+<I><I><V1>.parameters()["a"].<V9>( False )
+<V1>.parameters()["b"].<V9>( 0.0 )
+<D><D><SYN_109> p <V1> <V1>
+<SYN_54> self <V1> a
+<I><I>self.<V11>( <V1>.parameters()["b"].<V12>(), 1.0 )
+<D>def testSave( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.<V17>( "b", "", 1.0 ),
+<D>]
+<D>)
+<D><D><SYN_30> <V0> <V2> <V5>
+<I><I><V0>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", False ),
+<V2>.<V17>( "c", "", 0.0	),
+<D>]
+<D>)
+<V6> = os.path.<V26>( os.path.join( os.path.dirname( <V19> ), "data", "<V20>" ) )
+preset = <V2>.<V4>( <V1>, <V1>.parameters() )
+# Save for the classLoader and check its there, we test the 'loadability' later...
+preset.save( <V6>, "<V3>" )
+self.assertTrue( os.path.<V28>( os.path.join( <V6>, "<V3>", "<V3>-1.cob" ) ) )
+self.assertTrue( os.path.<V28>( os.path.join( <V6>, "<V3>", "<V3>-1.py" ) ) )
+# save without the classLoader and check its there
+preset.save( <V6>, "<V3>", classLoadable=False )
+self.assertTrue( os.path.<V28>( os.path.join( <V6>, "<V3>.cob" ) ) )
+# reload
+p = <V2>.<V4>( os.path.join( <V6>, "<V3>.cob" ) )
+<D><D><SYN_29> self p <V1> <V1>
+<SYN_53> self p <V0> <V0>
+<I><I><V1>.parameters()["a"].<V9>( False )
+<V1>.parameters()["b"].<V9>( 0.0 )
+<D><D><SYN_109> p <V1> <V1>
+<SYN_54> self <V1> a
+<I><I>self.<V11>( <V1>.parameters()["b"].<V12>(), 1.0 )
+preset2 = <V2>.<V4>( <V1>, <V1>.parameters(), parameters=( <V1>.parameters()["a"], ) )
+preset2.save( <V6>, "<V13>", classLoadable=False )
+#reload
+p2 = <V2>.<V4>( os.path.join( <V6>, "<V13>.cob" ) )
+<D><D><SYN_29> self p2 <V1> <V1>
+<SYN_29> self p2 <V0> <V1>
+<SYN_109> p2 <V0> <V0>
+<SYN_54> self <V0> a
+<I><I>self.<V11>( <V0>.parameters()["c"].<V12>(), 0.0 )
+<D>def testClassLoader( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.<V17>( "b", "", 1.0 ),
+<D>]
+<D>)
+<V6> = os.path.<V26>( os.path.join( os.path.dirname( <V19> ), "data", "<V20>" ) )
+preset = <V2>.<V4>( <V1>, <V1>.parameters() )
+preset.save( <V6>, "<V14>" )
+# make sure that no messages are emitted during loading
+<V22> = <V2>.<V27>()
+with <V22> :
+loader = <V2>.ClassLoader( <V2>.SearchPath( <V6> ) )
+p = loader.load( "<V14>" )()
+<D>self.<V11>( len( <V22>.messages ), 0 )
+self.assertTrue( isinstance( p, <V2>.<V4> ) )
+p.metadata()
+<D>def testClasses( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.ClassParameter( "b", "", "<V7>", os.path.join( "maths", "multiply" ), 2 ),
+<D>]
+<D>)
+<D><D><SYN_30> <V0> <V2> <V18>
+<I><I><V0>.parameters().<V8>(
+<I>[
+<I><V2>.ClassParameter( "c", "",	"<V7>" ),
+<D>]
+<D>)
+<V15> = <V1>.parameters()["b"].getClass( True )
+<V16> = <V0>.parameters()["c"].getClass( True )
+self.<V24>( <V15>[1:], <V16>[1:] )
+p = <V2>.<V4>( <V1>, <V1>.parameters()["b"] )
+self.assertTrue( p.<V21>( <V1>, <V1>.parameters()["b"] ) )
+<D><D><SYN_53> self p <V1> <V1>
+<I><I>self.assertTrue( p.<V21>( <V0>, <V0>.parameters()["c"] ) )
+p( <V0>, <V0>.parameters()["c"] )
+<V15> = <V1>.parameters()["b"].getClass( True )
+<V16> = <V0>.parameters()["c"].getClass( True )
+self.<V11>( <V15>[1:], <V16>[1:] )
+<D>def testClassVectors( self ) :
+<D><D><SYN_30> <V1> <V2> <V5>
+<I><I><V1>.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", True ),
+<V2>.ClassVectorParameter( "b", "", "<V7>" ),
+<D>]
+<D>)
+<V1>.parameters()["b"].setClasses(
+<I>[
+<I>( "mult", os.path.join( "maths", "multiply" ), 2 ),
+( "coIO", "compoundObjectInOut", 1 ),
+<D>]
+<D>)
+<D><D><SYN_30> <V0> <V2> <V18>
+<I><I><V0>.parameters().<V8>(
+<I>[
+<I><V2>.ClassVectorParameter( "c", "", "<V7>" ),
+<D>]
+<D>)
+<V15> = [ c[1:] for c in <V1>.parameters()["b"].<V29>( True ) ]
+<V16> = [ c[1:] for c in <V0>.parameters()["c"].<V29>( True ) ]
+self.<V24>( <V15>, <V16> )
+p = <V2>.<V4>( <V1>, <V1>.parameters()["b"] )
+self.assertTrue( p.<V21>( <V1>, <V1>.parameters()["b"] ) )
+<D><D><SYN_53> self p <V1> <V1>
+<I><I>self.assertTrue( p.<V21>( <V0>, <V0>.parameters()["c"] ) )
+p( <V0>, <V0>.parameters()["c"] )
+<V15> = [ c[1:] for c in <V1>.parameters()["b"].<V29>( True ) ]
+<V16> = [ c[1:] for c in <V0>.parameters()["c"].<V29>( True ) ]
+<D><D><SYN_48> self <V15> <V16>
+<I>def testCompoundVectorParameter( self ) :
+<D><D><SYN_30> p <V2> test
+<I><I>p.parameters().<V8>(
+<I>[
+<I><V2>.<V10>( "a", "", False ),
+<V2>.CompoundVectorParameter(
+<I>"c",
+"",
+members = [
+<I><V2>.StringVectorParameter( "s", "", <V2>.StringVectorData() ),
+<V2>.BoolVectorParameter( "b", "", <V2>.BoolVectorData() ),
+<D>]
+<D>)
+<D>]
+<D>)
+p["c"]["s"].setValue( <V2>.StringVectorData( [ "1", "2", "3" ] ) )
+p["c"]["b"].setValue( <V2>.BoolVectorData( [ True, False, True ] ) )
+v = p.parameters().getValue().copy()
+preset = <V2>.<V4>( p, p.parameters() )
+<D><D><SYN_29> self preset p p
+<I><I>p.parameters().setValue( p.parameters().defaultValue )
+self.<V24>( p.parameters().getValue(), v )
+<D><D><SYN_109> preset p p
+<I><I>self.<V11>( p.parameters().getValue(), v )
+<D>def tearDown( self ) :
+<V6> = os.path.<V26>( os.path.join( os.path.dirname( <V19> ), "data", "<V20>" ) )
+paths = (
+<I>os.path.join( <V6>, "<V3>" ),
+os.path.join( <V6>, "<V3>.cob" ),
+os.path.join( <V6>, "<V13>.cob" ),
+os.path.join( <V6>, "<V14>" ),
+<D>)
+for p in paths :
+if os.path.isdir( p ) :
+shutil.rmtree( p )
+<D>elif os.path.<V28>( p ) :
+<D><D><D><D><SYN_15> os p
+if __name__ == "__main__":
+<D><SYN_145> unittest
+```
+
+Please provide the fully decompressed Python code.

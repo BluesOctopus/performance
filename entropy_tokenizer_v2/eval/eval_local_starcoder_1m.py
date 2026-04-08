@@ -16,9 +16,9 @@ def load_local_samples(sample_file: Path) -> list[str]:
     return [s for s in parts if s.strip()]
 
 
-DEFAULT_TOKENIZERS = ("gpt4", "codegen-350M-mono", "santacoder")
+DEFAULT_TOKENIZERS = ("gpt4", "codegen", "santacoder")
 
-CSV_ROW_ORDER = ("gpt4", "gpt2", "codegen-350M-mono", "santacoder")
+CSV_ROW_ORDER = ("gpt4", "gpt2", "codegen", "santacoder")
 
 
 def _merge_eval_outputs(results, configs, *, tokenizer_keys: list[str]) -> None:

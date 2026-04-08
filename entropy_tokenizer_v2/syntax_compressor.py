@@ -314,3 +314,38 @@ def decompress_source_syntax(compressed_text: str, selected: List[SkeletonCandid
             out.append(prefix + sk + ((" " + suffix) if suffix else ""))
             
     return "\n".join(out)
+
+def sum_replaced_header_tokens(
+    source: str,
+    selected: List[SkeletonCandidate],
+    tokenizer,
+    tok_type: str,
+) -> Tuple[int, int]:
+    """Total tokens in replaced header spans and number of sites."""
+    sk_to_op = {c.skeleton: (f"<SYN_{i}>", c.num_slots) for i, c in enumerate(selected)}
+    try:
+        tree = ast.parse(source)
+    except:
+        return 0, 0
+
+    lines = source.splitlines()
+    total = 0
+    count = 0
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.stmt, ast.ExceptHandler)):
+            continue
+
+        sk_single = _get_stmt_skeleton(node)
+        if sk_single in sk_to_op:
+            start_ln = node.lineno
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.For, ast.While, ast.If, ast.With, ast.Try)):
+                end_ln = start_ln
+            else:
+                end_ln = node.end_lineno if hasattr(node, 'end_lineno') else node.lineno
+
+            header = "\n".join(lines[start_ln - 1 : end_ln])
+            total += len(mc_encode(tokenizer, tok_type, header))
+            count += 1
+
+    return total, count

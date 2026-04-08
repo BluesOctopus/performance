@@ -29,6 +29,10 @@ EVAL_TOKENIZERS = {
         "type": "hf",
         "name": "bigcode/santacoder",
     },
+    "deepseek": {
+        "type": "hf",
+        "name": "deepseek-ai/deepseek-coder-6.7b-instruct", # 使用 deepseek-coder 的分词器
+    },
 }
 
 AST_MIN_FREQ          = 5      # skeleton must appear ≥ N times to be a candidate

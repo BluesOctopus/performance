@@ -22,7 +22,7 @@ from config import (
 from lossy_cleaner import CleaningConfig, clean_code
 from repo_miner import RepoConfig, _encode, _load_tokenizer, _vocab_size
 from syntax_compressor import compress_source_syntax
-from token_scorer import apply_token_replacement
+from token_scorer import apply_token_replacement, build_local_replacement_map, apply_local_token_replacement
 from marker_count import RE_ALL_MARKERS, count_augmented
 
 _SYN_LINE_RE = re.compile(r'^\s*<SYN_\d+>\b')
@@ -39,20 +39,10 @@ def _clean_stage2_skip_syn(text: str) -> str:
         remove_blank_lines=True,
         remove_trailing_whitespace=True,
         remove_docstrings=False,
-        remove_indentation=True,
+        use_minimalist_indent=True,
     )
-
-    out_lines: list[str] = []
-    for line in text.splitlines():
-        if _is_syn_line(line):
-            out_lines.append(line.rstrip())
-            continue
-
-        cleaned_line, _ = clean_code(line, cfg)
-        if cleaned_line.strip():
-            out_lines.append(cleaned_line)
-
-    return "\n".join(out_lines)
+    cleaned, _ = clean_code(text, cfg)
+    return cleaned
 
 
 def _replace_stage3_skip_syn(text: str, rmap: dict[str, str]) -> str:
@@ -118,8 +108,9 @@ def apply_v2_compression(
     after_s2 = _clean_stage2_skip_syn(after_s1)
     after_s2_tokens = count_fn(after_s2)
 
-    rmap = repo_config.replacement_map
-    after_s3 = _replace_stage3_skip_syn(after_s2, rmap)
+    # Stage 3: Local Identifier Replacement (New Logic)
+    lmap, lheader = build_local_replacement_map(after_s2, tokenizer, tok_type)
+    after_s3 = apply_local_token_replacement(after_s2, lmap, lheader)
     after_s3_tokens = count_fn(after_s3)
 
     result = FileResult(
@@ -150,6 +141,33 @@ def _bpb(total_tokens: int, vocab_size: int, total_bytes: int) -> float:
 
 
 def load_eval_samples(num_samples: int = EVAL_NUM_SAMPLES) -> list[str]:
+    """Load samples from local starcoder_1m_tokens.txt if available, else fallback."""
+    from config import PROJECT_ROOT
+    from pathlib import Path
+    # Try multiple possible locations for the data file
+    possible_paths = [
+        PROJECT_ROOT.parent.parent / "data" / "starcoder_1m_tokens.txt",
+        PROJECT_ROOT.parent / "data" / "starcoder_1m_tokens.txt",
+        Path("C:/Users/25818/Desktop/SITP/paper/performance/code/data/starcoder_1m_tokens.txt")
+    ]
+    
+    local_txt = None
+    for p in possible_paths:
+        if p.exists():
+            local_txt = p
+            break
+            
+    if local_txt:
+        print(f"[eval] Loading samples from local file: {local_txt}")
+        with open(local_txt, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        # Split by <|sample_N|> marker
+        import re
+        parts = re.split(r'<\|sample_\d+\|>', content)
+        samples = [p.strip() for p in parts if p.strip()]
+        print(f"[eval] Found {len(samples)} samples in local file.")
+        return samples[:num_samples]
+
     cache_path = CACHE_DIR / "eval_100star_samples.json"
     if cache_path.exists():
         with open(cache_path, "r", encoding="utf-8") as f:
@@ -159,14 +177,20 @@ def load_eval_samples(num_samples: int = EVAL_NUM_SAMPLES) -> list[str]:
     os.environ["HF_TOKEN"] = HF_TOKEN
     try:
         from datasets import load_dataset
-        ds = load_dataset(EVAL_DATASET, split="train",
+        # Use bigcode/starcoderdata with subset 'python'
+        print(f"[eval] Fetching from HF: bigcode/starcoderdata (python)...")
+        ds = load_dataset("bigcode/starcoderdata", data_dir="python", split="train",
                           streaming=True, token=HF_TOKEN)
         samples = []
         for ex in ds:
             samples.append(ex["content"])
             if len(samples) >= num_samples:
                 break
-    except Exception:
+        if not samples:
+            raise ValueError("No samples fetched from HF.")
+        print(f"[eval] Successfully fetched {len(samples)} samples from HF.")
+    except Exception as e:
+        print(f"[eval] HF load failed: {e}, falling back to local disk cache...")
         from datasets import load_from_disk
         ds = load_from_disk(str(CACHE_DIR.parent / "data" / "test"))
         samples = ds["content"][:num_samples]
@@ -367,3 +391,13 @@ def run_evaluation(
     print_report(all_results)
     save_results(all_results, repo_config_by_tok)
     return all_results
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_samples", type=int, default=EVAL_NUM_SAMPLES)
+    parser.add_argument("--tokenizers", type=str, nargs="+", default=None)
+    args = parser.parse_args()
+    
+    run_evaluation(tokenizer_keys=args.tokenizers, num_samples=args.num_samples)

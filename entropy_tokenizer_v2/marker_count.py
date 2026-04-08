@@ -5,7 +5,8 @@ import re
 from re import Pattern
 
 RE_ALL_MARKERS: Pattern[str] = re.compile(
-    r"<SYN_\d+>|<VAR>|<ATTR>|<STR>|<FSTR>|<NUM>"
+    r"<SYN_\d+>|<VAR(?:_\d+)?>|<ATTR(?:_\d+)?>|<STR(?:_\d+)?>|<FSTR(?:_\d+)?>|<NUM(?:_\d+)?>|<I>|<D>|<V\d+>|<R>.*?</R>",
+    re.DOTALL
 )
 RE_SYN_ONLY: Pattern[str] = re.compile(r"<SYN_\d+>")
 

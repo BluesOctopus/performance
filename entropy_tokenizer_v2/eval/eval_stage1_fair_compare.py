@@ -221,7 +221,7 @@ def main():
         gpt_enc, gpt_allowed = build_gpt4_simpy_enc()
         simpy_meta = {
             "gpt4": {"type": "tiktoken", "enc": gpt_enc, "allowed_all": gpt_allowed},
-            "codegen-350M-mono": {"type": "hf", "model_name": "Salesforce/codegen-350M-mono"},
+            "codegen": {"type": "hf", "model_name": "Salesforce/codegen-350M-mono"},
             "santacoder": {"type": "hf", "model_name": "bigcode/santacoder"},
         }
 
@@ -229,7 +229,7 @@ def main():
     print("  Stage-1 only: v2 <SYN_*> vs SimPy (same sample filters)")
     print("=" * 88)
 
-    for tok_key in ("gpt4", "codegen-350M-mono", "santacoder"):
+    for tok_key in ("gpt4", "codegen", "santacoder"):
         cfg = EVAL_TOKENIZERS[tok_key]
         cache_name = f"starcoderdata_1m_{tok_key}"
         v2 = eval_v2_stage1(samples, tok_key, cfg, cache_name)
