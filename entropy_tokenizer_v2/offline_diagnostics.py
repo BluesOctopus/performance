@@ -31,15 +31,15 @@ from syntax_compressor import (
     greedy_mdl_select,
     mine_skeletons,
 )
-from tokenizer_utils import count_gpt4o_base_tokens, resolve_gpt4o_base_tokenizer
+from tokenizer_utils import DEFAULT_TOKENIZER_NAME, count_tokens, resolve_tokenizer
 
-TOKENIZER_KEY = "gpt4"
-TOK_TYPE = "tiktoken"
 CODEBOOK_COST_MODE = "serialized_definition"
+DEFAULT_CODEBOOK_ACCOUNTING_MODE = "per_chunk"
 
 
 @dataclass(frozen=True)
 class TokenLedger:
+    tokenizer_name: str
     raw_tokens: int
     compressed_tokens: int
     codebook_tokens: int
@@ -65,7 +65,11 @@ class Stage1DecodeResult:
 
 
 def resolve_encoder() -> Any:
-    return resolve_gpt4o_base_tokenizer()
+    return resolve_tokenizer(DEFAULT_TOKENIZER_NAME)
+
+
+def resolve_encoder_for_name(tokenizer_name: str) -> Any:
+    return resolve_tokenizer(tokenizer_name)
 
 
 def load_chunks(path: str | Path) -> list[dict[str, Any]]:
@@ -82,16 +86,18 @@ def load_chunks(path: str | Path) -> list[dict[str, Any]]:
 def build_stage_repo_config(
     chunk_texts: list[str],
     *,
+    tokenizer_name: str,
     encoder: Any,
+    tok_type: str,
     stage3_mode: str = "exact_only",
     enable_b: bool = False,
     stage3_min_occ: int = 2,
     stage3_min_gain: int = 1,
 ) -> RepoConfig:
     skeleton_counts = mine_skeletons(chunk_texts)
-    n_baseline = sum(count_gpt4o_base_tokens(text, encoder=encoder) for text in chunk_texts)
+    n_baseline = sum(count_tokens(text, encoder=encoder, tok_type=tok_type) for text in chunk_texts)
     vocab_size = int(getattr(encoder, "n_vocab", 0) or 0)
-    candidates = build_candidate_pool(skeleton_counts, encoder, TOK_TYPE, chunk_texts)
+    candidates = build_candidate_pool(skeleton_counts, encoder, tok_type, chunk_texts)
     selected, _diag, stage1_total_net_saving = greedy_mdl_select(
         candidates,
         n_baseline,
@@ -102,7 +108,7 @@ def build_stage_repo_config(
     stage1_candidate_stats = [_candidate_to_stats(candidate, candidate.skeleton in selected_set) for candidate in candidates]
     stage1_selected_stats = [row for row in stage1_candidate_stats if row["selected"]]
 
-    stage3_summary = dict(resolve_hybrid_ab_settings(TOKENIZER_KEY))
+    stage3_summary = dict(resolve_hybrid_ab_settings("gpt4" if tok_type == "tiktoken" else "qwen"))
     stage3_summary["mode"] = stage3_mode
     stage3_summary["enable_b"] = bool(enable_b and stage3_mode == "hybrid")
     stage3_summary["a_min_occ"] = int(stage3_min_occ)
@@ -120,14 +126,23 @@ def build_stage_repo_config(
         n_sources=len(chunk_texts),
         N_baseline_tokens=n_baseline,
         V0=vocab_size,
-        tokenizer_key=TOKENIZER_KEY,
+        tokenizer_key=tokenizer_name,
         stage3_backend="hybrid_ab",
         stage3_ab_summary=stage3_summary,
     )
 
 
-def apply_stage2_only(text: str, *, path: str = "<chunk>") -> str:
-    plan = build_stage2_execution_plan("safe")
+def normalize_stage2_profile(stage2_profile: str) -> str:
+    lowered = stage2_profile.strip().lower()
+    if lowered == "safe":
+        return "safe"
+    if lowered in {"aggressive", "aggressive_upper_bound"}:
+        return "aggressive_upper_bound"
+    raise ValueError(f"Unsupported stage2 profile: {stage2_profile!r}")
+
+
+def apply_stage2_only(text: str, *, stage2_profile: str, path: str = "<chunk>") -> str:
+    plan = build_stage2_execution_plan(normalize_stage2_profile(stage2_profile))
     cleaned, _stats = run_stage2_pre_safe(text, plan.pre_cfg, path=path)
     return cleaned
 
@@ -137,23 +152,32 @@ def apply_stage1_only(
     repo_config: RepoConfig,
     *,
     encoder: Any,
+    tok_type: str,
 ) -> tuple[str, dict[str, dict[str, int]]]:
-    return apply_stage1_with_stats(text, repo_config, encoder, TOK_TYPE)
+    return apply_stage1_with_stats(text, repo_config, encoder, tok_type)
 
 
-def apply_stage1_stage2(text: str, repo_config: RepoConfig, *, encoder: Any, path: str) -> dict[str, Any]:
+def apply_stage1_stage2(
+    text: str,
+    repo_config: RepoConfig,
+    *,
+    encoder: Any,
+    tok_type: str,
+    stage2_profile: str,
+    path: str,
+) -> dict[str, Any]:
     return apply_stage1_stage2_adapted(
         text,
         repo_config,
-        stage2_profile="safe",
+        stage2_profile=normalize_stage2_profile(stage2_profile),
         tokenizer=encoder,
-        tok_type=TOK_TYPE,
+        tok_type=tok_type,
         path=path,
     )
 
 
-def apply_stage3(text: str, repo_config: RepoConfig, *, encoder: Any) -> dict[str, Any]:
-    result, _backend = _stage3_encode_result(text, repo_config, encoder, TOK_TYPE)
+def apply_stage3(text: str, repo_config: RepoConfig, *, encoder: Any, tok_type: str) -> dict[str, Any]:
+    result, _backend = _stage3_encode_result(text, repo_config, encoder, tok_type)
     vocab_entries = dedupe_vocab_entries(list(result.vocab_entries or []))
     metrics = dict(result.metrics or {})
     selected_count = int(metrics.get("stage3_ab_a_selected", 0)) + int(
@@ -196,26 +220,29 @@ def build_token_ledger(
     raw_text: str,
     compressed_text: str,
     *,
+    tokenizer_name: str,
     encoder: Any,
+    tok_type: str,
     codebook_entries: list[dict[str, Any]] | None = None,
     wrapper_text: str = "",
     task_prompt_text: str = "",
 ) -> TokenLedger:
-    raw_tokens = count_gpt4o_base_tokens(raw_text, encoder=encoder)
-    compressed_tokens = count_gpt4o_base_tokens(compressed_text, encoder=encoder)
-    wrapper_tokens = count_gpt4o_base_tokens(wrapper_text, encoder=encoder) if wrapper_text else 0
+    raw_tokens = count_tokens(raw_text, encoder=encoder, tok_type=tok_type)
+    compressed_tokens = count_tokens(compressed_text, encoder=encoder, tok_type=tok_type)
+    wrapper_tokens = count_tokens(wrapper_text, encoder=encoder, tok_type=tok_type) if wrapper_text else 0
     task_prompt_tokens = (
-        count_gpt4o_base_tokens(task_prompt_text, encoder=encoder) if task_prompt_text else 0
+        count_tokens(task_prompt_text, encoder=encoder, tok_type=tok_type) if task_prompt_text else 0
     )
     codebook_tokens = compute_vocab_intro_cost(
         dedupe_vocab_entries(codebook_entries or []),
         mode=CODEBOOK_COST_MODE,
         tokenizer=encoder,
-        tok_type=TOK_TYPE,
+        tok_type=tok_type,
     )
     effective_tokens = compressed_tokens + codebook_tokens + wrapper_tokens
     effective_prompt_tokens = effective_tokens + task_prompt_tokens
     return TokenLedger(
+        tokenizer_name=tokenizer_name,
         raw_tokens=raw_tokens,
         compressed_tokens=compressed_tokens,
         codebook_tokens=codebook_tokens,
@@ -229,48 +256,50 @@ def build_token_ledger(
     )
 
 
-def summarize_variant(rows: list[dict[str, Any]], *, variant: str) -> dict[str, Any]:
+def summarize_variant(
+    rows: list[dict[str, Any]],
+    *,
+    variant: str,
+    tokenizer_name: str,
+    encoder: Any,
+    tok_type: str,
+    stage2_profile: str,
+    codebook_accounting_mode: str,
+) -> dict[str, Any]:
     if not rows:
         return {"variant": variant}
-    codebook_entries = []
-    for row in rows:
-        codebook_entries.extend(list(row.get("_codebook_entries", [])))
-    codebook_tokens = compute_vocab_intro_cost(
-        dedupe_vocab_entries(codebook_entries),
-        mode=CODEBOOK_COST_MODE,
-        tokenizer=resolve_encoder(),
-        tok_type=TOK_TYPE,
-    )
+    if codebook_accounting_mode == "global_once":
+        codebook_entries = []
+        for row in rows:
+            codebook_entries.extend(list(row.get("_codebook_entries", [])))
+        codebook_tokens = compute_vocab_intro_cost(
+            dedupe_vocab_entries(codebook_entries),
+            mode=CODEBOOK_COST_MODE,
+            tokenizer=encoder,
+            tok_type=tok_type,
+        )
+    elif codebook_accounting_mode == "per_chunk":
+        codebook_tokens = sum(int(row["codebook_tokens"]) for row in rows)
+    else:
+        raise ValueError(f"Unsupported codebook accounting mode: {codebook_accounting_mode!r}")
     n_rows = len(rows)
+    compressed_tokens = sum(int(row["compressed_tokens"]) for row in rows)
+    wrapper_tokens = sum(int(row["wrapper_tokens"]) for row in rows)
+    task_prompt_tokens = sum(int(row["task_prompt_tokens"]) for row in rows)
+    effective_tokens = compressed_tokens + codebook_tokens + wrapper_tokens
     summary = {
         "variant": variant,
+        "tokenizer_name": tokenizer_name,
+        "stage2_profile": stage2_profile,
+        "codebook_accounting_mode": codebook_accounting_mode,
         "raw_tokens": sum(int(row["raw_tokens"]) for row in rows),
-        "compressed_tokens": sum(int(row["compressed_tokens"]) for row in rows),
+        "compressed_tokens": compressed_tokens,
         "codebook_tokens": codebook_tokens,
-        "wrapper_tokens": sum(int(row["wrapper_tokens"]) for row in rows),
-        "effective_tokens": (
-            sum(int(row["compressed_tokens"]) for row in rows)
-            + codebook_tokens
-            + sum(int(row["wrapper_tokens"]) for row in rows)
-        ),
+        "wrapper_tokens": wrapper_tokens,
+        "effective_tokens": effective_tokens,
         "gross_saved": sum(int(row["gross_saved"]) for row in rows),
-        "net_saved": (
-            sum(int(row["raw_tokens"]) for row in rows)
-            - (
-                sum(int(row["compressed_tokens"]) for row in rows)
-                + codebook_tokens
-                + sum(int(row["wrapper_tokens"]) for row in rows)
-            )
-        ),
-        "effective_saved": (
-            sum(int(row["raw_tokens"]) for row in rows)
-            - (
-                sum(int(row["compressed_tokens"]) for row in rows)
-                + codebook_tokens
-                + sum(int(row["wrapper_tokens"]) for row in rows)
-                + sum(int(row["task_prompt_tokens"]) for row in rows)
-            )
-        ),
+        "net_saved": sum(int(row["raw_tokens"]) for row in rows) - effective_tokens,
+        "effective_saved": sum(int(row["raw_tokens"]) for row in rows) - (effective_tokens + task_prompt_tokens),
         "stage1_hit_rate": _mean_bool(rows, "stage1_hit"),
         "stage3_trigger_rate": _mean_bool(rows, "stage3_triggered"),
         "roundtrip_success_rate": _mean_bool(rows, "roundtrip_ok"),
@@ -351,6 +380,8 @@ def ast_equivalent_text(left: str, right: str) -> bool:
 
 def with_guardrail(
     *,
+    tokenizer_name: str,
+    tok_type: str,
     raw_reference_text: str,
     baseline_text: str,
     baseline_entries: list[dict[str, Any]],
@@ -362,13 +393,17 @@ def with_guardrail(
     baseline_ledger = build_token_ledger(
         raw_reference_text,
         baseline_text,
+        tokenizer_name=tokenizer_name,
         encoder=encoder,
+        tok_type=tok_type,
         codebook_entries=baseline_entries,
     )
     candidate_ledger = build_token_ledger(
         raw_reference_text,
         candidate_text,
+        tokenizer_name=tokenizer_name,
         encoder=encoder,
+        tok_type=tok_type,
         codebook_entries=candidate_entries,
     )
     decision = apply_effective_guardrail(
@@ -407,3 +442,18 @@ def _mean_bool(rows: list[dict[str, Any]], key: str) -> float:
             value = value.lower() in {"1", "true", "yes"}
         true_count += int(bool(value))
     return true_count / len(rows)
+
+
+def stage3_decode_status(
+    *,
+    repo_config: RepoConfig,
+    encoded_text: str,
+    original_text: str,
+) -> dict[str, Any]:
+    del repo_config, encoded_text, original_text
+    return {
+        "decode_success": False,
+        "roundtrip_ok": False,
+        "ast_equivalent": False,
+        "error_type": "stage3_decoder_missing",
+    }

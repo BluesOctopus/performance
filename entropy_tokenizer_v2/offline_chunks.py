@@ -5,13 +5,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
-from tokenizer_utils import count_gpt4o_base_tokens
+from tokenizer_utils import count_tokens
 
 
 @dataclass(frozen=True)
 class ChunkRecord:
     chunk_id: str
     source_id: str
+    tokenizer_name: str
     symbol_type: str
     symbol_name: str
     start_line: int
@@ -34,11 +35,25 @@ def iter_python_files(input_path: Path) -> Iterator[Path]:
             yield path
 
 
-def build_chunks(input_path: Path, *, encoder: Any | None = None) -> list[dict[str, Any]]:
+def build_chunks(
+    input_path: Path,
+    *,
+    tokenizer_name: str = "gpt4",
+    tok_type: str = "tiktoken",
+    encoder: Any | None = None,
+) -> list[dict[str, Any]]:
     root = input_path if input_path.is_dir() else input_path.parent
     records: list[dict[str, Any]] = []
     for py_file in iter_python_files(input_path):
-        records.extend(extract_python_chunks(py_file, root=root, encoder=encoder))
+        records.extend(
+            extract_python_chunks(
+                py_file,
+                root=root,
+                tokenizer_name=tokenizer_name,
+                tok_type=tok_type,
+                encoder=encoder,
+            )
+        )
     return records
 
 
@@ -46,6 +61,8 @@ def extract_python_chunks(
     path: Path,
     *,
     root: Path,
+    tokenizer_name: str = "gpt4",
+    tok_type: str = "tiktoken",
     encoder: Any | None = None,
     fallback_max_lines: int = 200,
 ) -> list[dict[str, Any]]:
@@ -59,9 +76,11 @@ def extract_python_chunks(
             record.to_dict()
             for record in _fallback_line_chunks(
                 source_id=source_id,
+                tokenizer_name=tokenizer_name,
                 source=source,
                 lines=lines,
                 encoder=encoder,
+                tok_type=tok_type,
                 max_lines=fallback_max_lines,
             )
         ]
@@ -71,6 +90,7 @@ def extract_python_chunks(
     records.append(
         _make_record(
             source_id=source_id,
+            tokenizer_name=tokenizer_name,
             symbol_type="module",
             symbol_name=path.stem,
             start_line=1,
@@ -78,6 +98,7 @@ def extract_python_chunks(
             lines=lines,
             ast_parse_ok=True,
             encoder=encoder,
+            tok_type=tok_type,
         )
     )
 
@@ -110,6 +131,7 @@ def extract_python_chunks(
             records.append(
                 _make_record(
                     source_id=source_id,
+                    tokenizer_name=tokenizer_name,
                     symbol_type=symbol_type,
                     symbol_name=qualified,
                     start_line=start_line,
@@ -117,6 +139,7 @@ def extract_python_chunks(
                     lines=lines,
                     ast_parse_ok=True,
                     encoder=encoder,
+                    tok_type=tok_type,
                 )
             )
 
@@ -127,6 +150,7 @@ def extract_python_chunks(
 def _make_record(
     *,
     source_id: str,
+    tokenizer_name: str,
     symbol_type: str,
     symbol_name: str,
     start_line: int,
@@ -134,13 +158,15 @@ def _make_record(
     lines: list[str],
     ast_parse_ok: bool,
     encoder: Any | None,
+    tok_type: str,
 ) -> ChunkRecord:
     text = "\n".join(lines[start_line - 1 : end_line])
     chunk_id = f"{source_id}::{symbol_type}::{symbol_name}::{start_line}-{end_line}"
-    raw_tokens = count_gpt4o_base_tokens(text, encoder=encoder)
+    raw_tokens = count_tokens(text, encoder=encoder, tok_type=tok_type)
     return ChunkRecord(
         chunk_id=chunk_id,
         source_id=source_id,
+        tokenizer_name=tokenizer_name,
         symbol_type=symbol_type,
         symbol_name=symbol_name,
         start_line=start_line,
@@ -154,9 +180,11 @@ def _make_record(
 def _fallback_line_chunks(
     *,
     source_id: str,
+    tokenizer_name: str,
     source: str,
     lines: list[str],
     encoder: Any | None,
+    tok_type: str,
     max_lines: int,
 ) -> list[ChunkRecord]:
     if not lines:
@@ -164,12 +192,13 @@ def _fallback_line_chunks(
             ChunkRecord(
                 chunk_id=f"{source_id}::line_chunk::0::1-1",
                 source_id=source_id,
+                tokenizer_name=tokenizer_name,
                 symbol_type="line_chunk",
                 symbol_name="fallback_0",
                 start_line=1,
                 end_line=1,
                 ast_parse_ok=False,
-                raw_tokens=count_gpt4o_base_tokens(source, encoder=encoder),
+                raw_tokens=count_tokens(source, encoder=encoder, tok_type=tok_type),
                 chunk_text=source,
             )
         ]
@@ -191,6 +220,7 @@ def _fallback_line_chunks(
     return [
         _make_record(
             source_id=source_id,
+            tokenizer_name=tokenizer_name,
             symbol_type="line_chunk",
             symbol_name=f"fallback_{index}",
             start_line=start_line,
@@ -198,6 +228,7 @@ def _fallback_line_chunks(
             lines=lines,
             ast_parse_ok=False,
             encoder=encoder,
+            tok_type=tok_type,
         )
         for index, (start_line, end_line) in enumerate(ranges)
     ]

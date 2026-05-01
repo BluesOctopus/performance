@@ -29,6 +29,7 @@ def test_extract_python_chunks_ast_mode(tmp_path: Path) -> None:
     assert ("class", "A") in kinds
     assert ("function", "A.method") in kinds
     assert ("function", "top") in kinds
+    assert all(item["tokenizer_name"] == "gpt4" for item in records)
     assert all(item["ast_parse_ok"] is True for item in records)
     assert all(item["raw_tokens"] > 0 for item in records)
 
@@ -56,7 +57,7 @@ def test_build_chunks_scans_directory(tmp_path: Path) -> None:
     nested.mkdir()
     (nested / "b.py").write_text("def f():\n    return 1\n", encoding="utf-8")
 
-    records = build_chunks(tmp_path, encoder=FakeEncoder())
+    records = build_chunks(tmp_path, tokenizer_name="fake_tok", tok_type="tiktoken", encoder=FakeEncoder())
 
     source_ids = {item["source_id"] for item in records}
     assert "a.py" in source_ids
