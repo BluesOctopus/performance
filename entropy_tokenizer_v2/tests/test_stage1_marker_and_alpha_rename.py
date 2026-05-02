@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,8 +12,17 @@ import analysis.run_stage1_marker_ablation as run_stage1_marker_ablation
 from marker_optimizer import build_marker_scheme
 from offline_diagnostics import resolve_stage1_marker_scheme
 from stage1_static.static_vocab import build_static_vocab_manifest
-from stage3.alpha_rename import alpha_rename_function_chunk, apply_alpha_rename_pass
+from stage3.alpha_pipeline import finalize_alpha_output
+from stage3.alpha_rename import AlphaPassMetadata, AlphaPassResult, alpha_rename_function_chunk, apply_alpha_rename_pass
 from training import build_stage2_alpha_data
+
+_ADHERENCE_EVAL_SPEC = importlib.util.spec_from_file_location(
+    "run_compression_adherence_eval",
+    Path(__file__).resolve().parents[2] / "eval" / "run_compression_adherence_eval.py",
+)
+assert _ADHERENCE_EVAL_SPEC and _ADHERENCE_EVAL_SPEC.loader
+run_compression_adherence_eval = importlib.util.module_from_spec(_ADHERENCE_EVAL_SPEC)
+_ADHERENCE_EVAL_SPEC.loader.exec_module(run_compression_adherence_eval)
 
 
 class PrefersSingleTokenEncoder:
@@ -452,6 +462,8 @@ def test_training_manifest_schema(tmp_path: Path, monkeypatch) -> None:
             "dummy.jsonl",
             "--output",
             str(out_path),
+            "--filter-mode",
+            "all_safe",
         ],
     )
     build_stage2_alpha_data.main()
@@ -469,3 +481,66 @@ def test_training_manifest_schema(tmp_path: Path, monkeypatch) -> None:
         "safety_checks",
         "split",
     }
+
+
+def test_finalize_alpha_output_rolls_back_to_safe_stage2_text() -> None:
+    alpha_result = AlphaPassResult(
+        output_text="def broken(:\n    pass\n",
+        metadata=AlphaPassMetadata(
+            alpha_applied=True,
+            alpha_renamed_count=1,
+            alpha_raw_tokens=10,
+            alpha_tokens=8,
+            alpha_delta_tokens=2,
+            alpha_guardrail_triggered=False,
+            alpha_rollback_reason="",
+            alpha_skipped_reason="",
+            alpha_ast_ok=False,
+            alpha_compile_ok=False,
+            alpha_public_signature_preserved=False,
+        ),
+    )
+    finalized = finalize_alpha_output(
+        "def f(x):\n    return x\n",
+        alpha_result,
+        encoder=PrefersSingleTokenEncoder(),
+        tok_type="tiktoken",
+    )
+    assert finalized.compressed_text == "def f(x):\n    return x\n"
+    assert finalized.alpha_metadata["alpha_applied"] is False
+    assert finalized.alpha_metadata["alpha_guardrail_triggered"] is True
+    assert finalized.safety_checks["compressed_parse_ok"] is True
+    assert finalized.safety_checks["compressed_compile_ok"] is True
+    assert finalized.safety_checks["alpha_public_signature_preserved"] is True
+
+
+def test_adherence_eval_uses_decoded_checks_for_static_variant() -> None:
+    summary = run_compression_adherence_eval.build_summary(
+        [
+            {
+                "variant": "stage2_alpha_stage1_static",
+                "compressed_text": "<SYN_0> payload",
+                "effective_saved": 5,
+                "raw_tokens": 10,
+                "compressed_tokens": 6,
+                "alpha_metadata": {
+                    "alpha_public_signature_preserved": True,
+                    "alpha_guardrail_triggered": False,
+                    "alpha_rollback_reason": "",
+                    "alpha_skipped_reason": "",
+                    "alpha_ast_ok": True,
+                    "alpha_compile_ok": True,
+                },
+                "static_vocab_metadata": {
+                    "encoded_parse_ok": False,
+                    "decode_success": True,
+                    "decoded_parse_ok": True,
+                    "decoded_compile_ok": True,
+                    "decoded_ast_equivalent": True,
+                },
+            }
+        ]
+    )
+    assert summary["invalid_python_rate"] == 0.0
+    assert summary["decoded_invalid_python_rate"] == 0.0
+    assert summary["static_vocab_decode_success"] == 1.0
