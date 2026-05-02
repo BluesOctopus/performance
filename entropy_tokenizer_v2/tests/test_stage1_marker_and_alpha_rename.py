@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import csv
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import analysis.run_alpha_rename_oracle_eval as run_alpha_rename_oracle_eval
+import analysis.run_offline_stage_ablation as run_offline_stage_ablation
 import analysis.run_stage1_marker_ablation as run_stage1_marker_ablation
 from marker_optimizer import build_marker_scheme
 from offline_diagnostics import resolve_stage1_marker_scheme
-from stage3.alpha_rename import alpha_rename_function_chunk
+from stage1_static.static_vocab import build_static_vocab_manifest
+from stage3.alpha_rename import alpha_rename_function_chunk, apply_alpha_rename_pass
+from training import build_stage2_alpha_data
 
 
 class PrefersSingleTokenEncoder:
@@ -113,8 +118,153 @@ def test_stage1_marker_ablation_outputs_marker_cost_fields(tmp_path: Path, monke
         "stage1_rejected_low_frequency_count",
         "stage1_apply_hit_count",
         "stage1_apply_miss_count",
+        "per_chunk_effective_saved",
+        "global_once_effective_saved",
+        "pretrained_static_vocab_effective_saved",
+        "break_even_codebook_tokens",
+        "codebook_overhead_ratio",
+        "stage1_ablation_invalid",
+        "warning_type",
     ):
         assert field in summary
+
+
+def test_stage1_2_equals_stage2_only_when_no_stage1_selected(tmp_path: Path, monkeypatch) -> None:
+    out_dir = tmp_path / "ablation_noop"
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "resolve_encoder_for_name",
+        lambda _name: SimpleNamespace(tokenizer_name="fake_tok", encoder=PrefersSingleTokenEncoder(), tok_type="tiktoken"),
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "load_chunks",
+        lambda _path: [
+            {
+                "chunk_id": "c1",
+                "source_id": "s.py",
+                "symbol_type": "function",
+                "symbol_name": "f",
+                "chunk_text": "def f(arg_value):\n    return arg_value\n",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "build_stage_repo_config",
+        lambda *args, **kwargs: SimpleNamespace(
+            stage1_marker_scheme=kwargs.get("stage1_marker_scheme", "legacy"),
+            stage1_candidate_stats=[],
+            stage1_selected_stats=[],
+            stage1_marker_tokens=[],
+            stage1_rejected_no_gain_count=0,
+            stage1_rejected_intro_cost_count=0,
+            stage1_rejected_marker_cost_count=0,
+            stage1_low_frequency_count=0,
+            skeleton_candidates=lambda: [],
+        ),
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage2_pipeline",
+        lambda text, **kwargs: {"stage2_pre_text": text, "stage2_post_text": "normalized"},
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage1_stage2",
+        lambda *args, **kwargs: {"stage1_text": args[0], "stage2_pre_text": args[0], "stage2_post_text": "normalized"},
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage1_only",
+        lambda text, *args, **kwargs: (text, {}),
+    )
+    monkeypatch.setattr(run_stage1_marker_ablation, "stage1_vocab_entries_for_text", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_stage1_marker_ablation.py",
+            "--chunks",
+            "dummy.jsonl",
+            "--out_dir",
+            str(out_dir),
+        ],
+    )
+    run_stage1_marker_ablation.main()
+    with (out_dir / "stage1_marker_ablation_summary.csv").open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    stage1_legacy_2 = next(row for row in rows if row["variant"] == "stage1_legacy_2")
+    assert stage1_legacy_2["stage1_ablation_invalid"] == "False"
+    assert stage1_legacy_2["warning_type"] == ""
+
+
+def test_stage1_2_uses_identical_stage2_text_when_stage1_noop(tmp_path: Path, monkeypatch) -> None:
+    out_dir = tmp_path / "ablation_hash"
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "resolve_encoder_for_name",
+        lambda _name: SimpleNamespace(tokenizer_name="fake_tok", encoder=PrefersSingleTokenEncoder(), tok_type="tiktoken"),
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "load_chunks",
+        lambda _path: [
+            {
+                "chunk_id": "c1",
+                "source_id": "s.py",
+                "symbol_type": "function",
+                "symbol_name": "f",
+                "chunk_text": "def f(arg_value):\n    return arg_value\n",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "build_stage_repo_config",
+        lambda *args, **kwargs: SimpleNamespace(
+            stage1_marker_scheme=kwargs.get("stage1_marker_scheme", "legacy"),
+            stage1_candidate_stats=[],
+            stage1_selected_stats=[],
+            stage1_marker_tokens=[],
+            stage1_rejected_no_gain_count=0,
+            stage1_rejected_intro_cost_count=0,
+            stage1_rejected_marker_cost_count=0,
+            stage1_low_frequency_count=0,
+            skeleton_candidates=lambda: [],
+        ),
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage2_pipeline",
+        lambda text, **kwargs: {"stage2_pre_text": text, "stage2_post_text": "same_stage2"},
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage1_stage2",
+        lambda *args, **kwargs: {"stage1_text": args[0], "stage2_pre_text": args[0], "stage2_post_text": "same_stage2"},
+    )
+    monkeypatch.setattr(
+        run_stage1_marker_ablation,
+        "apply_stage1_only",
+        lambda text, *args, **kwargs: (text, {}),
+    )
+    monkeypatch.setattr(run_stage1_marker_ablation, "stage1_vocab_entries_for_text", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_stage1_marker_ablation.py",
+            "--chunks",
+            "dummy.jsonl",
+            "--out_dir",
+            str(out_dir),
+        ],
+    )
+    run_stage1_marker_ablation.main()
+    with (out_dir / "stage1_marker_ablation_detail.csv").open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    stage1_legacy_2 = next(row for row in rows if row["variant"] == "stage1_legacy_2")
+    assert stage1_legacy_2["stage2_path_equal"] == "True"
+    assert stage1_legacy_2["stage1_noop_but_stage2_diff_warning"] == "False"
 
 
 def test_alpha_rename_summary_outputs_eligible_fields(tmp_path: Path, monkeypatch) -> None:
@@ -212,3 +362,110 @@ def test_alpha_rename_can_reduce_long_local_names() -> None:
     )
     assert result.renamed_count >= 1
     assert result.delta_tokens >= 0
+
+
+def test_alpha_rename_does_not_change_function_signature() -> None:
+    result = apply_alpha_rename_pass(
+        "def f(long_arg_name: int = 1) -> int:\n    intermediate_long_name = long_arg_name + 1\n    return intermediate_long_name\n",
+        tokenizer_name="fake_tok",
+        encoder=PrefersSingleTokenEncoder(),
+        tok_type="tiktoken",
+    )
+    assert result.metadata.alpha_public_signature_preserved is True
+
+
+def test_alpha_rename_rolls_back_when_no_token_gain() -> None:
+    class NoGainEncoder(PrefersSingleTokenEncoder):
+        def encode(self, text: str, *args, **kwargs):
+            return [0]
+
+    result = apply_alpha_rename_pass(
+        "def f(x):\n    long_name = x + 1\n    return long_name\n",
+        tokenizer_name="fake_tok",
+        encoder=NoGainEncoder(),
+        tok_type="tiktoken",
+    )
+    assert result.metadata.alpha_applied is False
+    assert result.metadata.alpha_rollback_reason == "no_token_gain"
+
+
+def test_alpha_rename_compile_guardrail(monkeypatch) -> None:
+    monkeypatch.setattr("stage3.alpha_rename._compile_source", lambda *args, **kwargs: (_ for _ in ()).throw(SyntaxError("boom")))
+    result = apply_alpha_rename_pass(
+        "def f(x):\n    very_long_local_name = x + 1\n    return very_long_local_name\n",
+        tokenizer_name="fake_tok",
+        encoder=PrefersSingleTokenEncoder(),
+        tok_type="tiktoken",
+    )
+    assert result.metadata.alpha_applied is False
+    assert result.metadata.alpha_rollback_reason == "compile_failed_after_rename"
+
+
+def test_variant_train_allowed_flags() -> None:
+    assert run_offline_stage_ablation.variant_training_policy("stage2_alpha") == ("candidate", True, "")
+    assert run_offline_stage_ablation.variant_training_policy("stage2_alpha_stage1_static") == ("candidate", True, "")
+    assert run_offline_stage_ablation.variant_training_policy("stage2_alpha_stage1_tokenizer_opt")[1] is False
+    assert run_offline_stage_ablation.variant_training_policy("stage2_3")[1] is False
+
+
+def test_static_vocab_topk_has_positive_gain() -> None:
+    manifest = build_static_vocab_manifest(
+        [
+            {"chunk_text": "def f(x):\n    if x:\n        return x\n    return x\n"},
+            {"chunk_text": "def g(y):\n    if y:\n        return y\n    return y\n"},
+            {"chunk_text": "def h(z):\n    if z:\n        return z\n    return z\n"},
+        ],
+        tokenizer_name="fake_tok",
+        encoder=PrefersSingleTokenEncoder(),
+        tok_type="tiktoken",
+        top_k=8,
+    )
+    assert all(float(entry["avg_token_gain"]) > 0 for entry in manifest["entries"])
+
+
+def test_training_manifest_schema(tmp_path: Path, monkeypatch) -> None:
+    out_path = tmp_path / "manifest.jsonl"
+    monkeypatch.setattr(
+        build_stage2_alpha_data,
+        "resolve_encoder_for_name",
+        lambda _name: SimpleNamespace(tokenizer_name="fake_tok", encoder=PrefersSingleTokenEncoder(), tok_type="tiktoken"),
+    )
+    monkeypatch.setattr(
+        build_stage2_alpha_data,
+        "load_chunks",
+        lambda _path: [
+            {
+                "chunk_id": "c1",
+                "source_id": "s.py",
+                "symbol_type": "function",
+                "symbol_name": "f",
+                "chunk_text": "def f(x):\n    long_name = x + 1\n    return long_name\n",
+            }
+        ],
+    )
+    monkeypatch.setattr(build_stage2_alpha_data, "apply_stage2_only", lambda text, **kwargs: text)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "build_stage2_alpha_data.py",
+            "--chunks",
+            "dummy.jsonl",
+            "--output",
+            str(out_path),
+        ],
+    )
+    build_stage2_alpha_data.main()
+    row = json.loads(out_path.read_text(encoding="utf-8").splitlines()[0])
+    assert set(row.keys()) == {
+        "raw_text",
+        "compressed_text",
+        "variant",
+        "tokenizer_name",
+        "raw_tokens",
+        "compressed_tokens",
+        "effective_saved",
+        "alpha_metadata",
+        "static_vocab_metadata",
+        "safety_checks",
+        "split",
+    }

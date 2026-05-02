@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import csv
+import hashlib
 import json
 import re
 from dataclasses import asdict, dataclass
@@ -290,6 +291,24 @@ def apply_stage2_only(text: str, *, stage2_profile: str, path: str = "<chunk>") 
     return cleaned
 
 
+def apply_stage2_pipeline(text: str, *, stage2_profile: str, path: str = "<chunk>") -> dict[str, Any]:
+    plan = build_stage2_execution_plan(normalize_stage2_profile(stage2_profile))
+    pre_text, pre_stats = run_stage2_pre_safe(text, plan.pre_cfg, path=path)
+    from stage2.cleaning import run_stage2_post_surface
+
+    post_text, post_stats = run_stage2_post_surface(pre_text, plan.post_cfg, path=path)
+    return {
+        "stage2_pre_text": pre_text,
+        "stage2_post_text": post_text,
+        "stage2_pre_stats": pre_stats,
+        "stage2_post_stats": post_stats,
+    }
+
+
+def stable_text_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
 def apply_stage1_only(
     text: str,
     repo_config: RepoConfig,
@@ -508,6 +527,8 @@ def summarize_variant(
         )
     elif codebook_accounting_mode == "per_chunk":
         codebook_tokens = sum(int(row["codebook_tokens"]) for row in rows)
+    elif codebook_accounting_mode == "pretrained_static_vocab":
+        codebook_tokens = 0
     else:
         raise ValueError(f"Unsupported codebook accounting mode: {codebook_accounting_mode!r}")
     n_rows = len(rows)
