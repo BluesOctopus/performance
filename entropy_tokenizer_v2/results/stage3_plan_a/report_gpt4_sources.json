@@ -1,0 +1,145 @@
+{
+  "fields": [
+    {
+      "field_name": "variable",
+      "sample_size": 2,
+      "cardinality": 1,
+      "entropy_bits": 0.0,
+      "expected_raw_token_cost": 2.0,
+      "expected_coded_token_cost": 2.0,
+      "theoretical_headroom": 2.0,
+      "dictionary_coverage": 0.0,
+      "total_expected_gain": 0.0,
+      "top_literals": [
+        {
+          "literal": "serve_user",
+          "count": 2,
+          "probability": 1.0,
+          "surprisal_bits": -0.0,
+          "raw_token_cost": 2,
+          "assigned_code": null,
+          "code_token_cost": null,
+          "expected_gain": 0.0
+        }
+      ],
+      "codebook": {
+        "field_name": "variable",
+        "version": "v1",
+        "escape_prefix": "__L__",
+        "metadata": {
+          "candidate_pool_size": 8,
+          "feasible_codes": 1,
+          "assigned": 0,
+          "weight_mode": "p_times_cost",
+          "cost_model": "real_surface_form",
+          "field_name": "variable",
+          "avg_raw_token_cost_assigned": 0.0,
+          "avg_encoded_token_cost_assigned": 0.0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
+        },
+        "assignments": []
+      }
+    },
+    {
+      "field_name": "attribute",
+      "sample_size": 0,
+      "cardinality": 0,
+      "entropy_bits": 0.0,
+      "expected_raw_token_cost": 0.0,
+      "expected_coded_token_cost": 0.0,
+      "theoretical_headroom": 0.0,
+      "dictionary_coverage": 0.0,
+      "total_expected_gain": 0.0,
+      "top_literals": [],
+      "codebook": {
+        "field_name": "attribute",
+        "version": "v1",
+        "escape_prefix": "__L__",
+        "metadata": {
+          "cost_model": "real_surface_form",
+          "field_name": "attribute",
+          "assigned": 0,
+          "feasible_codes": 0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
+        },
+        "assignments": []
+      }
+    },
+    {
+      "field_name": "string",
+      "sample_size": 0,
+      "cardinality": 0,
+      "entropy_bits": 0.0,
+      "expected_raw_token_cost": 0.0,
+      "expected_coded_token_cost": 0.0,
+      "theoretical_headroom": 0.0,
+      "dictionary_coverage": 0.0,
+      "total_expected_gain": 0.0,
+      "top_literals": [],
+      "codebook": {
+        "field_name": "string",
+        "version": "v1",
+        "escape_prefix": "__L__",
+        "metadata": {
+          "cost_model": "real_surface_form",
+          "field_name": "string",
+          "assigned": 0,
+          "feasible_codes": 0,
+          "post_pruned": true,
+          "pre_prune_assignments": 0,
+          "post_prune_assignments": 0
+        },
+        "assignments": []
+      }
+    }
+  ],
+  "summary": {
+    "total_expected_raw_tokens": 2.0,
+    "total_expected_coded_tokens": 2.0,
+    "total_expected_gain": 0.0,
+    "average_gain_ratio": 0.0
+  },
+  "assumptions": {
+    "plan": "A",
+    "semantic_loss": 0.0,
+    "tokenizer_adapter": "V2TokenizerAdapter",
+    "cost_model": "real_surface_form",
+    "vocab_scope": "used_only",
+    "min_gain": 0.003,
+    "max_assignments_by_field": {
+      "variable": 64,
+      "attribute": 32,
+      "string": 16
+    },
+    "plan_a_profile": "gpt4_conservative"
+  },
+  "stream_diagnostics": {
+    "stage3_plan_a_variable_count": 2,
+    "stage3_plan_a_attribute_count": 0,
+    "stage3_plan_a_string_count": 0,
+    "stage3_plan_a_protected_name_skips": 0,
+    "stage3_plan_a_cardinality_variable": 1,
+    "stage3_plan_a_cardinality_attribute": 0,
+    "stage3_plan_a_cardinality_string": 0
+  },
+  "string_filter": {
+    "stage3_plan_a_string_filter_kept_occurrences": 0,
+    "stage3_plan_a_string_filter_dropped_low_count": 0,
+    "stage3_plan_a_string_filter_dropped_low_raw_cost": 0,
+    "stage3_plan_a_string_filter_dropped_newline_inner": 0,
+    "stage3_plan_a_string_filter_dropped_long_prose": 0,
+    "stage3_plan_a_string_filter_dropped_regex_like": 0,
+    "stage3_plan_a_string_filter_dropped_doc_marker": 0,
+    "stage3_plan_a_string_filter_dropped_high_whitespace_ratio": 0,
+    "stage3_plan_a_string_filter_by_rule_json": {}
+  },
+  "stage3_plan_a_post_prune_enabled": true,
+  "stage3_plan_a_post_prune_pre_assignments": 0,
+  "stage3_plan_a_post_prune_post_assignments": 0,
+  "stage3_plan_a_post_prune_removed_count": 0,
+  "stage3_plan_a_post_prune_removed_json": []
+}

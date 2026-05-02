@@ -1,6 +1,7 @@
 """CLI: ``eval`` (HF samples or ``--repo``), ``demo`` (single file / toy). From repo: ``python .../eval/run_v2.py eval``."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -8,11 +9,20 @@ import bootstrap_v2
 
 bootstrap_v2.ensure()
 
-from config import EVAL_TOKENIZERS, EVAL_NUM_SAMPLES
+from config import (
+    EVAL_NUM_SAMPLES,
+    EVAL_TOKENIZERS,
+    STAGE3_BACKEND,
+)
 
 
 def cmd_eval(args):
     from v2_eval import run_evaluation
+
+    if getattr(args, "stage2_hybrid_ab_profile", None):
+        os.environ["ET_STAGE2_HYBRID_AB_PROFILE"] = str(args.stage2_hybrid_ab_profile)
+    if getattr(args, "stage2_hybrid_ab_mode", None):
+        os.environ["ET_STAGE2_HYBRID_AB_MODE"] = str(args.stage2_hybrid_ab_mode)
 
     tok_keys = args.tokenizers if args.tokenizers else None
 
@@ -31,25 +41,48 @@ def cmd_eval(args):
 
         results = []
         configs = {}
+        backend = args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND
+        tag = getattr(args, "stage3_output_tag", "") or ""
+        csv_name = f"v2_compression_report{tag}.csv" if tag else "v2_compression_report.csv"
+        detail_name = f"v2_eval_detail{tag}.json" if tag else "v2_eval_detail.json"
         for tok_key in (tok_keys or list(EVAL_TOKENIZERS.keys())):
             cfg = EVAL_TOKENIZERS.get(tok_key)
             if cfg is None:
                 print(f"Unknown tokenizer '{tok_key}', skipping")
                 continue
             repo_config = mine_from_repo_path(
-                args.repo, tok_key, cfg, cache=True
+                args.repo, tok_key, cfg, cache=True, stage3_backend=backend
             )
             configs[tok_key] = repo_config
-            r = evaluate(sources, repo_config, tok_key, cfg)
+            r = evaluate(
+                sources,
+                repo_config,
+                tok_key,
+                cfg,
+                stage2_profile=args.stage2_profile,
+                stage2_mode=args.stage2_mode,
+            )
             results.append(r)
 
         print_report(results)
-        save_results(results, configs)
+        save_results(results, configs, csv_name=csv_name, detail_name=detail_name)
 
     else:
         # Use the HF eval dataset
         n = args.samples or EVAL_NUM_SAMPLES
-        run_evaluation(tokenizer_keys=tok_keys, num_samples=n)
+        backend = args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND
+        tag = getattr(args, "stage3_output_tag", "") or ""
+        csv_name = f"v2_compression_report{tag}.csv" if tag else "v2_compression_report.csv"
+        detail_name = f"v2_eval_detail{tag}.json" if tag else "v2_eval_detail.json"
+        run_evaluation(
+            tokenizer_keys=tok_keys,
+            num_samples=n,
+            stage2_profile=args.stage2_profile,
+            stage2_mode=args.stage2_mode,
+            stage3_backend=backend,
+            output_csv=csv_name,
+            output_detail=detail_name,
+        )
 
 
 def cmd_demo(args):
@@ -86,6 +119,7 @@ def cmd_demo(args):
         cache=True,
         verbose=True,
         min_freq=1,
+        stage3_backend=args.stage3_backend if args.stage3_backend is not None else STAGE3_BACKEND,
     )
 
     compressed, fr = apply_v2_compression(source, repo_config, tokenizer, tok_type)
@@ -192,12 +226,69 @@ def main():
                         help=f"Number of samples (default: {EVAL_NUM_SAMPLES})")
     p_eval.add_argument("--tokenizers", nargs="+", default=None,
                         help="Tokenizer keys to evaluate (default: all)")
+    p_eval.add_argument(
+        "--stage2-profile",
+        type=str,
+        default=None,
+        help=(
+            "Stage2 profile (omit for backend defaults: hybrid_ab uses ET_STAGE2_HYBRID_AB_PROFILE; "
+            "others use ET_STAGE2_DEFAULT_PROFILE)"
+        ),
+    )
+    p_eval.add_argument(
+        "--stage2-mode",
+        type=str,
+        default=None,
+        choices=["linewise", "blockwise"],
+        help=(
+            "Stage2 mode (omit for backend defaults: hybrid_ab uses ET_STAGE2_HYBRID_AB_MODE; "
+            "others use ET_STAGE2_DEFAULT_MODE)"
+        ),
+    )
+    p_eval.add_argument(
+        "--stage2-hybrid-ab-profile",
+        type=str,
+        default=None,
+        help="Set ET_STAGE2_HYBRID_AB_PROFILE for this run (hybrid_ab implicit Stage2 only).",
+    )
+    p_eval.add_argument(
+        "--stage2-hybrid-ab-mode",
+        type=str,
+        default=None,
+        choices=["linewise", "blockwise"],
+        help="Set ET_STAGE2_HYBRID_AB_MODE for this run (hybrid_ab implicit Stage2 only).",
+    )
+    p_eval.add_argument(
+        "--stage3-backend",
+        type=str,
+        default=None,
+        choices=["legacy", "plan_a", "hybrid_ab"],
+        help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
+    )
+    p_eval.add_argument(
+        "--stage3-output-tag",
+        type=str,
+        default="",
+        help="Optional suffix for v2_compression_report*.csv and v2_eval_detail*.json",
+    )
+    p_eval.add_argument(
+        "--stage3-use-tiktoken",
+        action="store_true",
+        help="Reserved; Plan A uses the same tokenizer as eval for consistent costs",
+    )
 
     p_demo = sub.add_parser("demo", help="Show compression on a single file")
     p_demo.add_argument("--file", type=str, default=None,
                         help="Python source file to compress (default: built-in toy code)")
     p_demo.add_argument("--tokenizer", type=str, default=None,
                         help="Tokenizer key (default: first in config)")
+    p_demo.add_argument(
+        "--stage3-backend",
+        type=str,
+        default=None,
+        choices=["legacy", "plan_a", "hybrid_ab"],
+        help="Stage3 backend (default: ET_STAGE3_BACKEND / config)",
+    )
 
     args = parser.parse_args()
 

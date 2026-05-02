@@ -1,0 +1,10 @@
+<|sample_0|>
+def f():
+	print("a")
+    print("b")
+
+<|sample_1|>
+def g(x):
+    y = x + 1
+    return y
+

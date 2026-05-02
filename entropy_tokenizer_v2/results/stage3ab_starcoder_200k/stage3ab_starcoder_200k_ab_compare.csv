@@ -1,0 +1,3 @@
+channel,input_tokens,output_tokens,saved_tokens,saved_pct,intro_tokens,net_saved_tokens,notes
+Stage3_A_exact_aliasing,171495,170315,1180,0.688067,439,741,input=sum Stage2 output tokens; output=after A+guardrail; counter=count_augmented
+Stage3_B_lexical_free_text,170315,169735,580,0.340545,155,425,input=A output; output=final Stage3; B may be no-op
