@@ -10,6 +10,7 @@ if str(PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(PKG_ROOT))
 
 from offline_diagnostics import (
+    DEFAULT_STAGE1_MARKER_SCHEME,
     apply_stage1_only,
     apply_stage1_stage2,
     apply_stage2_only,
@@ -19,6 +20,7 @@ from offline_diagnostics import (
     decode_stage1_text,
     load_chunks,
     resolve_encoder_for_name,
+    stage1_marker_metrics,
     stage1_vocab_entries_for_text,
     stage3_decode_status,
     summarize_variant,
@@ -42,6 +44,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunks", required=True, help="Input chunks JSONL from tools/build_py_chunks.py")
     parser.add_argument("--out_dir", required=True, help="Output directory for detail and summary CSVs")
     parser.add_argument("--tokenizer", default="gpt4", help="Tokenizer name")
+    parser.add_argument(
+        "--stage1-marker-scheme",
+        default=DEFAULT_STAGE1_MARKER_SCHEME,
+        choices=("legacy", "tokenizer_opt"),
+        help="Stage1 marker scheme",
+    )
     parser.add_argument(
         "--stage2-profile",
         default="aggressive",
@@ -69,6 +77,7 @@ def main() -> int:
         tokenizer_name=resolved.tokenizer_name,
         encoder=resolved.encoder,
         tok_type=resolved.tok_type,
+        stage1_marker_scheme=args.stage1_marker_scheme,
         stage3_mode="hybrid",
         enable_b=True,
     )
@@ -87,6 +96,7 @@ def main() -> int:
                 resolved.tok_type,
                 args.stage2_profile,
                 args.codebook_accounting_mode,
+                args.stage1_marker_scheme,
             )
             detail_rows.append(row)
             variant_rows.append(row)
@@ -116,6 +126,7 @@ def run_variant(
     tok_type: str,
     stage2_profile: str,
     codebook_accounting_mode: str,
+    stage1_marker_scheme: str,
 ) -> dict[str, object]:
     original_text = str(chunk["chunk_text"])
     source_id = str(chunk["source_id"])
@@ -127,6 +138,7 @@ def run_variant(
     rollback_flag = False
     rollback_reason = ""
     final_text = original_text
+    stage1_marker_text = ""
     codebook_entries: list[dict[str, object]] = []
     summary_codebook_entries: list[dict[str, object]] = []
 
@@ -143,6 +155,7 @@ def run_variant(
             encoder=encoder,
             tok_type=tok_type,
         )
+        stage1_marker_text = final_text
         stage1_hit = final_text != original_text
         summary_codebook_entries = stage1_vocab_entries_for_text(final_text, repo_config)
         codebook_entries = list(summary_codebook_entries)
@@ -190,6 +203,14 @@ def run_variant(
             tokenizer_name=tokenizer_name,
             stage2_profile=stage2_profile,
             codebook_accounting_mode=codebook_accounting_mode,
+            stage1_marker_scheme=stage1_marker_scheme,
+            marker_metrics=stage1_marker_metrics(
+                "",
+                repo_config,
+                tokenizer_name=tokenizer_name,
+                encoder=encoder,
+                tok_type=tok_type,
+            ),
             stage1_hit=stage1_hit,
             stage3_triggered=stage3_triggered,
             roundtrip_ok=roundtrip_ok,
@@ -211,6 +232,7 @@ def run_variant(
             path=source_id,
         )
         final_text = adapted["stage2_post_text"]
+        stage1_marker_text = adapted["stage1_text"]
         stage1_hit = adapted["stage1_text"] != adapted["stage2_pre_text"]
         summary_codebook_entries = stage1_vocab_entries_for_text(adapted["stage1_text"], repo_config)
         codebook_entries = list(summary_codebook_entries)
@@ -257,6 +279,14 @@ def run_variant(
             tokenizer_name=tokenizer_name,
             stage2_profile=stage2_profile,
             codebook_accounting_mode=codebook_accounting_mode,
+            stage1_marker_scheme=stage1_marker_scheme,
+            marker_metrics=stage1_marker_metrics(
+                "",
+                repo_config,
+                tokenizer_name=tokenizer_name,
+                encoder=encoder,
+                tok_type=tok_type,
+            ),
             stage1_hit=stage1_hit,
             stage3_triggered=stage3_triggered,
             roundtrip_ok=roundtrip_ok,
@@ -277,6 +307,7 @@ def run_variant(
             stage2_profile=stage2_profile,
             path=source_id,
         )
+        stage1_marker_text = adapted["stage1_text"]
         stage1_hit = adapted["stage1_text"] != adapted["stage2_pre_text"]
         stage1_entries = stage1_vocab_entries_for_text(adapted["stage1_text"], repo_config)
         summary_stage1_entries = list(stage1_entries)
@@ -322,6 +353,14 @@ def run_variant(
             tokenizer_name=tokenizer_name,
             stage2_profile=stage2_profile,
             codebook_accounting_mode=codebook_accounting_mode,
+            stage1_marker_scheme=stage1_marker_scheme,
+            marker_metrics=stage1_marker_metrics(
+                stage1_marker_text,
+                repo_config,
+                tokenizer_name=tokenizer_name,
+                encoder=encoder,
+                tok_type=tok_type,
+            ),
             stage1_hit=stage1_hit,
             stage3_triggered=stage3_triggered,
             roundtrip_ok=roundtrip_ok,
@@ -341,6 +380,13 @@ def run_variant(
         tok_type=tok_type,
         codebook_entries=codebook_entries,
     )
+    marker_metrics = stage1_marker_metrics(
+        stage1_marker_text,
+        repo_config,
+        tokenizer_name=tokenizer_name,
+        encoder=encoder,
+        tok_type=tok_type,
+    )
     return _build_row(
         variant=variant,
         chunk=chunk,
@@ -348,6 +394,8 @@ def run_variant(
         tokenizer_name=tokenizer_name,
         stage2_profile=stage2_profile,
         codebook_accounting_mode=codebook_accounting_mode,
+        stage1_marker_scheme=stage1_marker_scheme,
+        marker_metrics=marker_metrics,
         stage1_hit=stage1_hit,
         stage3_triggered=stage3_triggered,
         roundtrip_ok=roundtrip_ok,
@@ -368,6 +416,8 @@ def _build_row(
     tokenizer_name: str,
     stage2_profile: str,
     codebook_accounting_mode: str,
+    stage1_marker_scheme: str,
+    marker_metrics: dict[str, object],
     stage1_hit: bool,
     stage3_triggered: bool,
     roundtrip_ok: bool,
@@ -387,6 +437,7 @@ def _build_row(
         "tokenizer_name": tokenizer_name,
         "stage2_profile": stage2_profile,
         "codebook_accounting_mode": codebook_accounting_mode,
+        "stage1_marker_scheme": stage1_marker_scheme,
         "raw_tokens": ledger.raw_tokens,
         "compressed_tokens": ledger.compressed_tokens,
         "codebook_tokens": ledger.codebook_tokens,
@@ -397,6 +448,7 @@ def _build_row(
         "gross_saved": ledger.gross_saved,
         "net_saved": ledger.net_saved,
         "effective_saved": ledger.effective_saved,
+        **marker_metrics,
         "stage1_hit": stage1_hit,
         "stage3_triggered": stage3_triggered,
         "roundtrip_ok": roundtrip_ok,

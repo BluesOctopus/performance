@@ -16,9 +16,9 @@ from config import (
     STAGE1_MIN_TOTAL_NET_SAVING,
     VOCAB_COST_MODE,
 )
-from marker_count import count_syn_marker, encode as mc_encode
+from marker_count import encode as mc_encode
 from markers import make_syn_marker
-from placeholder_accounting import compute_vocab_intro_cost, count_sequence_tokens
+from placeholder_accounting import compute_vocab_intro_cost, count_base_tokens, count_sequence_tokens
 
 _SKIP_NODE_TYPES = (ast.Pass, ast.Break, ast.Continue)
 _TRY_TYPES = tuple(
@@ -253,7 +253,7 @@ def estimate_stage1_compressed_cost(
     tok_type: str,
 ) -> int:
     compressed = serialize_stage1_compressed_form(marker, slots)
-    return count_sequence_tokens(compressed, tokenizer=tokenizer, tok_type=tok_type)
+    return count_base_tokens(compressed, tokenizer=tokenizer, tok_type=tok_type)
 
 
 def estimate_stage1_occurrence_sequence_cost(
@@ -264,24 +264,25 @@ def estimate_stage1_occurrence_sequence_cost(
     tokenizer,
     tok_type: str,
 ) -> dict:
-    baseline_sequence_tokens = count_sequence_tokens(
+    baseline_sequence_tokens = count_base_tokens(
         match_text, tokenizer=tokenizer, tok_type=tok_type
     )
     compressed_text = serialize_stage1_compressed_form(marker, slots)
-    compressed_sequence_tokens = count_sequence_tokens(
+    compressed_sequence_tokens = count_base_tokens(
         compressed_text, tokenizer=tokenizer, tok_type=tok_type
     )
     slot_text = " ".join(slots).strip()
     slot_sequence_tokens = (
-        count_sequence_tokens(slot_text, tokenizer=tokenizer, tok_type=tok_type)
+        count_base_tokens(slot_text, tokenizer=tokenizer, tok_type=tok_type)
         if slot_text
         else 0
     )
+    marker_sequence_tokens = count_base_tokens(marker, tokenizer=tokenizer, tok_type=tok_type)
     return {
         "baseline_sequence_tokens": baseline_sequence_tokens,
         "compressed_sequence_tokens": compressed_sequence_tokens,
         "sequence_net_saving": baseline_sequence_tokens - compressed_sequence_tokens,
-        "marker_sequence_tokens": 1,
+        "marker_sequence_tokens": marker_sequence_tokens,
         "slot_sequence_tokens": slot_sequence_tokens,
         "compressed_text": compressed_text,
     }
@@ -405,7 +406,7 @@ def score_skeleton_candidate(
             "avg_baseline_cost": 0.0,
             "avg_compressed_cost": 0.0,
             "avg_slot_cost": 0.0,
-            "marker_cost": count_syn_marker(marker),
+            "marker_cost": count_base_tokens(marker, tokenizer=tokenizer, tok_type=tok_type),
             "avg_net_saving": 0.0,
             "total_net_saving": 0,
             "selected": False,
@@ -445,7 +446,7 @@ def score_skeleton_candidate(
         "avg_baseline_cost": sum_baseline / n,
         "avg_compressed_cost": sum_compressed / n,
         "avg_slot_cost": sum_slot_cost / n,
-        "marker_cost": count_syn_marker(marker),
+        "marker_cost": count_base_tokens(marker, tokenizer=tokenizer, tok_type=tok_type),
         "avg_net_saving": total_net / n,
         "total_net_saving": total_net,
         "selected": False,
@@ -560,6 +561,7 @@ class SkeletonCandidate:
     avg_compressed_cost: float = 0.0
     avg_slot_cost: float = 0.0
     marker_cost: int = 1
+    marker_text: str = ""
     avg_net_saving: float = 0.0
     total_net_saving: int = 0
     selected: bool = False
@@ -577,6 +579,7 @@ def build_candidate_pool(
     tok_type: str,
     sources: list[str],
     *,
+    marker_tokens: list[str] | None = None,
     min_occurrences: int | None = None,
     min_total_net_saving: int | None = None,
     min_avg_net_saving: float | None = None,
@@ -588,12 +591,14 @@ def build_candidate_pool(
     keys = set(skeleton_counts.keys())
     occurrences_map = collect_skeleton_occurrences(sources, keys)
     candidates: list[SkeletonCandidate] = []
-    probe_marker = make_syn_marker(0)
+    ordered_skeletons = list(skeleton_counts.keys())
+    resolved_markers = list(marker_tokens or [make_syn_marker(index) for index in range(len(ordered_skeletons))])
 
-    for sk in skeleton_counts:
+    for index, sk in enumerate(ordered_skeletons):
         fixed_toks = _header_token_count(sk, tokenizer, tok_type)
         cb = MDL_CODEBOOK_OVERHEAD
         occurrences = occurrences_map.get(sk, [])
+        probe_marker = resolved_markers[index] if index < len(resolved_markers) else make_syn_marker(index)
         stats = score_skeleton_candidate(
             sk,
             occurrences,
@@ -626,6 +631,7 @@ def build_candidate_pool(
                 avg_compressed_cost=float(stats["avg_compressed_cost"]),
                 avg_slot_cost=float(stats["avg_slot_cost"]),
                 marker_cost=int(stats["marker_cost"]),
+                marker_text=probe_marker,
                 avg_net_saving=float(stats["avg_net_saving"]),
                 total_net_saving=total_seq_saved,
                 selected=False,
@@ -728,7 +734,7 @@ def _collect_syntax_replacements(
         return {}, {}
 
     skeleton_to_op: dict[str, str] = {
-        cand.skeleton: make_syn_marker(i)
+        cand.skeleton: (cand.marker_text or make_syn_marker(i))
         for i, cand in enumerate(selected)
     }
     stats_by_skeleton: dict[str, dict] = {

@@ -146,7 +146,7 @@ def _stage1_vocab_intro(repo_config, tokenizer, tok_type: str) -> int:
     if not cands:
         return 0
     entries = [
-        build_stage1_vocab_entry(make_syn_marker(i), c.skeleton)
+        build_stage1_vocab_entry(c.marker_text or make_syn_marker(i), c.skeleton)
         for i, c in enumerate(cands)
     ]
     return compute_vocab_intro_cost(
@@ -232,7 +232,7 @@ def apply_stage1_stage2_adapted(
 
     cands = repo_config.skeleton_candidates()
     selected_skeletons = [x.skeleton for x in cands]
-    stage1_vocab_tokens = [make_syn_marker(i) for i in range(len(cands))]
+    stage1_vocab_tokens = [c.marker_text or make_syn_marker(i) for i, c in enumerate(cands)]
 
     return {
         "original_text": source,
@@ -296,7 +296,7 @@ def apply_stage1_stage2_layout_safe_experimental(
 
     cands = repo_config.skeleton_candidates()
     selected_skeletons = [x.skeleton for x in cands]
-    stage1_vocab_tokens = [make_syn_marker(i) for i in range(len(cands))]
+    stage1_vocab_tokens = [c.marker_text or make_syn_marker(i) for i, c in enumerate(cands)]
 
     return {
         "original_text": source,

@@ -151,7 +151,7 @@ def test_run_offline_stage_ablation_outputs_required_fields(
     monkeypatch.setattr(
         run_ablation,
         "run_variant",
-        lambda variant, chunk, repo_config, tokenizer_name, encoder, tok_type, stage2_profile, codebook_accounting_mode: {
+        lambda variant, chunk, repo_config, tokenizer_name, encoder, tok_type, stage2_profile, codebook_accounting_mode, stage1_marker_scheme: {
             "variant": variant,
             "chunk_id": chunk["chunk_id"],
             "source_id": chunk["source_id"],
@@ -160,6 +160,12 @@ def test_run_offline_stage_ablation_outputs_required_fields(
             "tokenizer_name": tokenizer_name,
             "stage2_profile": stage2_profile,
             "codebook_accounting_mode": codebook_accounting_mode,
+            "stage1_marker_scheme": stage1_marker_scheme,
+            "marker_tokens_total": 0,
+            "avg_marker_token_cost": 0.0,
+            "legacy_marker_tokens_total": 0,
+            "tokenizer_opt_marker_tokens_total": 0,
+            "marker_saved_vs_legacy": 0,
             "raw_tokens": 10,
             "compressed_tokens": 8,
             "codebook_tokens": 1,
@@ -239,7 +245,7 @@ def test_tokenizer_name_is_recorded(tmp_path: Path, monkeypatch) -> None:
         ],
     )
     monkeypatch.setattr(stage1_roundtrip_eval, "build_stage_repo_config", lambda *args, **kwargs: object())
-    monkeypatch.setattr(stage1_roundtrip_eval, "apply_stage1_with_stats", lambda *args, **kwargs: ("<SYN_0> x", {}))
+    monkeypatch.setattr(stage1_roundtrip_eval, "apply_stage1_only", lambda *args, **kwargs: ("<SYN_0> x", {}))
     monkeypatch.setattr(stage1_roundtrip_eval, "stage1_vocab_entries_for_text", lambda *args, **kwargs: [])
     monkeypatch.setattr(
         stage1_roundtrip_eval,

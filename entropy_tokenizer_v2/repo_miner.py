@@ -57,6 +57,10 @@ class RepoConfig:
     N_baseline_tokens:   int = 0
     V0:                  int = 0
     tokenizer_key:       str = ""
+    stage1_marker_scheme: str = "legacy"
+    stage1_marker_namespace: str = "legacy"
+    stage1_marker_tokens: list[str] = field(default_factory=list)
+    stage1_marker_token_costs: list[int] = field(default_factory=list)
     stage3_backend: str = "legacy"
     stage3_escape_prefix: str = "__L__"
     stage3_codebook_version: str = "v1"
@@ -83,6 +87,7 @@ class RepoConfig:
             d.setdefault("total_baseline_sequence_tokens", 0)
             d.setdefault("total_compressed_sequence_tokens", 0)
             d.setdefault("avg_sequence_net_saving", d.get("avg_net_saving", 0.0))
+            d.setdefault("marker_text", "")
             d.setdefault(
                 "effective_total_net_saving",
                 d.get("total_net_saving", 0),
@@ -97,6 +102,10 @@ class RepoConfig:
     def from_json(cls, s: str) -> "RepoConfig":
         d = json.loads(s)
         d.setdefault("stage3_backend", "legacy")
+        d.setdefault("stage1_marker_scheme", "legacy")
+        d.setdefault("stage1_marker_namespace", "legacy")
+        d.setdefault("stage1_marker_tokens", [])
+        d.setdefault("stage1_marker_token_costs", [])
         d.setdefault("stage3_escape_prefix", "__L__")
         d.setdefault("stage3_codebook_version", "v1")
         d.setdefault("stage3_plan_a_codebooks", {})
@@ -371,6 +380,7 @@ def mine_repo(
                 "avg_compressed_cost": c.avg_compressed_cost,
                 "avg_slot_cost": c.avg_slot_cost,
                 "marker_cost": c.marker_cost,
+                "marker_text": c.marker_text,
                 "avg_net_saving": c.avg_net_saving,
                 "total_net_saving": c.total_net_saving,
                 "selected": c.selected,

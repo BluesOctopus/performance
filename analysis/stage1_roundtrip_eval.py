@@ -10,15 +10,17 @@ if str(PKG_ROOT) not in sys.path:
     sys.path.insert(0, str(PKG_ROOT))
 
 from offline_diagnostics import (
+    DEFAULT_STAGE1_MARKER_SCHEME,
+    apply_stage1_only,
     build_stage_repo_config,
     build_token_ledger,
     decode_stage1_text,
     load_chunks,
     resolve_encoder_for_name,
+    stage1_marker_metrics,
     stage1_vocab_entries_for_text,
     write_csv,
 )
-from pipeline import apply_stage1_with_stats
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,6 +28,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunks", required=True, help="Input chunks JSONL from tools/build_py_chunks.py")
     parser.add_argument("--out", required=True, help="Output CSV path")
     parser.add_argument("--tokenizer", default="gpt4", help="Tokenizer name")
+    parser.add_argument(
+        "--stage1-marker-scheme",
+        default=DEFAULT_STAGE1_MARKER_SCHEME,
+        choices=("legacy", "tokenizer_opt"),
+        help="Stage1 marker scheme",
+    )
     parser.add_argument(
         "--codebook-accounting-mode",
         default="per_chunk",
@@ -44,6 +52,7 @@ def main() -> int:
         tokenizer_name=resolved.tokenizer_name,
         encoder=resolved.encoder,
         tok_type=resolved.tok_type,
+        stage1_marker_scheme=args.stage1_marker_scheme,
         stage3_mode="exact_only",
         enable_b=False,
     )
@@ -51,11 +60,11 @@ def main() -> int:
     rows: list[dict[str, object]] = []
     for chunk in chunks:
         original_text = str(chunk["chunk_text"])
-        stage1_text, _stats = apply_stage1_with_stats(
+        stage1_text, _stats = apply_stage1_only(
             original_text,
             repo_config,
-            resolved.encoder,
-            resolved.tok_type,
+            encoder=resolved.encoder,
+            tok_type=resolved.tok_type,
         )
         stage1_entries = stage1_vocab_entries_for_text(stage1_text, repo_config)
         if args.codebook_accounting_mode == "global_once":
@@ -69,6 +78,13 @@ def main() -> int:
             tok_type=resolved.tok_type,
             codebook_entries=stage1_entries,
         )
+        marker_metrics = stage1_marker_metrics(
+            stage1_text,
+            repo_config,
+            tokenizer_name=resolved.tokenizer_name,
+            encoder=resolved.encoder,
+            tok_type=resolved.tok_type,
+        )
         rows.append(
             {
                 "chunk_id": chunk["chunk_id"],
@@ -78,6 +94,7 @@ def main() -> int:
                 "tokenizer_name": resolved.tokenizer_name,
                 "tok_type": resolved.tok_type,
                 "codebook_accounting_mode": args.codebook_accounting_mode,
+                **marker_metrics,
                 "roundtrip_ok": decode_result.roundtrip_ok,
                 "decode_success": decode_result.decode_success,
                 "ast_equivalent": decode_result.ast_equivalent,
