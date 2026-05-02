@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import analysis.run_alpha_rename_oracle_eval as run_alpha_rename_oracle_eval
 import analysis.run_stage1_marker_ablation as run_stage1_marker_ablation
 from marker_optimizer import build_marker_scheme
-from offline_diagnostics import build_stage_repo_config, resolve_stage1_marker_scheme
+from offline_diagnostics import resolve_stage1_marker_scheme
 from stage3.alpha_rename import alpha_rename_function_chunk
 
 
@@ -103,6 +104,70 @@ def test_stage1_marker_ablation_outputs_marker_cost_fields(tmp_path: Path, monke
         "legacy_marker_tokens_total",
         "tokenizer_opt_marker_tokens_total",
         "marker_saved_vs_legacy",
+        "stage1_candidate_count",
+        "stage1_selected_count",
+        "stage1_selected_skeleton_count",
+        "stage1_rejected_no_gain_count",
+        "stage1_rejected_intro_cost_count",
+        "stage1_rejected_marker_cost_count",
+        "stage1_rejected_low_frequency_count",
+        "stage1_apply_hit_count",
+        "stage1_apply_miss_count",
+    ):
+        assert field in summary
+
+
+def test_alpha_rename_summary_outputs_eligible_fields(tmp_path: Path, monkeypatch) -> None:
+    out_dir = tmp_path / "alpha"
+    monkeypatch.setattr(
+        run_alpha_rename_oracle_eval,
+        "resolve_encoder_for_name",
+        lambda _name: SimpleNamespace(tokenizer_name="fake_tok", encoder=PrefersSingleTokenEncoder(), tok_type="tiktoken"),
+    )
+    monkeypatch.setattr(
+        run_alpha_rename_oracle_eval,
+        "load_chunks",
+        lambda _path: [
+            {
+                "chunk_id": "c1",
+                "source_id": "s.py",
+                "symbol_type": "function",
+                "symbol_name": "f",
+                "chunk_text": "def f(arg_name):\n    long_local_name = arg_name + 1\n    return long_local_name\n",
+            }
+        ],
+    )
+    monkeypatch.setattr(run_alpha_rename_oracle_eval, "apply_stage2_only", lambda text, **kwargs: text)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run_alpha_rename_oracle_eval.py",
+            "--chunks",
+            "dummy.jsonl",
+            "--out_dir",
+            str(out_dir),
+            "--tokenizer",
+            "gpt4",
+            "--stage2-profile",
+            "aggressive",
+        ],
+    )
+    run_alpha_rename_oracle_eval.main()
+    summary = (out_dir / "alpha_rename_oracle_summary.csv").read_text(encoding="utf-8")
+    for field in (
+        "all_chunk_count",
+        "eligible_function_count",
+        "skipped_not_function_count",
+        "skipped_parse_failed_count",
+        "skipped_no_eligible_locals_count",
+        "overall_hit_rate",
+        "eligible_hit_rate",
+        "overall_effective_saved",
+        "eligible_effective_saved",
+        "eligible_positive_doc_rate",
+        "eligible_mean_delta",
+        "renamed_count_total",
+        "ast_equivalence_rate",
     ):
         assert field in summary
 

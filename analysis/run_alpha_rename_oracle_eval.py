@@ -38,6 +38,24 @@ def main() -> int:
 
     chunks = load_chunks(args.chunks)
     resolved = resolve_encoder_for_name(args.tokenizer)
+    eligibility_by_chunk: dict[str, dict[str, object]] = {}
+    baseline_by_chunk: dict[str, dict[str, int]] = {}
+    for chunk in chunks:
+        chunk_id = str(chunk["chunk_id"])
+        raw_text = str(chunk["chunk_text"])
+        stage2_text = apply_stage2_only(raw_text, stage2_profile=args.stage2_profile, path=str(chunk["source_id"]))
+        result = alpha_rename_function_chunk(
+            stage2_text,
+            tokenizer_name=resolved.tokenizer_name,
+            encoder=resolved.encoder,
+            tok_type=resolved.tok_type,
+        )
+        eligibility_by_chunk[chunk_id] = {
+            "stage2_text": stage2_text,
+            "rename_result": result,
+            "eligible": result.skipped_reason in {"", "no_eligible_locals"},
+        }
+
     detail_rows: list[dict[str, object]] = []
     summary_rows: list[dict[str, object]] = []
     for variant in VARIANTS:
@@ -45,6 +63,7 @@ def main() -> int:
             run_variant(
                 variant,
                 chunk,
+                analysis=eligibility_by_chunk[str(chunk["chunk_id"])],
                 tokenizer_name=resolved.tokenizer_name,
                 encoder=resolved.encoder,
                 tok_type=resolved.tok_type,
@@ -53,7 +72,20 @@ def main() -> int:
             for chunk in chunks
         ]
         detail_rows.extend(variant_rows)
-        summary_rows.append(summarize_variant(variant_rows, resolved.tokenizer_name, args.stage2_profile))
+        if variant == "stage2_only":
+            for row in variant_rows:
+                baseline_by_chunk[str(row["chunk_id"])] = {
+                    "effective_tokens": int(row["effective_tokens"]),
+                    "effective_saved": int(row["effective_saved"]),
+                }
+        summary_rows.append(
+            summarize_variant(
+                variant_rows,
+                tokenizer_name=resolved.tokenizer_name,
+                stage2_profile=args.stage2_profile,
+                baseline_by_chunk=baseline_by_chunk,
+            )
+        )
 
     stage2_only_summary = next((row for row in summary_rows if row["variant"] == "stage2_only"), None)
     for row in summary_rows:
@@ -72,13 +104,16 @@ def run_variant(
     variant: str,
     chunk: dict[str, object],
     *,
+    analysis: dict[str, object],
     tokenizer_name: str,
     encoder,
     tok_type: str,
     stage2_profile: str,
 ) -> dict[str, object]:
     raw_text = str(chunk["chunk_text"])
-    stage2_text = apply_stage2_only(raw_text, stage2_profile=stage2_profile, path=str(chunk["source_id"]))
+    stage2_text = str(analysis["stage2_text"])
+    rename_result = analysis["rename_result"]
+    eligible = bool(analysis["eligible"])
     renamed_count = 0
     ast_equivalent = variant != "stage2_alpha_rename"
     skipped_reason = ""
@@ -88,16 +123,10 @@ def run_variant(
     elif variant == "stage2_only":
         final_text = stage2_text
     elif variant == "stage2_alpha_rename":
-        result = alpha_rename_function_chunk(
-            stage2_text,
-            tokenizer_name=tokenizer_name,
-            encoder=encoder,
-            tok_type=tok_type,
-        )
-        final_text = result.renamed_text
-        renamed_count = result.renamed_count
-        ast_equivalent = result.ast_equivalent
-        skipped_reason = result.skipped_reason
+        final_text = rename_result.renamed_text
+        renamed_count = rename_result.renamed_count
+        ast_equivalent = rename_result.ast_equivalent
+        skipped_reason = rename_result.skipped_reason
     else:
         raise ValueError(f"Unsupported variant: {variant}")
 
@@ -121,6 +150,8 @@ def run_variant(
         "compressed_tokens": ledger.compressed_tokens,
         "effective_tokens": ledger.effective_tokens,
         "effective_saved": ledger.effective_saved,
+        "eligible_function": eligible,
+        "positive_doc": False,
         "renamed_count": renamed_count,
         "alpha_rename_hit": renamed_count > 0,
         "ast_equivalent": ast_equivalent,
@@ -128,13 +159,33 @@ def run_variant(
     }
 
 
-def summarize_variant(rows: list[dict[str, object]], tokenizer_name: str, stage2_profile: str) -> dict[str, object]:
+def summarize_variant(
+    rows: list[dict[str, object]],
+    tokenizer_name: str,
+    stage2_profile: str,
+    *,
+    baseline_by_chunk: dict[str, dict[str, int]],
+) -> dict[str, object]:
     raw_tokens = sum(int(row["raw_tokens"]) for row in rows)
     compressed_tokens = sum(int(row["compressed_tokens"]) for row in rows)
     effective_tokens = sum(int(row["effective_tokens"]) for row in rows)
     rename_hits = sum(int(bool(row["alpha_rename_hit"])) for row in rows)
     renamed_count_total = sum(int(row["renamed_count"]) for row in rows)
     skipped_counter = Counter(str(row.get("skipped_reason", "") or "") for row in rows)
+    eligible_rows = [row for row in rows if bool(row.get("eligible_function"))]
+    eligible_effective_saved = sum(int(row["effective_saved"]) for row in eligible_rows)
+    eligible_deltas: list[int] = []
+    eligible_positive_count = 0
+    for row in rows:
+        baseline = baseline_by_chunk.get(str(row["chunk_id"]))
+        delta = 0
+        if baseline is not None:
+            delta = int(baseline["effective_tokens"]) - int(row["effective_tokens"])
+        row["delta_vs_stage2_only"] = delta
+        row["positive_doc"] = delta > 0
+        if bool(row.get("eligible_function")):
+            eligible_deltas.append(delta)
+            eligible_positive_count += int(delta > 0)
     return {
         "tokenizer_name": tokenizer_name,
         "stage2_profile": stage2_profile,
@@ -143,6 +194,27 @@ def summarize_variant(rows: list[dict[str, object]], tokenizer_name: str, stage2
         "compressed_tokens": compressed_tokens,
         "effective_tokens": effective_tokens,
         "effective_saved": raw_tokens - effective_tokens,
+        "overall_effective_saved": raw_tokens - effective_tokens,
+        "all_chunk_count": len(rows),
+        "eligible_function_count": len(eligible_rows),
+        "skipped_not_function_count": sum(int((row.get("skipped_reason") or "") == "not_function_chunk") for row in rows),
+        "skipped_parse_failed_count": sum(int((row.get("skipped_reason") or "") == "parse_failed") for row in rows),
+        "skipped_no_eligible_locals_count": sum(
+            int((row.get("skipped_reason") or "") == "no_eligible_locals") for row in rows
+        ),
+        "overall_hit_rate": rename_hits / len(rows) if rows else 0.0,
+        "eligible_hit_rate": (
+            sum(int(bool(row.get("alpha_rename_hit"))) for row in eligible_rows) / len(eligible_rows)
+            if eligible_rows
+            else 0.0
+        ),
+        "eligible_effective_saved": eligible_effective_saved,
+        "eligible_positive_doc_rate": (
+            eligible_positive_count / len(eligible_deltas) if eligible_deltas else 0.0
+        ),
+        "eligible_mean_delta": (
+            sum(eligible_deltas) / len(eligible_deltas) if eligible_deltas else 0.0
+        ),
         "delta_vs_stage2_only": 0,
         "alpha_rename_hit_rate": rename_hits / len(rows) if rows else 0.0,
         "renamed_count_total": renamed_count_total,

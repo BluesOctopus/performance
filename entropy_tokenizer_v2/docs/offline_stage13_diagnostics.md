@@ -24,6 +24,32 @@ python analysis/stage3_gain_eval.py --chunks tmp/chunks.jsonl --out tmp/stage3.c
 python analysis/run_offline_stage_ablation.py --chunks tmp/chunks.jsonl --out_dir tmp/ablation --tokenizer <tokenizer> --stage2-profile aggressive
 ```
 
+## Stage1 marker stress smoke
+
+Fixed source snippets live in:
+
+- `entropy_tokenizer_v2/eval/data/stage1_marker_stress_samples.json`
+
+One simple local workflow is:
+
+```bash
+python tools/build_py_chunks.py --input tmp/stage1_marker_stress_src --output tmp/stage1_marker_stress_chunks.jsonl --tokenizer Qwen/Qwen2.5-Coder-1.5B
+python analysis/run_stage1_marker_ablation.py --chunks tmp/stage1_marker_stress_chunks.jsonl --out_dir tmp/stage1_marker_stress --tokenizer Qwen/Qwen2.5-Coder-1.5B --stage2-profile aggressive
+```
+
+## Alpha-renaming stress smoke
+
+Fixed source snippets live in:
+
+- `entropy_tokenizer_v2/eval/data/alpha_rename_stress_samples.json`
+
+One simple local workflow is:
+
+```bash
+python tools/build_py_chunks.py --input tmp/alpha_rename_stress_src --output tmp/alpha_rename_stress_chunks.jsonl --tokenizer Qwen/Qwen2.5-Coder-1.5B
+python analysis/run_alpha_rename_oracle_eval.py --chunks tmp/alpha_rename_stress_chunks.jsonl --out_dir tmp/alpha_rename_stress --tokenizer Qwen/Qwen2.5-Coder-1.5B --stage2-profile aggressive
+```
+
 ## Notes
 
 - `codebook_accounting_mode` defaults to `per_chunk` for conservative offline accounting.

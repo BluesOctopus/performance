@@ -94,14 +94,14 @@ def main() -> int:
         ]
         detail_rows.extend(variant_rows)
         summary_rows.append(
-            summarize_variant(
+            build_summary_row(
                 variant_rows,
                 variant=variant,
+                repo_config=repo_config_for_variant(variant, repo_configs),
                 tokenizer_name=resolved.tokenizer_name,
                 encoder=resolved.encoder,
                 tok_type=resolved.tok_type,
                 stage2_profile=args.stage2_profile,
-                codebook_accounting_mode="per_chunk",
             )
         )
 
@@ -133,11 +133,7 @@ def main() -> int:
             if tokenizer_opt_2_summary and legacy_2_summary
             else 0
         )
-        row["stage1_attribution_note"] = (
-            "stage1_hit_rate=0; cannot attribute gains to Stage1"
-            if float(row.get("stage1_hit_rate", 0.0) or 0.0) == 0.0
-            else ""
-        )
+        row["stage1_attribution_note"] = attribution_note(row)
 
     write_csv(out_dir / "stage1_marker_ablation_detail.csv", detail_rows)
     write_csv(out_dir / "stage1_marker_ablation_summary.csv", summary_rows)
@@ -238,6 +234,7 @@ def run_variant(
         encoder=encoder,
         tok_type=tok_type,
     )
+    repo_diag = stage1_repo_diagnostics(repo_config, [])
     return {
         "variant": variant,
         "chunk_id": chunk["chunk_id"],
@@ -258,6 +255,7 @@ def run_variant(
         "net_saved": ledger.net_saved,
         "effective_saved": ledger.effective_saved,
         **marker_metrics,
+        **repo_diag,
         "stage1_hit": stage1_hit,
         "stage3_triggered": False,
         "roundtrip_ok": roundtrip_ok,
@@ -268,6 +266,76 @@ def run_variant(
         "rollback_reason": "",
         "_codebook_entries": codebook_entries,
     }
+
+
+def repo_config_for_variant(variant: str, repo_configs: dict[str, object]):
+    if "tokenizer_opt" in variant:
+        return repo_configs["tokenizer_opt"]
+    return repo_configs["legacy"]
+
+
+def build_summary_row(
+    rows: list[dict[str, object]],
+    *,
+    variant: str,
+    repo_config,
+    tokenizer_name: str,
+    encoder,
+    tok_type: str,
+    stage2_profile: str,
+) -> dict[str, object]:
+    summary = summarize_variant(
+        rows,
+        variant=variant,
+        tokenizer_name=tokenizer_name,
+        encoder=encoder,
+        tok_type=tok_type,
+        stage2_profile=stage2_profile,
+        codebook_accounting_mode="per_chunk",
+    )
+    summary.update(stage1_repo_diagnostics(repo_config, rows))
+    summary["stage1_attribution_note"] = attribution_note(summary)
+    return summary
+
+
+def stage1_repo_diagnostics(repo_config, rows: list[dict[str, object]]) -> dict[str, object]:
+    candidate_count = len(getattr(repo_config, "stage1_candidate_stats", []) or [])
+    selected_count = len(getattr(repo_config, "stage1_selected_stats", []) or [])
+    apply_hit_count = sum(int(bool(row.get("stage1_hit"))) for row in rows)
+    apply_miss_count = len(rows) - apply_hit_count if rows and any("stage1_" in str(row.get("variant", "")) for row in rows) else 0
+    return {
+        "stage1_candidate_count": candidate_count,
+        "stage1_selected_count": selected_count,
+        "stage1_selected_skeleton_count": len(getattr(repo_config, "stage1_marker_tokens", []) or []),
+        "stage1_rejected_no_gain_count": int(getattr(repo_config, "stage1_rejected_no_gain_count", 0) or 0),
+        "stage1_rejected_intro_cost_count": int(getattr(repo_config, "stage1_rejected_intro_cost_count", 0) or 0),
+        "stage1_rejected_marker_cost_count": int(getattr(repo_config, "stage1_rejected_marker_cost_count", 0) or 0),
+        "stage1_rejected_low_frequency_count": int(getattr(repo_config, "stage1_low_frequency_count", 0) or 0),
+        "stage1_apply_hit_count": apply_hit_count,
+        "stage1_apply_miss_count": apply_miss_count,
+    }
+
+
+def attribution_note(summary: dict[str, object]) -> str:
+    hit_rate = float(summary.get("stage1_hit_rate", 0.0) or 0.0)
+    if hit_rate > 0.0:
+        return ""
+    candidate_count = int(summary.get("stage1_candidate_count", 0) or 0)
+    selected_count = int(summary.get("stage1_selected_count", 0) or 0)
+    apply_hit_count = int(summary.get("stage1_apply_hit_count", 0) or 0)
+    marker_rejects = int(summary.get("stage1_rejected_marker_cost_count", 0) or 0)
+    intro_rejects = int(summary.get("stage1_rejected_intro_cost_count", 0) or 0)
+    if candidate_count == 0:
+        return "stage1_hit_rate=0; no Stage1 candidates"
+    if selected_count == 0:
+        return "stage1_hit_rate=0; candidates exist but none selected"
+    if apply_hit_count == 0:
+        return "stage1_hit_rate=0; selected skeletons were never applied"
+    if marker_rejects > 0:
+        return "stage1_hit_rate=0; marker cost blocked net gains"
+    if intro_rejects > 0:
+        return "stage1_hit_rate=0; codebook intro cost absorbed gains"
+    return "stage1_hit_rate=0; cannot attribute gains to Stage1"
 
 
 if __name__ == "__main__":

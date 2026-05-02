@@ -61,6 +61,11 @@ class RepoConfig:
     stage1_marker_namespace: str = "legacy"
     stage1_marker_tokens: list[str] = field(default_factory=list)
     stage1_marker_token_costs: list[int] = field(default_factory=list)
+    stage1_all_skeleton_count: int = 0
+    stage1_low_frequency_count: int = 0
+    stage1_rejected_no_gain_count: int = 0
+    stage1_rejected_intro_cost_count: int = 0
+    stage1_rejected_marker_cost_count: int = 0
     stage3_backend: str = "legacy"
     stage3_escape_prefix: str = "__L__"
     stage3_codebook_version: str = "v1"
@@ -106,6 +111,11 @@ class RepoConfig:
         d.setdefault("stage1_marker_namespace", "legacy")
         d.setdefault("stage1_marker_tokens", [])
         d.setdefault("stage1_marker_token_costs", [])
+        d.setdefault("stage1_all_skeleton_count", 0)
+        d.setdefault("stage1_low_frequency_count", 0)
+        d.setdefault("stage1_rejected_no_gain_count", 0)
+        d.setdefault("stage1_rejected_intro_cost_count", 0)
+        d.setdefault("stage1_rejected_marker_cost_count", 0)
         d.setdefault("stage3_escape_prefix", "__L__")
         d.setdefault("stage3_codebook_version", "v1")
         d.setdefault("stage3_plan_a_codebooks", {})

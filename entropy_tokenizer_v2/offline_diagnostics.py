@@ -35,8 +35,10 @@ from syntax_compressor import (
     SkeletonCandidate,
     build_candidate_pool,
     build_stage1_vocab_entry,
+    collect_skeleton_occurrences,
     greedy_mdl_select,
     mine_skeletons,
+    score_skeleton_candidate,
 )
 from tokenizer_utils import DEFAULT_TOKENIZER_NAME, count_tokens, resolve_tokenizer
 
@@ -103,6 +105,7 @@ def build_stage_repo_config(
     stage3_min_occ: int = 2,
     stage3_min_gain: int = 1,
 ) -> RepoConfig:
+    all_skeleton_counts = mine_skeletons(chunk_texts, min_freq=1)
     skeleton_counts = mine_skeletons(chunk_texts)
     n_baseline = sum(count_tokens(text, encoder=encoder, tok_type=tok_type) for text in chunk_texts)
     vocab_size = int(getattr(encoder, "n_vocab", 0) or 0)
@@ -113,6 +116,14 @@ def build_stage_repo_config(
         tok_type=tok_type,
         count=len(skeleton_counts),
         avoid_texts=chunk_texts,
+    )
+    rejection_counts = classify_stage1_rejections(
+        all_skeleton_counts,
+        tokenizer_name=tokenizer_name,
+        encoder=encoder,
+        tok_type=tok_type,
+        chunk_texts=chunk_texts,
+        marker_scheme=candidate_markers,
     )
     candidates = build_candidate_pool(
         skeleton_counts,
@@ -154,6 +165,11 @@ def build_stage_repo_config(
         stage1_marker_namespace=candidate_markers.namespace,
         stage1_marker_tokens=candidate_markers.markers[: len(selected)],
         stage1_marker_token_costs=candidate_markers.marker_token_costs[: len(selected)],
+        stage1_all_skeleton_count=int(rejection_counts["all_skeleton_count"]),
+        stage1_low_frequency_count=int(rejection_counts["low_frequency_count"]),
+        stage1_rejected_no_gain_count=int(rejection_counts["rejected_no_gain_count"]),
+        stage1_rejected_intro_cost_count=int(rejection_counts["rejected_intro_cost_count"]),
+        stage1_rejected_marker_cost_count=int(rejection_counts["rejected_marker_cost_count"]),
         stage3_backend="hybrid_ab",
         stage3_ab_summary=stage3_summary,
     )
@@ -220,6 +236,52 @@ def stage1_marker_scheme_from_repo_config(
                 marker_token_costs=costs,
             )
     return build_legacy_marker_scheme(tokenizer_name, encoder, tok_type, skeleton_count)
+
+
+def classify_stage1_rejections(
+    all_skeleton_counts,
+    *,
+    tokenizer_name: str,
+    encoder: Any,
+    tok_type: str,
+    chunk_texts: list[str],
+    marker_scheme: MarkerScheme,
+) -> dict[str, int]:
+    del tokenizer_name
+    occ_min = 2
+    occurrences_map = collect_skeleton_occurrences(chunk_texts, set(all_skeleton_counts.keys()))
+    counts = {
+        "all_skeleton_count": len(all_skeleton_counts),
+        "low_frequency_count": 0,
+        "rejected_no_gain_count": 0,
+        "rejected_intro_cost_count": 0,
+        "rejected_marker_cost_count": 0,
+    }
+    for index, skeleton in enumerate(all_skeleton_counts.keys()):
+        occurrences = occurrences_map.get(skeleton, [])
+        if len(occurrences) < occ_min:
+            counts["low_frequency_count"] += 1
+            continue
+        marker = marker_scheme.marker(index) if index < len(marker_scheme.markers) else make_syn_marker(index)
+        stats = score_skeleton_candidate(
+            skeleton,
+            occurrences,
+            marker,
+            encoder,
+            tok_type,
+        )
+        total_net_saving = int(stats.get("total_net_saving", 0))
+        effective_total_net_saving = int(stats.get("effective_total_net_saving", total_net_saving))
+        marker_cost = int(stats.get("marker_cost", 0))
+        occurrences_count = int(stats.get("occurrences", 0))
+        vocab_intro_tokens = int(stats.get("vocab_intro_tokens", 0))
+        if total_net_saving <= 0:
+            counts["rejected_no_gain_count"] += 1
+        elif marker_cost * max(occurrences_count, 1) >= total_net_saving:
+            counts["rejected_marker_cost_count"] += 1
+        elif effective_total_net_saving <= 0 or vocab_intro_tokens >= total_net_saving:
+            counts["rejected_intro_cost_count"] += 1
+    return counts
 
 
 def apply_stage2_only(text: str, *, stage2_profile: str, path: str = "<chunk>") -> str:
@@ -302,12 +364,18 @@ def apply_stage3(text: str, repo_config: RepoConfig, *, encoder: Any, tok_type: 
 
 
 def stage1_vocab_entries_for_text(text: str, repo_config: RepoConfig) -> list[dict[str, Any]]:
+    scheme = MarkerScheme(
+        tokenizer_name=str(getattr(repo_config, "tokenizer_key", "")) or DEFAULT_TOKENIZER_NAME,
+        namespace=str(getattr(repo_config, "stage1_marker_namespace", "repo") or "repo"),
+        markers=list(getattr(repo_config, "stage1_marker_tokens", []) or []),
+        marker_token_costs=list(getattr(repo_config, "stage1_marker_token_costs", []) or []),
+    )
     marker_map = {
         (candidate.marker_text or make_syn_marker(index)): candidate.skeleton
         for index, candidate in enumerate(repo_config.skeleton_candidates())
     }
     entries: list[dict[str, Any]] = []
-    for placeholder in extract_stage1_markers(text):
+    for placeholder in extract_stage1_markers(text, scheme=scheme if scheme.markers else None):
         skeleton = marker_map.get(placeholder)
         if skeleton is None:
             continue
@@ -324,7 +392,13 @@ def stage1_marker_metrics(
     tok_type: str,
 ) -> dict[str, Any]:
     skeleton_count = len(repo_config.skeleton_candidates()) if hasattr(repo_config, "skeleton_candidates") else 0
-    markers = extract_stage1_markers(text)
+    active_scheme = stage1_marker_scheme_from_repo_config(
+        repo_config,
+        tokenizer_name=tokenizer_name,
+        encoder=encoder,
+        tok_type=tok_type,
+    )
+    markers = extract_stage1_markers(text, scheme=active_scheme if active_scheme.markers else None)
     if not markers:
         return {
             "stage1_marker_scheme": str(getattr(repo_config, "stage1_marker_scheme", "legacy") or "legacy"),
@@ -335,12 +409,6 @@ def stage1_marker_metrics(
             "marker_saved_vs_legacy": 0,
         }
 
-    active_scheme = stage1_marker_scheme_from_repo_config(
-        repo_config,
-        tokenizer_name=tokenizer_name,
-        encoder=encoder,
-        tok_type=tok_type,
-    )
     legacy_scheme = build_legacy_marker_scheme(tokenizer_name, encoder, tok_type, skeleton_count)
     tokenizer_opt_scheme = resolve_stage1_marker_scheme(
         "tokenizer_opt",
@@ -493,6 +561,12 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
 
 
 def decode_stage1_text(text: str, repo_config: RepoConfig, *, original_text: str) -> Stage1DecodeResult:
+    scheme = MarkerScheme(
+        tokenizer_name=str(getattr(repo_config, "tokenizer_key", "")) or DEFAULT_TOKENIZER_NAME,
+        namespace=str(getattr(repo_config, "stage1_marker_namespace", "repo") or "repo"),
+        markers=list(getattr(repo_config, "stage1_marker_tokens", []) or []),
+        marker_token_costs=list(getattr(repo_config, "stage1_marker_token_costs", []) or []),
+    )
     marker_map = {
         (candidate.marker_text or make_syn_marker(index)): candidate.skeleton
         for index, candidate in enumerate(repo_config.skeleton_candidates())
@@ -500,7 +574,7 @@ def decode_stage1_text(text: str, repo_config: RepoConfig, *, original_text: str
     decoded_lines: list[str] = []
     error_type = ""
     for line in text.splitlines():
-        marker = extract_line_marker(line)
+        marker = extract_line_marker(line, scheme=scheme if scheme.markers else None)
         if marker is None:
             decoded_lines.append(line)
             continue
