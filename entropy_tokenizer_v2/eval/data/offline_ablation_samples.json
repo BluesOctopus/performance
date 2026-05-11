@@ -1,0 +1,9 @@
+[
+  "def add(a, b):\n    return a + b\n",
+  "class Greeter:\n    def hello(self, name):\n        return f'hello {name}'\n",
+  "def normalize(items):\n    total = sum(items)\n    if not total:\n        return []\n    return [item / total for item in items]\n",
+  "def clamp(x, lo, hi):\n    if x < lo:\n        return lo\n    if x > hi:\n        return hi\n    return x\n",
+  "def render_user(user):\n    return {'id': user['id'], 'name': user['name']}\n",
+  "class Counter:\n    def __init__(self):\n        self.value = 0\n    def inc(self):\n        self.value += 1\n        return self.value\n",
+  "def pairwise_sum(items):\n    result = []\n    for idx in range(0, len(items), 2):\n        result.append(sum(items[idx:idx+2]))\n    return result\n"
+]

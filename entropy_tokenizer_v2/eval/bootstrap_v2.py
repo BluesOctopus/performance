@@ -1,7 +1,10 @@
-"""Insert ``entropy_tokenizer_v2`` (and optionally Simpy) on ``sys.path`` for eval scripts."""
+"""Bootstrap helpers for eval scripts.
+
+This project now uses stable package import paths, so we no longer need to
+modify ``sys.path`` at runtime.
+"""
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 V2_DIR = Path(__file__).resolve().parent.parent
@@ -9,13 +12,12 @@ CODE_DIR = V2_DIR.parent
 
 
 def ensure() -> None:
-    p = str(V2_DIR)
-    if p not in sys.path:
-        sys.path.insert(0, p)
+    # no-op: kept for backward compatibility
+    return
 
 
 def ensure_with_simpy() -> None:
+    # If Simpy is required, it should be installed as a normal dependency.
+    # We no longer dynamically mutate ``sys.path``.
     ensure()
-    s = str(CODE_DIR / "Simpy-master")
-    if s not in sys.path:
-        sys.path.insert(0, s)
+    return

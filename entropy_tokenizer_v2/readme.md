@@ -135,16 +135,22 @@ Score(w) = ΔT(w) / (ΔI(w) + ε)
 
 ---
 
-## 目录结构
+## 目录结构（精简后）
 
 ```
 entropy_tokenizer_v2/
 ├── config.py
 ├── lossy_cleaner.py
-├── token_scorer.py
-├── syntax_compressor.py
-├── repo_miner.py
+├── markers.py
 ├── marker_count.py
+├── pipeline.py
+├── repo_miner.py
+├── syntax_compressor.py
+├── token_scorer.py
+├── stage2/
+│   ├── __init__.py
+│   ├── cleaning.py
+│   └── config.py
 ├── cache/
 ├── results/
 ├── docs/
@@ -152,10 +158,14 @@ entropy_tokenizer_v2/
 └── eval/
     ├── bootstrap_v2.py
     ├── run_v2.py
-    ├── v2_eval.py
-    ├── eval_stage1_fair_compare.py
-    └── eval_local_starcoder_1m.py
+    └── v2_eval.py
 ```
+
+### 模块职责
+
+- `pipeline.py`：核心压缩业务实现（Stage1/2/3 串联、skip-SYN 处理、单文件分解结果）。
+- `eval/v2_eval.py`：评估入口（采样、聚合、统计、报表与结果落盘），不承载底层阶段实现。
+- `markers.py` / `marker_count.py`：marker 识别与增广 token 计数的统一底层。
 
 ---
 
@@ -168,8 +178,6 @@ python performance/code/entropy_tokenizer_v2/eval/run_v2.py demo --tokenizer gpt
 python performance/code/entropy_tokenizer_v2/eval/run_v2.py demo --file path/to/script.py --tokenizer gpt4
 python performance/code/entropy_tokenizer_v2/eval/run_v2.py eval --repo /path/to/project --tokenizers gpt4
 python performance/code/entropy_tokenizer_v2/eval/run_v2.py eval --samples 200 --tokenizers gpt4 santacoder
-python performance/code/entropy_tokenizer_v2/eval/eval_local_starcoder_1m.py --tokenizers gpt4
-python performance/code/entropy_tokenizer_v2/eval/eval_local_starcoder_1m.py --tokenizers gpt2
 ```
 
 ---

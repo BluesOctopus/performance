@@ -1,13 +1,12 @@
-"""Count tokenizer ids as if each ``<SYN_n>`` / placeholder were one token."""
+"""Count tokenizer ids as if each placeholder were one token (unified accounting)."""
+
 from __future__ import annotations
 
-import re
 from re import Pattern
 
-RE_ALL_MARKERS: Pattern[str] = re.compile(
-    r"<SYN_\d+>|<VAR>|<ATTR>|<STR>|<FSTR>|<NUM>"
-)
-RE_SYN_ONLY: Pattern[str] = re.compile(r"<SYN_\d+>")
+from markers import RE_ALL_MARKERS
+from placeholder_accounting import count_sequence_tokens
+from markers import is_syn_marker
 
 
 def encode(tokenizer, tok_type: str, text: str) -> list[int]:
@@ -23,8 +22,22 @@ def count_augmented(
     *,
     pattern: Pattern[str] = RE_ALL_MARKERS,
 ) -> int:
-    hits = pattern.findall(text)
-    if not hits:
-        return len(encode(tokenizer, tok_type, text))
-    stripped = pattern.sub("", text)
-    return len(encode(tokenizer, tok_type, stripped)) + len(hits)
+    del pattern
+    return count_sequence_tokens(text, tokenizer=tokenizer, tok_type=tok_type)
+
+
+def count_augmented_text_fragment(
+    text: str,
+    tokenizer,
+    tok_type: str,
+    *,
+    pattern: Pattern[str] = RE_ALL_MARKERS,
+) -> int:
+    del pattern
+    return count_sequence_tokens(text, tokenizer=tokenizer, tok_type=tok_type)
+
+
+def count_syn_marker(marker: str) -> int:
+    if not is_syn_marker(marker):
+        raise ValueError(f"not a valid SYN marker: {marker}")
+    return 1
